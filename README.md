@@ -62,3 +62,7 @@ Sem variáveis Supabase, a aplicação mostra apenas uma demonstração **fictí
 ## Próximos marcos
 
 Consultar `docs/PLANO.md`. Nenhuma informação de remuneração, PDF ou credencial real deve ser versionada neste repositório.
+
+## Primeiro acesso e recuperação de senha
+
+O app possui login, solicitação de recuperação e formulário de atualização de senha em Configurações. Para que o convite ou e-mail de recuperação chegue ao app, configure **Auth → URL Configuration** no Supabase com o domínio da versão de homologação, preservando o bloqueio de cadastro aberto. O cadastro inicial deve ser enviado pelo painel Supabase Auth (Invite User), não por SQL direto em `auth.users`.
