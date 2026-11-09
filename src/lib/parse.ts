@@ -33,7 +33,7 @@ function group(items:Item[]):Row[]{
 function rowValue(row:Row,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
 function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const whole=rows.map(r=>r.text).join('\n')
-  const range=whole.match(/(\d{2})\/\d{2}\/(\d{4})\s+a\s+\d{2}\/\d{2}\/\d{4}/i)
+  const range=whole.match(/\d{2}\/(\d{2})\/(\d{4})\s+a\s+\d{2}\/\d{2}\/\d{4}/i)
   const period=range ? range[2]+'-'+range[1] : ''
   const salaryRow=rows.find(r=>r.text.includes('Salário contratual:'))
   const salaryIndex=salaryRow?rows.indexOf(salaryRow):-1
