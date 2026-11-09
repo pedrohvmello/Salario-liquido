@@ -38,7 +38,7 @@ create table if not exists public.time_entries (
 create table if not exists public.statements (
  id uuid primary key default gen_random_uuid(),
  user_id uuid not null references auth.users(id) on delete cascade,
- period text not null check (period ~ '^[0-9]{4}-[0-9]{2}),
+ period text not null check (period ~ '^[0-9]{4}-(0[1-9]|1[0-2])
  format text not null check (format in ('old','new')),
  source_sha256 text not null,
  source_page integer not null check (source_page > 0),
