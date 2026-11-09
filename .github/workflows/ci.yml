@@ -1,0 +1,21 @@
+name: Tests and build
+on:
+  pull_request:
+  push:
+    branches: [codex/foundation-multiuser-payroll]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
