@@ -30,14 +30,14 @@ function group(items:Item[]):Row[]{
   }
   return groups.sort((a,b)=>b.y-a.y)
 }
-function rowValue(row:Row,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
+function rowValue(row:Pick<Row,'items'>,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
 function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const whole=rows.map(r=>r.text).join('\n')
   const range=whole.match(/\d{2}\/(\d{2})\/(\d{4})\s+a\s+\d{2}\/\d{2}\/\d{4}/i)
   const period=range ? range[2]+'-'+range[1] : ''
   const salaryRow=rows.find(r=>r.text.includes('Salário contratual:'))
   const salaryIndex=salaryRow?rows.indexOf(salaryRow):-1
-  const salaryContract=salaryIndex>=0?money(rowValue(rows[salaryIndex+1]||{items:[]} as Row,/^\d{1,3}(?:\.\d{3})*,\d{2}$/))||null:null
+  const salaryContract=salaryIndex>=0?money(rowValue(rows[salaryIndex+1]||{items:[]},/^\d{1,3}(?:\.\d{3})*,\d{2}$/))||null:null
   const start=rows.findIndex(r=>r.text.includes('Código')&&r.text.includes('Descrição'))
   const stop=rows.findIndex((r,i)=>i>start&&r.text.includes('Total de proventos:'))
   const lines:PayrollLine[]=[]
@@ -64,7 +64,6 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
 const NEW_CREDIT_CODES=new Set(['1000','3301','3041','3042','315Z','3065','3261','4389','6913','6914','6915','6916','4503'])
 const NEW_DEBIT_CODES=new Set(['/314','/401','/B02','7020','7610','7612','7624','7627','8475','8503','8914','MG11'])
 function newParse(rows:Row[],name:string,page:number):ParsedStatement{
-  const whole=rows.map(r=>r.text).join('\n')
   const salaryLine=rows.find(r=>/\d{2}\/\d{2}\s+\d{2}\.\d{2}\.\d{4}/.test(r.text))
   const match=salaryLine?.text.match(/(\d{1,3}(?:\.\d{3})*,\d{2}).*?(\d{2})\/(\d{2})\s+\d{2}\.\d{2}\.(\d{4})/)
   const period=match ? match[4]+'-'+match[2] : ''
