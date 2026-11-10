@@ -20,8 +20,11 @@ type Props={
  monthlyGraph:SalaryGraphRow[];vacationLedger:VacationLedger;thirteenthLedger:ThirteenthLedger;
  parameters:SalaryParameters
 }
-const color={blue:'#2b78e4',green:'#0f9c86',orange:'#e49a42',red:'#e35755',
- indigo:'#7865d9',lightBlue:'#75abc9',gray:'#8492a5'}
+const color={
+ blue:'#7900e9',violet:'#a465ee',fuchsia:'#cf51e8',
+ green:'#0f9c86',orange:'#e49a42',red:'#e35755',
+ indigo:'#7865d9',lightBlue:'#75abc9',gray:'#8492a5'
+}
 const fmt=(value:unknown)=>brl(Number(value??0))
 function Panel({title,children}:{title:string;children:React.ReactNode}){
  return <section className="panel"><div className="panel-heading"><h2>{title}</h2></div>{children}</section>
@@ -35,7 +38,7 @@ function Summary({name,value,note}:{name:string;value:string;note:string}){
 function Bars({data,children}:{data:Array<Record<string,string|number|null>>;children:React.ReactNode}){
  return <div className="chart"><ResponsiveContainer width="100%" height="100%">
   <BarChart data={data} barCategoryGap="24%" barGap={5} margin={{top:12,right:10,left:2,bottom:4}}>
-   <CartesianGrid stroke="#e9edf2" vertical={false}/>
+   <CartesianGrid stroke="#eee3fa" vertical={false}/>
    <XAxis dataKey="label" tick={{fontSize:11}}/>
    <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
    <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>{children}
@@ -91,13 +94,13 @@ export function AnalyticsDashboard({
   <Panel title={year==='all'?"Remuneração anual totalizada (sem PPR e 13º)":"Remuneração mensal e líquido registrado (sem PPR e 13º)"}>
    {monthlyGraph.length?<div className="chart"><ResponsiveContainer width="100%" height="100%">
     <AreaChart data={monthlyGraph}>
-     <CartesianGrid stroke="#e9edf2" vertical={false}/>
+     <CartesianGrid stroke="#eee3fa" vertical={false}/>
      <XAxis dataKey="period" tick={{fontSize:11}}/>
      <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
      <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>
-     <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} fill="#c5ddfd" fillOpacity={.65}/>
-     <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.green} fill="#c3eade" fillOpacity={.5}/>
-     <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.orange} fill="#f9d9ac" fillOpacity={.15}/>
+     <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} fill="#d6b5fb" fillOpacity={.58}/>
+     <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.violet} fill="#e4cdfd" fillOpacity={.51}/>
+     <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.fuchsia} fill="#f7c7fb" fillOpacity={.28}/>
     </AreaChart>
    </ResponsiveContainer></div>:<Empty label="Importe holerites mensais para acompanhar a evolução."/>}
    <div className="detail-hint"><Info size={16}/>{year==='all'?"Cada ponto representa a soma das competências importadas daquele ano. Férias antecipadas já estão incluídas no líquido e não devem ser somadas uma segunda vez.":"Cada ponto representa uma competência mensal. Férias antecipadas fazem parte do líquido financeiro."}</div>
