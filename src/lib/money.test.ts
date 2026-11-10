@@ -18,5 +18,12 @@ describe('hours and São Paulo holidays',()=>{
  it('Sunday 100%',()=>expect(classifyHours({...e,date:'2026-11-08'}).h100).toBe(10))
  it('override replaces holiday calendar',()=>expect(classifyHours({...e,date:'2026-11-20',holidayOverride:false}).h100).toBe(0))
  it('real holidays',()=>expect(saoPauloHoliday('2026-07-09')).toBe(true))
+ it('uses a city-specific calendar without inheriting São Paulo municipal dates',()=>{
+  const e={date:'2027-01-25',start:'08:00',lunchStart:'12:00',lunchEnd:'13:00',end:'19:00',holidayOverride:null}
+  expect(classifyHours(e,new Set(['2027-01-25'])).h100).toBe(10)
+  expect(classifyHours(e,new Set(['2027-01-01'])).h100).toBe(0)
+  expect(classifyHours({...e,holidayOverride:true},new Set()).h100).toBe(10)
+  expect(classifyHours({...e,holidayOverride:false},new Set(['2027-01-25'])).h100).toBe(0)
+ })
  it('quinzena rollover',()=>{expect(paidMonth('2026-10-17')).toBe('2026-11');expect(paidMonth('2026-11-05')).toBe('2026-11')})
 })
