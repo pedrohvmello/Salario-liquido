@@ -20,10 +20,10 @@ type Props={
  monthlyGraph:SalaryGraphRow[];vacationLedger:VacationLedger;thirteenthLedger:ThirteenthLedger;
  parameters:SalaryParameters
 }
+// Use distinguishable chart series, while keeping purple as the main brand color.
 const color={
- blue:'#7900e9',violet:'#a465ee',fuchsia:'#cf51e8',
- green:'#0f9c86',orange:'#e49a42',red:'#e35755',
- indigo:'#7865d9',lightBlue:'#75abc9',gray:'#8492a5'
+ purple:'#7900e9',blue:'#2563eb',green:'#059669',pink:'#db2777',
+ orange:'#e49a42',red:'#e35755',cyan:'#0891d1',gray:'#8492a5'
 }
 const fmt=(value:unknown)=>brl(Number(value??0))
 function Panel({title,children}:{title:string;children:React.ReactNode}){
@@ -98,9 +98,9 @@ export function AnalyticsDashboard({
      <XAxis dataKey="period" tick={{fontSize:11}}/>
      <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
      <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>
-     <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} fill="#d6b5fb" fillOpacity={.58}/>
-     <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.violet} fill="#e4cdfd" fillOpacity={.51}/>
-     <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.fuchsia} fill="#f7c7fb" fillOpacity={.28}/>
+     <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} strokeWidth={2.5} fill="#bcd5ff" fillOpacity={.40}/>
+     <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.green} strokeWidth={2.5} fill="#b6eddf" fillOpacity={.33}/>
+     <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.pink} strokeWidth={2.5} fill="#ffd0e5" fillOpacity={.20}/>
     </AreaChart>
    </ResponsiveContainer></div>:<Empty label="Importe holerites mensais para acompanhar a evolução."/>}
    <div className="detail-hint"><Info size={16}/>{year==='all'?"Cada ponto representa a soma das competências importadas daquele ano. Férias antecipadas já estão incluídas no líquido e não devem ser somadas uma segunda vez.":"Cada ponto representa uma competência mensal. Férias antecipadas fazem parte do líquido financeiro."}</div>
@@ -121,7 +121,7 @@ export function AnalyticsDashboard({
    </div>
    <p className="subtle analytics-description">{metricInfo.note}</p>
    {metricEvidence?
-    <Bars data={metricBars}><Bar dataKey="value" name={metricInfo.label} fill={color.blue} maxBarSize={44} radius={[5,5,0,0]}/></Bars>
+    <Bars data={metricBars}><Bar dataKey="value" name={metricInfo.label} fill={color.purple} maxBarSize={44} radius={[5,5,0,0]}/></Bars>
     :<Empty label={'Nenhum valor de '+metricInfo.label.toLowerCase()+' identificado nas folhas do período.'}/>}
    {metric==='meal'&&parameters.mealBenefit>0&&
     <div className="detail-hint"><Info size={16}/>Valor diário atualmente configurado: {brl(parameters.mealBenefit)}. Esse parâmetro não é usado para inventar créditos de meses anteriores.</div>}
@@ -153,10 +153,10 @@ export function AnalyticsDashboard({
   <Panel title="13º salário: bruto x líquido, pensão, INSS e IRRF">
    {completeThirteenth.length?
     <Bars data={completeThirteenth}>
-     <Bar dataKey="gross" name="13º bruto" fill={color.blue} barSize={28} radius={[5,5,0,0]}/>
+     <Bar dataKey="gross" name="13º bruto" fill={color.purple} barSize={28} radius={[5,5,0,0]}/>
      <Bar dataKey="net" name="13º líquido total (com adiantamento)" stackId="13o" fill={color.green} barSize={28}/>
      <Bar dataKey="pension" name="Pensão do 13º" stackId="13o" fill={color.orange} barSize={28}/>
-     <Bar dataKey="inss" name="INSS do 13º" stackId="13o" fill={color.indigo} barSize={28}/>
+     <Bar dataKey="inss" name="INSS do 13º" stackId="13o" fill={color.cyan} barSize={28}/>
      {completeThirteenth.some(x=>x.other>0.01)&&<Bar dataKey="other" name="Outros descontos (diferença)" stackId="13o" fill={color.gray} barSize={28}/>}
      <Bar dataKey="irrf" name="IRRF do 13º" stackId="13o" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
     </Bars>
@@ -167,7 +167,7 @@ export function AnalyticsDashboard({
   <Panel title="PPR: bruto x líquido e IRRF">
    {completePpr.length?
     <Bars data={completePpr}>
-     <Bar dataKey="gross" name="PPR bruto" fill={color.blue} barSize={28} radius={[5,5,0,0]}/>
+     <Bar dataKey="gross" name="PPR bruto" fill={color.purple} barSize={28} radius={[5,5,0,0]}/>
      <Bar dataKey="net" name="PPR líquido" stackId="ppr" fill={color.green} barSize={28}/>
      <Bar dataKey="irrf" name="IRRF PPR" stackId="ppr" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
     </Bars>
@@ -177,17 +177,17 @@ export function AnalyticsDashboard({
 
   <Panel title={year==='all'?'IRRF retido por ano':'IRRF retido por mês em '+year}>
    {taxEvidence?<Bars data={taxBars}>
-    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.blue} maxBarSize={44} shape={roundedIrrfShape('salary')}/>
+    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.purple} maxBarSize={44} shape={roundedIrrfShape('salary')}/>
     <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44} shape={roundedIrrfShape('vacation')}/>
     <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44} shape={roundedIrrfShape('thirteenth')}/>
-    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.indigo} maxBarSize={44} shape={roundedIrrfShape('ppr')}/>
+    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.cyan} maxBarSize={44} shape={roundedIrrfShape('ppr')}/>
    </Bars>:<Empty label="Nenhum IRRF identificado nos documentos deste período."/>}
    <div className="detail-hint"><Info size={16}/>O gráfico consolida apenas retenções efetivamente identificadas: mensal, férias contabilizadas na folha, 13º e PPR. Não duplica impostos de recibos de férias quando já constam na folha mensal. Meses não importados permanecem sem informação.</div>
   </Panel>
 
   <Panel title={year==='all'?'FGTS registrado por ano':'FGTS de janeiro a dezembro de '+year}>
    {fgtsEvidence?<Bars data={fgtsBars}>
-    <Bar dataKey="value" name="FGTS informado na folha" fill={color.blue} maxBarSize={44} radius={[5,5,0,0]}/>
+    <Bar dataKey="value" name="FGTS informado na folha" fill={color.purple} maxBarSize={44} radius={[5,5,0,0]}/>
    </Bars>:<Empty label="Nenhum valor de FGTS identificado nas folhas do período."/>}
    <div className="detail-hint"><Info size={16}/>O FGTS corresponde ao valor informado nos holerites mensais, não necessariamente ao saldo acumulado da conta FGTS. No filtro anual são exibidos os 12 meses, inclusive meses ainda sem holerite.</div>
   </Panel>
