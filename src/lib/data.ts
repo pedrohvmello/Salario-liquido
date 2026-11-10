@@ -2,6 +2,7 @@ import {createClient, type SupabaseClient} from '@supabase/supabase-js'
 import type {ParsedStatement} from './parse'
 import {type DayEntry,type Overtime} from './calendar'
 import type {SalaryParameters} from './money'
+import {type BaseLocation,isValidBase,DEFAULT_BASE} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
 const anon=import.meta.env.VITE_SUPABASE_ANON_KEY
 export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
@@ -22,10 +23,17 @@ export async function getData(){
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
     db.from('salary_events').select('*').eq('user_id',id).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
-    db.from('user_settings').select('parameters').eq('user_id',id).maybeSingle()
+    db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle()
   ])
   for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>}
+  return {statements:(statements.data||[]) as SavedStatement[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:DEFAULT_BASE}
+}
+export async function saveBase(base:BaseLocation){
+  if(!db)throw new Error('Banco não configurado')
+  if(!isValidBase(base))throw new Error('Selecione uma Base válida')
+  const user_id=await identity()
+  const {error}=await db.from('user_settings').upsert({user_id,base_city:base,updated_at:new Date().toISOString()})
+  if(error)throw new Error(error.message)
 }
 export async function saveSettings(parameters:SalaryParameters){
   if(!db)throw new Error('Banco não configurado')
