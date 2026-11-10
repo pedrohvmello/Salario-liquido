@@ -135,3 +135,15 @@ A aba Histórico/Análises e a tela de Eventos exibem as ocorrências derivadas 
 Para férias que atravessam competências ou misturam o layout antigo e novo, valores não identificáveis pelas rubricas de adiantamento não são inventados. A conciliação deve permanecer visivelmente pendente quando não fechar. O recibo não deve ser adicionado ao total de proventos tributáveis da folha mensal nem ao PPR.
 
 Migração: `supabase/migrations/0009_vacation_documents.sql`. O código deriva os totais atuais a partir de `statements` e `statement_lines`; não sobrescreve os líquidos já armazenados.
+
+## 13º salário: recibo específico e conciliação anual
+
+O importador reconhece a folha **13º SALÁRIO** dos holerites antigos, inclusive PDFs com múltiplos anos. A cada página, extrai competência, data do pagamento, proventos brutos, INSS (07025), IRRF exclusivo (07055), pensão (07160), adiantamento descontado (07215) e líquido do fechamento. Suporta componentes de remuneração do 13º como 03900, 03905 e rubricas específicas de licença. A gravação é bloqueada se as rubricas de 13º não fecharem os totais originais.
+
+O recibo é armazenado como `statements.document_type='thirteenth'`, separado das folhas mensais, PPR e férias, com uma única ocorrência por usuário/ano e original no armazenamento privado. Depois de confirmar a importação, um trigger cria ou atualiza **um único evento pontual de 13º** vinculado ao PDF, sem modificar parâmetros salariais. Migração `0010_thirteenth_payroll.sql`.
+
+Para o **fluxo financeiro**, o app verifica se a antecipação de 13º indicada no recibo já foi considerada no líquido dos holerites de férias ou na folha mensal (07210 / 02880). O adiantamento já reconhecido não entra novamente: apenas o líquido do fechamento do 13º representa dinheiro adicional. Se as folhas anteriores estiverem ausentes, a parte não identificada fica marcada como **estimativa** vinculada ao ano do pagamento, e a chegada de novos documentos recalcula a conciliação sem duplicar.
+
+No **Histórico** e em **Análises**, bruto, adiantamento, INSS, IRRF e líquido do 13º aparecem separadamente. O **Informe IR (prévia)** inclui bruto e IRRF exclusivo do 13º no ano de pagamento, sem misturá-los ao IRRF mensal ou ao PPR. Valores estimados de adiantamentos são apenas fluxo financeiro, não novos rendimentos tributáveis.
+
+**Limites:** inicialmente homologado para o cabeçalho e as rubricas do formato antigo demonstrado; outros layouts requerem adaptação. O PDF original é privado, não versionado no repositório. Evitar importar no ambiente real antes de confirmar os resultados da prévia com os seis recibos fornecidos.
