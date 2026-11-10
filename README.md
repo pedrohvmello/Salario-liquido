@@ -113,3 +113,13 @@ O valor bruto do evento corresponde à rubrica de PPR, e o líquido à quantia i
 ## Jornada
 
 O horário default de **saída** para novos apontamentos é `18:00`. Apontamentos existentes não são modificados.
+
+## Prévia do informe de rendimentos e IRRF do PPR
+
+A aba **Informe IR (prévia)** reúne os valores que podem ser comprovados diretamente pelos documentos. Na primeira versão, inclui **PPR bruto**, **IRRF retido sobre PPR**, **PPR líquido** e contribuição negocial, totalizados pelo **ano real de pagamento** do PPR. Rendimentos mensais identificados são apresentados apenas como indicadores por competência e **não são convertidos automaticamente em rendimento tributável anual**.
+
+A interface permite lançar manualmente os campos informados no comprovante oficial da empresa, armazenados em `annual_tax_comparisons` com RLS por usuário. Para cada valor que o app conseguiu apurar, mostra a diferença `PDFs - informe oficial`. Ausência de holerites ou rubricas não vira zero fictício; o status é `Não apurado`.
+
+O IRRF específico do PPR já fica salvo em `statements.ppr_income_tax`, além das rubricas originais em `statement_lines`. Ele aparece no histórico, consolidado anual, em Análises e na prévia de IR. **Não se mistura IRRF de PLR/PPR com IRRF salarial**, pois PLR paga por PJ no Brasil é sujeita a tributação exclusiva/definitiva. Fontes: Receita Federal, manual Meu Imposto de Renda 2026, Rendimentos do Trabalho; IN RFB 1500/2014 art. 17.
+
+Próximas etapas de homologação: classificar por layouts e competência as rubricas de salários tributáveis, INSS, IRRF salarial, férias, 13º, pensão e previdência; identificar corretamente as datas de pagamentos mensais; importar o PDF oficial do comprovante e comparar automaticamente, sem substituí-lo como documento original. **Esta tela não é informe oficial nem permite entrega da declaração à Receita.**
