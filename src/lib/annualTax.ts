@@ -1,7 +1,7 @@
 import {roundMoney} from './money'
 
 export type TaxStatement={
-  id:string;period:string;document_type:'monthly'|'ppr';payment_date:string|null;
+  id:string;period:string;document_type:'monthly'|'ppr'|'vacation';payment_date:string|null;
   gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;
   credits:number|null;net:number|null;net_received:number|null
 }
@@ -39,7 +39,7 @@ export function summarizeTaxYear(statements:readonly TaxStatement[],year:number)
    r.pprContribution+=s.ppr_union_contribution||0
    if(s.net!==null)r.pprNet+=s.net
    else r.notes.push('PPR sem valor líquido em '+s.period)
-  }else if(s.period.startsWith(String(year))){
+  }else if(s.document_type==='monthly'&&s.period.startsWith(String(year))){
    r.monthlyDocuments++
    r.monthlyGrossIndicative+=s.credits||0
    r.monthlyClosingNetIndicative+=s.net||0
