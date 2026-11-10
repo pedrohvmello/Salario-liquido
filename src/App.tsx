@@ -7,6 +7,7 @@ import {classifyHours,overtimeValue,saoPauloHoliday,type DayEntry} from './lib/c
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveSettings,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
+import {requiresPasswordSetup} from './lib/authRedirect'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'imports'|'settings'
 type TimeRecord=DayEntry&{id:string}
@@ -34,6 +35,7 @@ export default function App(){
  const [menu,setMenu]=useState(false)
  const [user,setUser]=useState<User|null>(null)
  const [authReady,setAuthReady]=useState(!db)
+ const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
  const [allowed,setAllowed]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -60,7 +62,11 @@ export default function App(){
  useEffect(()=>{
   if(!db)return
   db.auth.getSession().then(({data})=>{setUser(data.session?.user||null);setAuthReady(true)})
-  const {data:subscription}=db.auth.onAuthStateChange((event,session)=>{setUser(session?.user||null);if(event==='PASSWORD_RECOVERY')setSection('settings')})
+  const {data:subscription}=db.auth.onAuthStateChange((event,session)=>{
+   setUser(session?.user||null)
+   if(event==='PASSWORD_RECOVERY')setPasswordSetup(true)
+   if(event==='SIGNED_OUT')setPasswordSetup(false)
+  })
   return ()=>subscription.subscription.unsubscribe()
  },[])
  const refresh=async()=>{
@@ -120,6 +126,7 @@ export default function App(){
  const isDemo=!db
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
  if(db&&!user)return <AuthGate/>
+ if(db&&user&&passwordSetup)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={33}/><h1>Defina sua senha</h1><p>O link autenticou sua conta temporariamente. Antes de acessar o painel, escolha a senha que será usada nos próximos logins.</p><ChangePassword onComplete={()=>{setPasswordSetup(false);setSection('overview');window.history.replaceState(null,'',window.location.pathname)}}/><button type="button" className="text-button" onClick={()=>db?.auth.signOut()}>Sair sem definir a senha</button></div></div>
  if(db&&user&&!allowed)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>Conta aguardando liberação</h1><p>Seu login existe, mas o administrador ainda não ativou seu acesso. Nenhum dado financeiro está disponível.</p><button onClick={()=>db?.auth.signOut()} className="secondary">Sair</button>{error&&<p className="error">{error}</p>}</div></div>
  const metricRows=[
   ['Salário-base',brl(effective.salary)],['Triênio',brl(effective.trienio)],
