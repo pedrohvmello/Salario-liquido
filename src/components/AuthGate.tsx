@@ -50,7 +50,7 @@ export function AuthGate(){
   }
   return <div className="auth-background"><div className="auth-card">
     <div className="brand auth-brand brand--wordmark">
-      <div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div>
+      <img className="brand-full-logo" src="/brand/payrep-logo.svg" alt="Payrep" width="290" height="87"/>
     </div>
     <h1>{mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
     <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.':'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>

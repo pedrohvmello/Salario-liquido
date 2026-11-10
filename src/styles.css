@@ -261,3 +261,12 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .sidebar .brand--wordmark small{color:#d7b7f6}
 .auth-brand.brand--wordmark strong{color:#6500cf}
 .auth-brand.brand--wordmark small{color:#76658e}
+
+/* Identidade PR: aplicação legível em fundos claros e escuros. */
+.sidebar .brand--wordmark{gap:11px;align-items:center;padding:0 7px 32px}
+.brand-symbol-frame{width:43px;height:43px;display:grid;place-items:center;flex:none;border-radius:11px;background:#fff}
+.brand-symbol-frame img{display:block;width:36px;height:36px;object-fit:contain}
+.sidebar .brand--wordmark strong{font-size:23px;letter-spacing:-.9px;color:#fff}
+.sidebar .brand--wordmark small{color:#d9bdf5}
+.auth-brand.brand--wordmark{justify-content:center;align-items:center;padding:0 0 23px}
+.brand-full-logo{display:block;width:min(100%,290px);height:auto;object-fit:contain}
