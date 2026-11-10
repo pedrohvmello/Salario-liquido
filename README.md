@@ -88,3 +88,16 @@ Preservamos três valores históricos distintos por holerite:
 O total mensal é usado no histórico, totais anuais, gráficos e no quadro de realizado do dashboard. A prévia explicita todos os componentes antes de salvar. **Não somamos** automaticamente adiantamento de férias (ex.: `07200`) nem adiantamento de 13º (ex.: `07210`), que são pagamentos e eventos distintos e necessitam de fluxo próprio. Em meses com férias ou 13º, portanto, o total de dinheiro efetivamente transferido no mês pode exigir conciliação adicional. Esta mudança não altera o líquido originalmente impresso nem reinterpreta as bases de INSS/IRRF.
 
 Migração: `supabase/migrations/0005_net_received.sql` aplicada no projeto Supabase de homologação. Sem histórico real gravado pelo desenvolvimento.
+
+## Base de trabalho e feriados
+
+Em **Configurações → Base:**, cada usuário escolhe sua UF e município, a partir da lista oficial de localidades do IBGE, com código IBGE de sete dígitos. O valor fica no campo privado `user_settings.base_city`; usuários diferentes podem ter Bases distintas.
+
+Em **Controle de horas**, a Base cadastrada aparece no formulário de ponto e determina os feriados automáticos aplicados à classificação de 100%:
+
+- Calendário nacional/estadual baseado na biblioteca `date-holidays`, com dados locais e sem enviar salário ou folha a terceiros.
+- Algumas cidades têm calendário municipal local cadastrado nessa biblioteca (inclusive São Paulo). Para as demais, tenta-se consulta à API de feriados aberta `api.feriados.dev`, enviando somente cidade/UF/ano. Se a consulta falhar ou a cobertura não for confirmada, o app informa **cobertura parcial** e não considera automaticamente feriados municipais desconhecidos. O ajuste manual por data continua disponível e tem prioridade.
+- Pontos facultativos não equivalem automaticamente a feriados.
+- Mudança de Base refaz a classificação de jornadas antigas **sem ajuste manual**; não altera os horários nem os holerites históricos.
+
+A migração é `supabase/migrations/0006_user_base.sql`. Este é um mecanismo inicial, não uma certificação jurídica de feriados de todos os 5.570 municípios. Para expansão comercial, preferir uma fonte de feriados municipais auditável, com cobertura e fundamento legal documentados.
