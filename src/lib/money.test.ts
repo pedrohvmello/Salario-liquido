@@ -6,7 +6,7 @@ describe('2026 official tables',()=>{
  it('deducts dependents in IR base',()=>expect(calculateIRRF2026(10000,900,1000,1).base).toBe(7910.41))
  it('IR reduction up to 5000',()=>expect(calculateIRRF2026(5000,509.6,0,0).tax).toBe(0))
  it('pension and IR converge',()=>{
-   const r=calculatePayroll2026({...defaults,salary:14000,trienio:200,dependents:1,pensionPercent:26})
+   const r=calculatePayroll2026({...defaults,salary:14000,trienio:200,dependents:1,pensionMethod:'old26',pensionPercent:26})
    expect(Math.abs(r.pension-0.26*(r.gross-r.inss-r.irrf))).toBeLessThan(.02)
  })
  it('does not subtract FGTS from net',()=>{const r=calculatePayroll2026({...defaults,salary:10000});expect(r.netMonth).toBeCloseTo(r.gross-r.inss-r.irrf-r.pension,2)})

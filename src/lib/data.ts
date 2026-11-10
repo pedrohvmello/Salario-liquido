@@ -13,9 +13,9 @@ export type SavedStatement={id:string;period:string;format:string;document_type:
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
- ['salary','Alteração de salário'],['dependents','Dependentes IRRF'],['mealBenefit','Vale-refeição'],['trienio','Triênio'],
+ ['salary','Alteração de salário'],['dependents','Dependentes IRRF'],['mealBenefit','Vale-refeição (R$/dia útil)'],['fixedBenefit','Vale-benefício (R$/mês)'],['childcareBenefit','Auxílio-creche (R$/mês)'],['trienio','Triênio'],
  ['esppPercent','ESPP %'],['privatePensionPercent','Previdência %'],['privatePensionFixed','Previdência R$'],
- ['pensionPercent','Pensão % (projeção)'],['fixedPension','Pensão fixa (projeção)'],['advancePercent','Adiantamento %'],
+ ['pensionPercent','Pensão % e critérios de incidência'],['fixedPension','Pensão fixa (projeção)'],['advancePercent','Adiantamento %'],
  ['vacation','Férias (ocorrência)'],['bonus','Bônus (ocorrência)'],['ppr','PPR (participação nos resultados)'],['thirteenth','13º salário (recibo anual)'],['absence','Falta (ocorrência)']
 ] as const
 async function identity(){if(!db)throw new Error('Supabase não configurado');const {data:{user},error}=await db.auth.getUser();if(error||!user)throw new Error('Faça login');return user.id}
@@ -52,7 +52,7 @@ export async function getData(){
     listAllStatementRubrics(id)
   ])
   for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
@@ -60,6 +60,15 @@ export async function saveBase(base:BaseLocation){
   const user_id=await identity()
   const {error}=await db.from('user_settings').upsert({user_id,base_city:base,updated_at:new Date().toISOString()})
   if(error)throw new Error(error.message)
+}
+export async function saveOverviewCards(cards:string[]){
+ if(!db)throw new Error('Banco não configurado')
+ const user_id=await identity()
+ const {data:current,error:readError}=await db.from('user_settings').select('parameters').eq('user_id',user_id).maybeSingle()
+ if(readError)throw new Error(readError.message)
+ const parameters={...(current?.parameters||{}),overviewCards:cards}
+ const {error}=await db.from('user_settings').upsert({user_id,parameters,updated_at:new Date().toISOString()})
+ if(error)throw new Error(error.message)
 }
 export async function saveSettings(parameters:SalaryParameters){
   if(!db)throw new Error('Banco não configurado')
@@ -145,12 +154,15 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
   }
 }
 export function effectiveParams(base:SalaryParameters,events:SalaryEvent[],month:string):SalaryParameters{
-  const params={...base}
+  const params={...base,pensionMethod:'none' as SalaryParameters['pensionMethod'],pensionPercent:0,fixedPension:0}
+  // A pension exists only if an active event explicitly configures it.
   // Historical date of first observation is NOT an exact legal start date.
   for(const e of [...events].sort((a,b)=>a.effective_date.localeCompare(b.effective_date))){
     if(e.effective_date.slice(0,7)>month)continue
     if(e.kind in params && typeof params[e.kind as keyof SalaryParameters]==='number') {
       (params as unknown as Record<string,number>)[e.kind]=e.value
+      if(e.kind==='pensionPercent')params.pensionMethod='old26'
+      if(e.kind==='fixedPension')params.pensionMethod='fixed'
     }
   }
   return params

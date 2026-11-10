@@ -9,15 +9,15 @@ export const roundMoney = (n: number) => Math.round((n + Number.EPSILON) * 100) 
 export const brl = (value: number) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value)
 export type PensionMethod = 'old26' | 'fixed' | 'none'
 export type SalaryParameters = {
-  salary: number; trienio: number; dependents: number; mealBenefit: number;
+  salary: number; trienio: number; dependents: number; mealBenefit: number; fixedBenefit:number; childcareBenefit:number;
   esppPercent: number; privatePensionPercent: number; privatePensionFixed: number;
   pensionPercent: number; pensionMethod: PensionMethod; fixedPension: number;
   advancePercent: number; overtimePay: number; dsrPay: number;
 }
 export const defaults: SalaryParameters = {
-  salary: 0, trienio: 0, dependents: 0, mealBenefit: 0,
+  salary: 0, trienio: 0, dependents: 0, mealBenefit: 0, fixedBenefit:0, childcareBenefit:0,
   esppPercent: 0, privatePensionPercent: 0, privatePensionFixed: 0,
-  pensionPercent: 26, pensionMethod: 'old26', fixedPension: 0,
+  pensionPercent: 0, pensionMethod: 'none', fixedPension: 0,
   advancePercent: 40, overtimePay: 0, dsrPay: 0
 }
 const inss2026 = [[1621,.075],[2902.84,.09],[4354.27,.12],[8475.55,.14]] as const
@@ -42,17 +42,20 @@ export function calculateIRRF2026(gross: number, inss: number, pension: number, 
     : gross<=7350?Math.min(standardTax,Math.max(0,roundMoney(978.62-.133145*gross))):0
   return {base, tax:roundMoney(Math.max(0,standardTax-reduction)), reduction:roundMoney(reduction)}
 }
-export function calculatePayroll2026(p: SalaryParameters) {
+export function calculatePayroll2026(p: SalaryParameters & {pensionRule?: {excludeInss:boolean;excludeIrrf:boolean;includeOvertime:boolean}}) {
   const gross = roundMoney(Math.max(0,p.salary)+Math.max(0,p.trienio)+Math.max(0,p.overtimePay)+Math.max(0,p.dsrPay))
   const inss = calculateINSS2026(gross)
   let pension = p.pensionMethod === 'fixed' ? roundMoney(Math.max(0,p.fixedPension)) : 0
   let ir = calculateIRRF2026(gross,inss,pension,p.dependents)
   if (p.pensionMethod==='old26') {
-    for (let i=0;i<30;i++) {
-      const nextPension = roundMoney(Math.max(0,gross-inss-ir.tax)*Math.max(0,p.pensionPercent)/100)
-      const nextIR = calculateIRRF2026(gross,inss,nextPension,p.dependents)
-      if (nextPension===pension && nextIR.tax===ir.tax) break
-      pension=nextPension; ir=nextIR
+    const rule=p.pensionRule??{excludeInss:true,excludeIrrf:true,includeOvertime:true}
+    for (let i=0;i<40;i++) {
+      const eligibleGross=Math.max(0,gross-(rule.includeOvertime?0:Math.max(0,p.overtimePay)))
+      const base=Math.max(0,eligibleGross-(rule.excludeInss?inss:0)-(rule.excludeIrrf?ir.tax:0))
+      const nextPension=roundMoney(base*Math.min(100,Math.max(0,p.pensionPercent))/100)
+      const nextIR=calculateIRRF2026(gross,inss,nextPension,p.dependents)
+      if(nextPension===pension&&nextIR.tax===ir.tax)break
+      pension=nextPension;ir=nextIR
     }
   }
   const espp = roundMoney(Math.max(0,p.salary)*Math.max(0,p.esppPercent)/100)
