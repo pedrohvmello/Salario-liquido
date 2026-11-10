@@ -15,7 +15,7 @@ function toISO(date:string):string|null{
 export function isPprPayslip(rows:PdfRow[]):boolean{
  const i=rows.findIndex(r=>r.items.some(x=>x.text.trim()==='Folha:'&&x.x<120))
  if(i<0)return false
- return rows.slice(i+1,i+3).some(r=>r.items.some(x=>x.text.trim().toUpperCase()==='PPR'&&x.x<120))
+ return (rows[i+1]?.items||[]).some(x=>x.text.trim().toUpperCase()==='PPR'&&x.x<120)
 }
 export function paymentDateFromHeader(rows:PdfRow[]):string|null{
  const i=rows.findIndex(r=>r.items.some(x=>x.text.trim()==='Dt. pagt.:'))
