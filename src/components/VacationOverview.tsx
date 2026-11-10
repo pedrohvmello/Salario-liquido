@@ -8,16 +8,15 @@ export function VacationOverview({ledger,year}:{ledger:VacationLedger;year:strin
    <div className="panel-heading"><h2>Férias e conciliação</h2><span className="pill">{rows.length} ocorrência(s)</span></div>
    <p className="subtle">As folhas mensais são a fonte principal. O recibo de férias é opcional e substitui o valor inferido das rubricas quando disponível. Nenhum pagamento é somado duas vezes.</p>
    {rows.length?<div className="table-scroll"><table>
-    <thead><tr><th>Competência financeira</th><th>Período de férias</th><th>Estimado pela folha</th><th>Líquido do recibo</th><th>Valor contabilizado</th><th>Conciliação</th></tr></thead>
+    <thead><tr><th>Competência financeira</th><th>Período de férias</th><th>Estimado pela folha</th><th>Líquido do recibo</th><th>Valor contabilizado</th><th>Conciliação</th><th>Comentário</th></tr></thead>
     <tbody>{rows.map(x=><tr key={x.key}>
      <td><strong>{x.month.slice(5)}/{x.month.slice(0,4)}</strong></td>
      <td>{x.vacationStart&&x.vacationEnd?date(x.vacationStart)+' a '+date(x.vacationEnd):'A confirmar'}</td>
      <td>{x.monthlyIds.length?brl(x.inferred):'Não identificado'}</td>
      <td>{x.receiptNet===null?'Opcional':brl(x.receiptNet)}</td>
      <td><strong>{brl(x.booked)}</strong></td>
-     <td><span className={x.state==='reconciled'?'ok':x.state==='difference'?'flag':'pill'}>{vacationStateLabel(x.state)}</span>
-      {x.difference!==null&&Math.abs(x.difference)>.02&&<div className="subtle">Diferença folha − recibo: {brl(x.difference)}</div>}
-      <div className="subtle">{x.note}</div></td>
+     <td><span className={x.state==='reconciled'?'ok':x.state==='difference'?'flag':'pill'}>{vacationStateLabel(x.state)}</span></td>
+     <td className="subtle">{x.difference!==null&&Math.abs(x.difference)>.02&&<div>Diferença folha − recibo: {brl(x.difference)}</div>}{x.note}</td>
     </tr>)}</tbody>
    </table></div>:<p className="subtle">Nenhuma ocorrência de férias identificada nos documentos importados.</p>}
    <div className="detail-hint">
