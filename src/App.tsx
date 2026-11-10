@@ -225,8 +225,11 @@ export default function App(){
   if(!db)throw Error('Conecte o banco para persistir eventos')
   const value=parseEventValue(eventValue,eventKind)
   if(value===null)throw Error('Valor inválido. Informe um número no formato 15.340,57 (duas casas decimais) ou uma quantidade inteira para dependentes.')
-  await saveEvent({...(eventId?{id:eventId}:{}),kind:eventKind,value,effective_date:eventDate,notes:eventNote})
-  setEventId(undefined);setEventValue('');setEventNote('');await refresh()
+  if(value<0)throw Error('O valor do evento não pode ser negativo')
+  if(['pensionPercent','esppPercent','privatePensionPercent','advancePercent'].includes(eventKind)&&value>100)throw Error('Percentual deve estar entre 0 e 100')
+  const notes=eventKind==='pensionPercent'?encodePensionNotes(eventNote,pensionOptions):eventNote
+  await saveEvent({...(eventId?{id:eventId}:{}),kind:eventKind,value,effective_date:eventDate,notes})
+  setEventId(undefined);setEventValue('');setEventNote('');setPensionOptions({...defaultPensionRule});await refresh()
  },'Evento salvo')
  const saveEntry=()=>task(async()=>{
   if(!holidayDates)throw Error('Calendário de feriados ainda não disponível')
@@ -243,9 +246,22 @@ export default function App(){
  const metricRows=[
   ['Salário-base',brl(effective.salary)],['Triênio',brl(effective.trienio)],
   ['Horas extras (sem DSR)',brl(extraPay)],['INSS',brl(payroll.inss)],['IRRF',brl(payroll.irrf)],
-  ['Pensão estimada',brl(payroll.pension)],['ESPP',brl(payroll.espp)],['Previdência individual',brl(payroll.privatePension)],
+  ...(hasPension?[['Pensão estimada',brl(payroll.pension)]]:[]),['ESPP',brl(payroll.espp)],['Previdência individual',brl(payroll.privatePension)],
   ['Adiantamento',brl(payroll.advance)]
  ]
+ const activeEvent=(kind:string)=>latestEffectiveEvent(events,kind,month)
+ const cardDetails:Record<OverviewCardId,{value:string;note:string}>={
+  gross:{value:brl(payroll.gross),note:'Salário + triênio + extras'},
+  deductions:{value:brl(payroll.gross-payroll.netMonth),note:'INSS, IRRF, pensão e contribuições'},
+  fgts:{value:brl(payroll.fgts),note:'Informativo; não é desconto'},
+  pensionPercent:{value:effective.pensionMethod==='old26'?formatEventValue(effective.pensionPercent,'pensionPercent')+'%':'—',note:effective.pensionMethod==='old26'?'Percentual vigente':'Cadastre o evento de pensão'},
+  pensionAmount:{value:hasPension?brl(payroll.pension):'—',note:hasPension?'Estimativa da folha mensal':'Sem evento de pensão'},
+  mealBenefit:{value:benefitEstimate?brl(benefitEstimate.total):'—',note:!mealEvent?'Cadastre o valor por dia útil':benefitEstimate?formatEventValue(effective.mealBenefit,'mealBenefit')+' por dia × '+benefitEstimate.days+' dias úteis ('+benefitReferenceMonth+')':base?'Calendário de feriados indisponível':'Configure sua Base'},
+  fixedBenefit:{value:activeEvent('fixedBenefit')?brl(effective.fixedBenefit):'—',note:'Valor mensal fixo'},
+  privatePension:{value:activeEvent('privatePensionFixed')||activeEvent('privatePensionPercent')||effective.privatePensionFixed||effective.privatePensionPercent?brl(payroll.privatePension):'—',note:'Contribuição previdenciária'},
+  childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
+  espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
+ }
  return <div className="app">
   <aside className={menu?'sidebar open':'sidebar'}>
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
@@ -261,12 +277,12 @@ export default function App(){
     {notice&&<div className="notice success"><CheckCircle2 size={18}/>{notice}<button onClick={()=>setNotice('')}>Fechar</button></div>}
     {section==='overview'&&<div className="stack">
      <div className="hero"><div><div className="hero-kicker">PROJEÇÃO DE {monthLabel(month).toUpperCase()}</div><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong><small>Antes de descontar o adiantamento quinzenal</small></div></div>
-     <div className="stats-grid"><Stat name="Remuneração bruta" value={brl(payroll.gross)} note="Salário + triênio + extras"/><Stat name="Descontos totais" value={brl(payroll.gross-payroll.netMonth)} note="INSS, IR, pensão e contribuições"/><Stat name="Pagamento final estimado" value={brl(payroll.finalPayment)} note="Após o adiantamento" tone="accent"/><Stat name="FGTS informativo" value={brl(payroll.fgts)} note="Não descontado do salário"/></div>
+     <div className="stats-grid overview-stats">{overviewCards.map(id=><Stat key={id} name={overviewCardDefinitions.find(([key])=>key===id)?.[1]||id} value={cardDetails[id].value} note={cardDetails[id].note}/>)}</div>
      <div className="two-col"><Panel title="Composição do salário" extra={<span className="pill">Estimativa 2026</span>}><div className="breakdown">{metricRows.map(([label,value],i)=><div key={label} className="break-row"><span>{label}</span><strong className={i>=3&&i<=8?'muted':''}>{value}</strong></div>)}</div><div className="total-line"><span>Pagamento no fim do mês</span><strong>{brl(payroll.finalPayment)}</strong></div></Panel>
      <Panel title="Horas extras na competência"><div className="hour-mini"><div><strong>{monthHours.h60.toFixed(1)}h</strong><span>Adicional 60%</span></div><div><strong>{monthHours.h80.toFixed(1)}h</strong><span>Adicional 80%</span></div><div><strong>{monthHours.h100.toFixed(1)}h</strong><span>Adicional 100%</span></div></div><div className="detail-hint"><Info size={16}/>São considerados os dias 16 do mês anterior até 15 do mês atual. O DSR ainda não está automatizado nesta versão.</div><button className="text-button" onClick={()=>setSection('hours')}>Lançar jornada <ChevronRight size={15}/></button></Panel></div>
      {actual&&<Panel title={'Recebimento registrado: '+monthLabel(month)}><div className="stats-grid three"><Stat name="Líquido no fechamento" value={actual.net===null?'A conferir':brl(actual.net)}/><Stat name="Adiantamento salarial" value={actual.salary_advance===null?'A conferir':brl(actual.salary_advance)}/><Stat name="Líquido mensal recebido" value={currentCash?.total===null?'A conferir':brl(currentCash?.total??actual.net_received??0)} note="Fechamento + adiantamento salarial + férias/13º antecipados, sem duplicar" tone="accent"/></div></Panel>}
      {currentCash&&currentCash.vacation>0&&<Panel title={'Férias contabilizadas: '+monthLabel(month)}><div className="stats-grid three"><Stat name="Férias e 13º antecipados" value={brl(currentCash.vacation)}/><Stat name="Status" value={currentCash.vacationState==='reconciled'?'Conciliado':currentCash.vacationState==='estimated'?'Estimado':currentCash.vacationState==='difference'?'Divergência':'Parcial'}/><Stat name="Líquido da competência" value={currentCash.total===null?'A conferir':brl(currentCash.total)} tone="accent"/></div><div className="detail-hint">{currentCash.vacationNote}</div></Panel>}{thirteenthThisMonth&&<Panel title={'13º salário: '+monthLabel(month)}><div className="stats-grid three"><Stat name="13º bruto" value={brl(thirteenthThisMonth.gross)}/><Stat name="IRRF 13º" value={brl(thirteenthThisMonth.irrf)}/><Stat name="13º adicional recebido" value={brl(thirteenthMonth)} tone="accent"/></div><div className="detail-hint">{thirteenthThisMonth.note}</div></Panel>}{pprMonth.length>0&&<Panel title={'PPR recebido: '+monthLabel(month)}><div className="stats-grid three"><Stat name="PPR bruto" value={brl(pprMonth.reduce((sum,s)=>sum+(s.gross_ppr||0),0))}/><Stat name="IRRF e outros descontos" value={brl(pprMonth.reduce((sum,s)=>sum+(s.debits||0),0))}/><Stat name="PPR líquido adicional" value={brl(pprMonth.reduce((sum,s)=>sum+(s.net||0),0))} tone="accent"/></div><div className="detail-hint">Este pagamento é separado da remuneração mensal e não altera o salário-base.</div></Panel>}
-     <div className="notice subtle-notice"><Info size={18}/>A simulação de pensão pelos 26% é uma hipótese baseada na folha antiga, não uma validação da determinação judicial. Férias e 13º exigem cálculo separado.</div>
+     
     </div>}
     {section==='history'&&<div className="stack"><div className="page-intro"><div><h2>Seus holerites em um só lugar</h2><p>Importação por competência, sem sobrescrever os documentos originais.</p></div><button className="primary" onClick={()=>setSection('imports')}><Upload size={17}/> Importar PDFs</button></div><div className="filterbar"><span>Período</span><select value={year} onChange={e=>setYear(e.target.value)}><option value="all">Todos os anos</option>{months.map(y=><option key={y} value={y}>{y}</option>)}</select><span className="pill">{filtered.length} holerites</span></div><Panel title={year==='all'?'Resumo por ano':'Holerites de '+year}>
     {year==='all'?annual.length?<div className="table-scroll"><table><thead><tr><th>Ano</th><th>Folhas mensais</th><th>Proventos registrados</th><th>Líquido no fechamento</th><th>Adiantamentos</th><th>Férias e 13º antecipados</th><th>Líquido mensal recebido</th><th>13º adicional</th><th>IRRF 13º</th><th>PPR líquido adicional</th><th>IRRF PPR</th><th>Total financeiro*</th><th>FGTS registrado</th></tr></thead><tbody>{annual.map(a=><tr key={a.year} onClick={()=>setYear(a.year)} className="clickable"><td><strong>{a.year}</strong></td><td>{a.count}</td><td>{brl(a.credits)}</td><td>{brl(a.closing)}</td><td>{brl(a.advance)}</td><td>{a.vacationCount?brl(a.vacation):'—'}</td><td><div className="financial-value-status"><span>{a.missing?'A conferir ('+a.missing+' mês(es))':brl(a.net)}</span>{a.unreconciled>0&&<span className="pill">{a.unreconciled} férias pendentes</span>}</div></td><td>{a.thirteenthCount?brl(a.thirteenthNet):'—'}</td><td>{a.thirteenthCount?brl(a.thirteenthIrrf):'—'}</td><td>{a.pprCount?brl(a.pprNet):'—'}</td><td>{a.pprCount?brl(a.pprIrrf):'—'}</td><td><strong>{a.missing?'Parcial':brl(a.totalFinancial)}</strong></td><td>{brl(a.fgts)}</td></tr>)}</tbody></table></div>:<Empty text="Nenhum holerite importado ainda. Abra Importar holerites para começar."/>:
