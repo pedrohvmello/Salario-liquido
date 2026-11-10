@@ -24,6 +24,15 @@ export function AuthGate(){
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível concluir a solicitação.')}
     finally{setBusy(false)}
   }
+  const googleEnabled=import.meta.env.VITE_ENABLE_GOOGLE_OAUTH==='true'
+  const googleSignIn=async()=>{
+    if(!db)return
+    setBusy(true);setError('');setMessage('')
+    try{
+      const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}})
+      if(error)throw error
+    }catch(e){setError(e instanceof Error?e.message:'Falha ao iniciar o login Google.');setBusy(false)}
+  }
   return <div className="auth-background"><div className="auth-card">
     <div className="brand auth-brand"><div className="brandmark"><Wallet size={24}/></div>
       <div><strong>Salário Líquido</strong><small>Gestão salarial pessoal</small></div>
@@ -37,6 +46,7 @@ export function AuthGate(){
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
+    {mode==='login'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><span className="google-g">G</span> Continuar com Google</button></>}
     <button className="text-button" type="button" onClick={()=>{setMode(mode==='login'?'reset':'login');setError('');setMessage('')}}>
       <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
     </button>
@@ -44,7 +54,7 @@ export function AuthGate(){
   </div></div>
 }
 
-export function ChangePassword(){
+export function ChangePassword({onComplete}:{onComplete?:()=>void}={}){
   const [password,setPassword]=useState('')
   const [confirmation,setConfirmation]=useState('')
   const [busy,setBusy]=useState(false)
@@ -60,6 +70,7 @@ export function ChangePassword(){
       const {error}=await db.auth.updateUser({password})
       if(error)throw error
       setPassword('');setConfirmation('');setMessage('Senha definida com sucesso.')
+      onComplete?.()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar a senha.')}
     finally{setBusy(false)}
   }
