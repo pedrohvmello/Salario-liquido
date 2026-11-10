@@ -11,11 +11,12 @@ import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
 import {AnalyticsDashboard} from './components/AnalyticsDashboard'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
+import {latestEffectiveEvent} from './lib/eventSources'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
-import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveSettings,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
+import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {requiresPasswordSetup} from './lib/authRedirect'
 
@@ -40,6 +41,18 @@ function Stat({name,value,note,tone}:{name:string;value:string;note?:string;tone
 function Panel({title,extra,children}:{title:string;extra?:React.ReactNode;children:React.ReactNode}){return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{extra}</div>{children}</section>}
 function Empty({text}:{text:string}){return <div className="empty"><FileText size={27}/><p>{text}</p></div>}
 const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionFixed:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
+
+const percentageFields=new Set<keyof SalaryParameters>(['esppPercent','privatePensionPercent','pensionPercent','advancePercent'])
+function displayEffectiveParameter(key:keyof SalaryParameters,value:number):string{
+ if(key==='dependents')return formatEventValue(value,key)
+ if(percentageFields.has(key))return formatEventValue(value,key)+'%'
+ return brl(value)
+}
+const pensionMethods:Record<SalaryParameters['pensionMethod'],string>={
+ old26:'Método antigo, percentual sobre bruto menos INSS e IRRF',
+ fixed:'Valor fixo informado',
+ none:'Sem pensão'
+}
 
 export default function App(){
  const [section,setSection]=useState<Section>('overview')
@@ -253,7 +266,25 @@ export default function App(){
     <td><strong>{s.documentType==='thirteenth'?brl(s.net??0):s.documentType==='vacation'?brl(s.net??0):s.documentType==='monthly'&&s.netReceived!==null?brl(s.netReceived+vacationAdvanceFromLines(s.lines)):s.netReceived===null?'A conferir':brl(s.netReceived)}</strong>
       {s.documentType==='vacation'&&<div className="subtle">Valor do recibo; não somar novamente</div>}{s.documentType==='thirteenth'&&<div className="subtle">Fechamento do 13º; adiantamento será conciliado ao salvar</div>}
       {s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0&&<div className="subtle">Estimado; recibo opcional</div>}</td><td>{s.warnings.length?<span title={s.warnings.join('; ')} className="flag">{s.warnings.length} aviso(s)</span>:<span className="ok">OK</span>}</td></tr>})}</tbody></table></div>{previews.some(s=>s.documentType==='vacation'||(s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0))&&<div className="notice subtle-notice"><Info size={18}/><div><strong>Conciliação automática de férias</strong><p style={{margin:'5px 0 0'}}>A folha mensal é suficiente para registrar os adiantamentos identificados. O recibo de férias é opcional e confirma ou substitui esse valor. O pagamento antecipado nunca será contabilizado duas vezes. Caso exista diferença, ela será exibida no Histórico salarial.</p></div></div>}{previews.some(s=>s.documentType==='thirteenth')&&<div className="suggestion"><strong>13º salário: prévia do recibo anual</strong>{previews.filter(s=>s.documentType==='thirteenth').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: bruto {s.thirteenthGross===null?'A conferir':brl(s.thirteenthGross)}; adiantamento anterior {brl(s.thirteenthAdvance)}; fechamento {s.net===null?'A conferir':brl(s.net)}; INSS {brl(s.thirteenthInss)}; IRRF exclusivo {brl(s.thirteenthIrrf)}; pensão {brl(s.thirteenthPension)}; pago em {s.paymentDate?dateBR(s.paymentDate):'data não identificada'}.</span></div>)}<small>Ao confirmar, o recibo ficará separado da folha mensal e será vinculado aos adiantamentos já contabilizados nas férias. O sistema não duplicará essas parcelas.</small></div>}{previews.some(s=>s.documentType==='ppr')&&<div className="suggestion"><strong>Evento PPR automático após confirmação</strong>{previews.filter(s=>s.documentType==='ppr').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: PPR bruto {s.grossPpr===null?'Não encontrado':brl(s.grossPpr)}; IRRF PPR {brl(s.pprIncomeTax)}; contribuição negocial {brl(s.pprUnionContribution)}; líquido pago {s.net===null?'A conferir':brl(s.net)}; data {s.paymentDate?dateBR(s.paymentDate):'Não encontrada'}.</span></div>)}<small>O evento será criado apenas ao confirmar o documento, uma vez por holerite, e não altera a projeção salarial fixa.</small></div>}{suggestions.length>0&&<div className="suggestion"><strong>Possíveis mudanças encontradas</strong>{suggestions.map((s,i)=><div key={i}><span>{s.period}: {fieldNames[s.kind]||s.kind} → {brl(s.value)}. {s.reason}</span></div>)}<small>As mudanças NÃO serão criadas automaticamente. Use a tela Eventos após verificar cada vigência.</small></div>}<button className="primary" disabled={busy||!db||importSelected.length===0} onClick={()=>task(async()=>{await saveStatements(previews,importFiles,importSelected);await refresh();setPreviews([])},'Holerites importados com valores originais preservados')}><Upload size={17}/> Confirmar {importSelected.length} documento(s)</button>{!db&&<p className="subtle">Configure o banco para habilitar o salvamento.</p>}</Panel>}</div>}
-    {section==='settings'&&<div className="stack"><div className="page-intro"><div><h2>Configurações pessoais</h2><p>Base de trabalho, parâmetros salariais e preferências. Cada pessoa configura sua própria localização.</p></div></div><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><form className="form" onSubmit={e=>{e.preventDefault();task(async()=>{if(!db)throw Error('Configure o Supabase antes de salvar');await saveSettings(params)},'Parâmetros atualizados')}}><div className="form-grid">{(Object.keys(fieldNames) as Array<keyof SalaryParameters>).map(k=><label key={k}>{fieldNames[k]}<input type="number" step={k==='dependents'?'1':'0.01'} min="0" value={Number(params[k])} onChange={e=>setParams(p=>({...p,[k]:numeric(e.target.value)}))}/></label>)}</div><label>Regra de pensão<select value={params.pensionMethod} onChange={e=>setParams(p=>({...p,pensionMethod:e.target.value as SalaryParameters['pensionMethod']}))}><option value="old26">Método antigo, percentual sobre bruto menos INSS e IRRF</option><option value="fixed">Valor fixo informado</option><option value="none">Sem pensão</option></select></label><div className="detail-hint"><AlertTriangle size={16}/>O divisor de horas é provisoriamente 220. IRRF e INSS seguem 2026 apenas para projeções. Férias e 13º não estão implementados no simulador.</div><button className="primary" type="submit" disabled={busy||!db}><Save size={17}/> Salvar configurações</button></form></Panel><Panel title="Senha e primeiro acesso"><ChangePassword/></Panel><Panel title="Conta e privacidade"><div className="instruction"><ShieldCheck size={22}/><p>Cada registro é vinculado ao usuário autenticado. O banco utiliza políticas de isolamento por conta. Cadastros públicos estão desativados.</p></div>{user&&<p className="subtle">Conectado como {user.email}</p>}<p className="subtle">Convites ainda são administrados no painel do provedor de autenticação. Não há painel de convites nesta versão.</p></Panel></div>}
+    {section==='settings'&&<div className="stack"><div className="page-intro"><div><h2>Configurações pessoais</h2><p>Base de trabalho, parâmetros salariais e preferências. Cada pessoa configura sua própria localização.</p></div></div><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
+      <p className="subtle">Valores efetivos da competência <strong>{monthLabel(month)}</strong>. Para alterar, cadastre um evento em <button type="button" className="text-button" onClick={()=>setSection('events')}>Eventos e vigências</button>.</p>
+    </div>
+    <div className="form-grid">{(Object.keys(fieldNames) as Array<keyof SalaryParameters>).map(k=>{
+      const latest=latestEffectiveEvent(events,k,month)
+      const value=Number(effective[k])
+      return <div key={k} className="settings-readonly-field">
+        <span className="settings-readonly-label">{fieldNames[k]}</span>
+        <strong className="settings-readonly-value">{displayEffectiveParameter(k,value)}</strong>
+        <small className="settings-readonly-source">{latest?'Evento vigente desde '+dateBR(latest.effective_date):'Valor-base anterior, sem evento vigente'}</small>
+      </div>
+    })}</div>
+    <div className="settings-readonly-field settings-pension-method">
+      <span className="settings-readonly-label">Regra de pensão</span>
+      <strong className="settings-readonly-value">{pensionMethods[effective.pensionMethod]}</strong>
+      <small className="settings-readonly-source">Regra técnica existente, ainda sem evento específico de vigência</small>
+    </div>
+    <div className="detail-hint"><Info size={16}/>Os valores são carregados automaticamente do evento mais recente vigente até a competência selecionada. Quando não existe evento para um campo, permanece o valor-base previamente cadastrado. Para modificá-los, utilize Eventos e vigências.</div>
+  </div></Panel><Panel title="Senha e primeiro acesso"><ChangePassword/></Panel><Panel title="Conta e privacidade"><div className="instruction"><ShieldCheck size={22}/><p>Cada registro é vinculado ao usuário autenticado. O banco utiliza políticas de isolamento por conta. Cadastros públicos estão desativados.</p></div>{user&&<p className="subtle">Conectado como {user.email}</p>}<p className="subtle">Convites ainda são administrados no painel do provedor de autenticação. Não há painel de convites nesta versão.</p></Panel></div>}
    </div>
   </main>
  </div>
