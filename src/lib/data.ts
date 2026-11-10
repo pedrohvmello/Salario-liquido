@@ -1,6 +1,7 @@
 import {createClient, type SupabaseClient} from '@supabase/supabase-js'
 import type {ParsedStatement} from './parse'
 import {makePprEvent} from './ppr'
+import {validateThirteenthPay} from './thirteenth'
 import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
 import type {SalaryParameters} from './money'
@@ -8,14 +9,14 @@ import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
 const anon=import.meta.env.VITE_SUPABASE_ANON_KEY
 export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
-export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr'|'vacation';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
  ['salary','Alteração de salário'],['dependents','Dependentes IRRF'],['mealBenefit','Vale-refeição'],['trienio','Triênio'],
  ['esppPercent','ESPP %'],['privatePensionPercent','Previdência %'],['privatePensionFixed','Previdência R$'],
  ['pensionPercent','Pensão % (projeção)'],['fixedPension','Pensão fixa (projeção)'],['advancePercent','Adiantamento %'],
- ['vacation','Férias (ocorrência)'],['bonus','Bônus (ocorrência)'],['ppr','PPR (participação nos resultados)'],['absence','Falta (ocorrência)']
+ ['vacation','Férias (ocorrência)'],['bonus','Bônus (ocorrência)'],['ppr','PPR (participação nos resultados)'],['thirteenth','13º salário (recibo anual)'],['absence','Falta (ocorrência)']
 ] as const
 async function identity(){if(!db)throw new Error('Supabase não configurado');const {data:{user},error}=await db.auth.getUser();if(error||!user)throw new Error('Faça login');return user.id}
 export async function memberActive(){if(!db)return false;const id=await identity();const {data,error}=await db.from('app_members').select('active').eq('user_id',id).single();if(error)return false;return data?.active===true}
@@ -88,6 +89,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
   // Validate all PPR documents BEFORE any file or database write.
   for(const s of chosen){
     if(s.documentType==='ppr')makePprEvent(s)
+    if(s.documentType==='thirteenth')validateThirteenthPay(s)
     if(s.documentType==='vacation'){
       if(!s.vacationStart||!s.vacationEnd||s.vacationEnd<s.vacationStart||!s.paymentDate||
          s.credits===null||s.debits===null||s.net===null||
@@ -101,6 +103,16 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
     // No public object ACL. Object names never contain a person's real name.
     const buffer=await file.arrayBuffer()
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer))).map(x=>x.toString(16).padStart(2,'0')).join('')
+    // Reject distinct sources for a year that already has a 13º receipt.
+    // A same-source reimport still uses the original SHA+page upsert.
+    if(s.documentType==='thirteenth'){
+      const {data:existing,error:existingError}=await db.from('statements')
+        .select('source_sha256,source_page').eq('user_id',user_id)
+        .eq('document_type','thirteenth').eq('period',s.period).maybeSingle()
+      if(existingError)throw new Error(existingError.message)
+      if(existing&&(existing.source_sha256!==hash||existing.source_page!==s.page))
+        throw new Error('Já existe um recibo de 13º para '+s.period+'. Verifique a duplicidade antes de substituí-lo.')
+    }
     const key=user_id+'/'+hash+'.pdf'
     const uploaded=await db.storage.from('payslips').upload(key,file,{upsert:false,contentType:'application/pdf'})
     if(uploaded.error&&!/already exists|duplicate/i.test(uploaded.error.message))throw new Error(uploaded.error.message)
@@ -109,6 +121,9 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       storage_key:key,format:s.format,document_type:s.documentType,payment_date:s.paymentDate,
       vacation_start:s.vacationStart,vacation_end:s.vacationEnd,
       gross_ppr:s.grossPpr,ppr_income_tax:s.pprIncomeTax,ppr_union_contribution:s.pprUnionContribution,
+      thirteenth_gross:s.thirteenthGross,thirteenth_advance:s.thirteenthAdvance,
+      thirteenth_inss:s.thirteenthInss,thirteenth_irrf:s.thirteenthIrrf,
+      thirteenth_pension:s.thirteenthPension,
       salary_contract:s.salaryContract,trienio:s.trienio,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
     },{onConflict:'user_id,source_sha256,source_page'}).select('id').single()
