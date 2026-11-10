@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {classifyPayrollLine,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison} from './analytics'
+import {classifyPayrollLine,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison,topIrrfStackSegment} from './analytics'
 import type {SavedStatement} from './data'
 import type {StatementRubric} from './vacation'
 const monthly=(id:string,period:string,fgts:number|null):SavedStatement=>({
@@ -79,6 +79,13 @@ describe('Análises com dados reais da folha',()=>{
   expect(rows[0].inss).toBe(951.62)
   expect(rows[0].other).toBe(0)
   expect(rows[0].net+rows[0].pension!+rows[0].inss!+rows[0].irrf).toBeCloseTo(rows[0].gross,2)
+ })
+ it('arredonda somente a parcela superior da pilha de IRRF em cada ano',()=>{
+  expect(topIrrfStackSegment({salary:18000,vacation:2300,thirteenth:1700,ppr:null})).toBe('thirteenth')
+  expect(topIrrfStackSegment({salary:null,vacation:null,thirteenth:2669.79,ppr:null})).toBe('thirteenth')
+  expect(topIrrfStackSegment({salary:18000,vacation:2300,thirteenth:1700,ppr:3500})).toBe('ppr')
+  expect(topIrrfStackSegment({salary:12000,vacation:null,thirteenth:null,ppr:null})).toBe('salary')
+  expect(topIrrfStackSegment({salary:null,vacation:null,thirteenth:null,ppr:null})).toBeNull()
  })
  it('PPR soma apenas seus documentos e preserva diferença de contribuições',()=>{
   const ppr={...monthly('ppr','2025-11',null),document_type:'ppr' as const,
