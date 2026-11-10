@@ -8,6 +8,8 @@ import {type BaseLocation,baseKey,baseLabel} from './lib/base'
 import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
 import {BasePicker} from './components/BasePicker'
 import {TaxPreview} from './components/TaxPreview'
+import {VacationOverview} from './components/VacationOverview'
+import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveSettings,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
@@ -48,6 +50,7 @@ export default function App(){
  const [month,setMonth]=useState(currentMonth())
  const [year,setYear]=useState('all')
  const [statements,setStatements]=useState<SavedStatement[]>([])
+ const [allLines,setAllLines]=useState<StatementRubric[]>([])
  const [events,setEvents]=useState<SalaryEvent[]>([])
  const [records,setRecords]=useState<TimeRecord[]>([])
  const [base,setBase]=useState<BaseLocation|null>(null)
@@ -82,12 +85,12 @@ export default function App(){
   const active=await memberActive();setAllowed(active)
   if(!active)return
   const d=await getData()
-  setStatements(d.statements);setEvents(d.events)
+  setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
   setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
   setParams({...defaults,...d.settings})
   setBase(d.base)
  }
- useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setStatements([]);setEvents([]);setRecords([])}},[user])
+ useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
@@ -111,26 +114,46 @@ export default function App(){
  const payroll=useMemo(()=>calculatePayroll2026({...effective,overtimePay:extraPay}),[effective,extraPay])
  const months=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const filtered=useMemo(()=>statements.filter(s=>year==='all'||s.period.startsWith(year)).sort((a,b)=>b.period.localeCompare(a.period)),[statements,year])
- const annual=useMemo(()=>Object.values(statements.reduce((a,s)=>{
-  const y=s.document_type==='ppr'&&s.payment_date?s.payment_date.slice(0,4):s.period.slice(0,4)
-  const item=a[y]||{year:y,credits:0,net:0,closing:0,advance:0,missing:0,fgts:0,count:0,pprCount:0,pprGross:0,pprNet:0,pprIrrf:0}
-  if(s.document_type==='ppr'){
+ const vacationLedger=useMemo(()=>reconcileVacations(statements,allLines),[statements,allLines])
+ const annual=useMemo(()=>{
+  type AnnualItem={year:string;credits:number;net:number;closing:number;advance:number;vacation:number;vacationCount:number;unreconciled:number;missing:number;fgts:number;count:number;pprCount:number;pprGross:number;pprNet:number;pprIrrf:number}
+  const map:Record<string,AnnualItem>={}
+  const ensure=(y:string):AnnualItem=>map[y]??(map[y]={year:y,credits:0,net:0,closing:0,advance:0,vacation:0,vacationCount:0,unreconciled:0,missing:0,fgts:0,count:0,pprCount:0,pprGross:0,pprNet:0,pprIrrf:0})
+  for(const s of statements){
+   const y=s.document_type==='ppr'&&s.payment_date?s.payment_date.slice(0,4):s.period.slice(0,4)
+   const item=ensure(y)
+   if(s.document_type==='ppr'){
     item.pprCount++;item.pprGross+=s.gross_ppr||0;item.pprNet+=s.net||0;item.pprIrrf+=s.ppr_income_tax||0
-  }else{
+   }else if(s.document_type==='monthly'){
     item.credits+=s.credits||0;item.closing+=s.net||0;item.advance+=s.salary_advance||0
-    if(s.net_received!==null&&!s.warnings?.some(w=>w.includes('não representa todos os depósitos')))item.net+=s.net_received;else item.missing++
     item.fgts+=s.fgts||0;item.count++
+   }
   }
-  a[y]=item;return a
- },{} as Record<string,{year:string;credits:number;net:number;closing:number;advance:number;missing:number;fgts:number;count:number;pprCount:number;pprGross:number;pprNet:number;pprIrrf:number}>)).sort((a,b)=>a.year.localeCompare(b.year)),[statements])
- const monthlyGraph=useMemo(()=>filtered.filter(s=>s.document_type!=='ppr').reverse().map(s=>({period:s.period.slice(5)+'/'+s.period.slice(2,4),bruto:s.credits??0,liquido:s.warnings?.some(w=>w.includes('não representa todos os depósitos'))?null:s.net_received,fgts:s.fgts??0})),[filtered])
- const actual=useMemo(()=>statements.find(s=>s.period===month&&s.document_type!=='ppr')||null,[statements,month])
+  for(const month of vacationLedger.months){
+   const item=ensure(month.period.slice(0,4))
+   if(month.total===null)item.missing++
+   else item.net+=month.total
+  }
+  for(const o of vacationLedger.occurrences){
+   const item=ensure(o.month.slice(0,4))
+   item.vacation+=o.booked;item.vacationCount++
+   if(o.state!=='reconciled')item.unreconciled++
+  }
+  return Object.values(map).sort((a,b)=>a.year.localeCompare(b.year))
+ },[statements,vacationLedger])
+ const monthlyGraph=useMemo(()=>vacationLedger.months
+  .filter(x=>year==='all'||x.period.startsWith(year)).reverse().map(x=>{
+   const statement=statements.find(s=>s.document_type==='monthly'&&s.period===x.period)
+   return {period:x.period.slice(5)+'/'+x.period.slice(2,4),bruto:statement?.credits??0,liquido:x.total,ferias:x.vacation,fgts:statement?.fgts??0}
+  }),[vacationLedger,statements,year])
+ const actual=useMemo(()=>statements.find(s=>s.period===month&&s.document_type==='monthly')||null,[statements,month])
+ const currentCash=vacationLedger.byMonth.get(month)
  const pprMonth=useMemo(()=>statements.filter(s=>s.period===month&&s.document_type==='ppr'),[statements,month])
  const suggestions=useMemo(()=>{
-  const sorted=previews.filter(s=>s.documentType!=='ppr').sort((a,b)=>a.period.localeCompare(b.period))
+  const sorted=previews.filter(s=>s.documentType==='monthly').sort((a,b)=>a.period.localeCompare(b.period))
   return sorted.flatMap((s,i)=>{
    const previous=sorted.slice(0,i).filter(x=>x.period<s.period).at(-1)
-   const historical=[...statements].filter(x=>x.document_type!=='ppr'&&x.period<s.period).sort((a,b)=>b.period.localeCompare(a.period))[0]
+   const historical=[...statements].filter(x=>x.document_type==='monthly'&&x.period<s.period).sort((a,b)=>b.period.localeCompare(a.period))[0]
    const prior=previous?{salary_contract:previous.salaryContract,trienio:previous.trienio} as SavedStatement:historical||null
    return eventCandidates(s,prior).map(e=>({...e,period:s.period,key:s.sourceFile+'#'+s.page}))
   })
