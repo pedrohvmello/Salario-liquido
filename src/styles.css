@@ -60,3 +60,146 @@
 .auth-bottom-actions{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
 @media(max-width:1100px){.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.admin-kpis{grid-template-columns:1fr}.admin-filters{flex-direction:column;align-items:stretch}}
+
+
+/* Purple identity system, approved visual design.
+   Keep warning/error/success status colors semantic and preserve contrast. */
+:root{
+ --brand-950:#1b083b;
+ --brand-900:#25064f;
+ --brand-800:#36076c;
+ --brand-700:#4e09a7;
+ --brand-600:#6500cf;
+ --brand-500:#8700ed;
+ --brand-400:#a333f5;
+ --brand-300:#c28af9;
+ --brand-100:#f0e5ff;
+ --brand-050:#f9f5ff;
+ --brand-border:#e7d9f7;
+ --brand-ink:#21113e;
+ color:var(--brand-ink);
+ background:#f7f3ff;
+}
+body{background:#f7f3ff}
+.main{background:linear-gradient(165deg,#f9f6ff 0%,#f3edff 100%);color:var(--brand-ink)}
+.sidebar{
+ background:linear-gradient(164deg,#290651 0%,#270449 48%,#17062f 100%);
+ color:#e4d4fa;
+ box-shadow:8px 0 30px #2a06520b
+}
+.brandmark{
+ background:linear-gradient(145deg,#a433ff 0%,#7100db 60%,#4700ad 100%);
+ box-shadow:0 7px 23px #8c00f188,0 0 12px #af4dff55;
+ color:white
+}
+.brand small,.lock-box small,.account small{color:#c9b4df}
+.nav-label{color:#c8a9e6}
+.nav{color:#e3cef9}
+.nav:hover{color:#fff;background:#4e1677}
+.nav.active{
+ background:linear-gradient(95deg,#9700f9 0%,#6500d5 100%);
+ box-shadow:0 5px 22px #a029ee66;
+ color:white
+}
+.nav.active svg{color:#fff}
+.nav-dot{background:#e2b8ff}
+.lock-box{color:#ddbcff;border-color:#8448c1;background:#3a0a681c}
+.account{border-color:#73479b}
+.account button{color:#d1b7ed}
+.avatar,.circle-avatar{color:#6e0dcc;background:#f0deff}
+.topbar{background:#fff;border-bottom-color:#ebe1f6}
+.topbar h1,.page-intro h2,.panel h2,.stat strong,.auth-card h1{color:var(--brand-ink)}
+.eyebrow,.hero-kicker{color:#8a29da}
+.month-input{
+ color:var(--brand-ink);border-color:#dfc9f6;
+ box-shadow:0 2px 7px #5c14af0b;
+ background:white
+}
+.hero{
+ background:linear-gradient(110deg,#300365 0%,#5803ab 57%,#8200e6 100%);
+ box-shadow:0 14px 36px #5701ab28
+}
+.hero p,.hero-amount span,.hero-amount small{color:#e2c6ff}
+.hero-amount{border-left-color:#ffffff55}
+.accent,.total-line strong{color:#7300d9}
+.stat,.panel{
+ background:#fff;
+ border-color:#eadff9;
+ box-shadow:0 4px 16px #33115f0b
+}
+.stat small,.period-label,.subtle,.muted{color:#75678b}
+.pill{background:#f0e6ff;color:#6724ad}
+.hour-mini>div,.detail-hint{background:#f5effd}
+.hour-mini strong{color:#542194}
+.text-button{color:#7600dc}
+.primary{
+ border-color:#7200da;
+ color:white;
+ background:linear-gradient(100deg,#9000f4 0%,#5c00bf 100%);
+ box-shadow:0 5px 16px #7e00dc27
+}
+.primary:hover{
+ background:linear-gradient(100deg,#7d00df 0%,#49009e 100%);
+ border-color:#51009f
+}
+.secondary{color:#54288b;border-color:#ddc8f4;background:white}
+.secondary:hover{background:#f7f1ff;border-color:#b581e9}
+.page-intro p{color:#7b6b93}
+.subtle-notice{color:#5c397c;background:#f3eaff;border-color:#e5d0fa}
+th{color:#79648f;background:#f9f5ff;border-bottom-color:#ece1f8}
+td{color:#4c3e62;border-bottom-color:#f0e9f7}
+.clickable:hover{background:#fbf7ff}
+input:not([type=checkbox]):not([type=file]),select,textarea{
+ color:var(--brand-ink);
+ border-color:#ddcaf4;
+ background:white
+}
+input:focus,select:focus,textarea:focus{
+ border-color:#9200ed;
+ box-shadow:0 0 0 3px #8600e31a
+}
+input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
+.timeline svg{color:#a77cd0}
+.icon-button:hover{color:#7b00e9}
+.step{background:#ecdeff;color:#7221bf}
+.dropzone{background:#fbf8ff;border-color:#cba3f4}
+.dropzone>svg{color:#8500e8}
+.suggestion{background:#f8f1ff;border-left-color:#9d24f0;color:#503170}
+.suggestion small{color:#837097}
+.empty{color:#947eaa}
+.settings-readonly-field{background:#fdfaff;border-color:#e8d9f7}
+.settings-readonly-label{color:#735c8b}
+.settings-readonly-value{color:var(--brand-ink)}
+.settings-readonly-source{color:#867399}
+.admin-switch{background:#faf5ff;border-color:#e6d6f8}
+.admin-switch input{accent-color:#8100eb}
+.admin-kpi-label{color:#79618f}
+.admin-filters label{color:#6f5785}
+.auth-background{
+ background:
+  radial-gradient(ellipse 90% 90% at 5% 0%,#aa00ff 0%,#7500c7 38%,transparent 75%),
+  radial-gradient(ellipse 80% 60% at 85% 96%,#290357 0%,transparent 80%),
+  linear-gradient(135deg,#5c019e 0%,#25034f 65%,#13072b 100%);
+}
+.auth-card{
+ max-width:520px;
+ padding:39px 42px;
+ border-radius:21px;
+ box-shadow:0 24px 70px #14002980
+}
+.auth-brand{padding-bottom:29px}
+.auth-brand strong{color:var(--brand-ink)}
+.auth-brand small,.auth-card>p,.secure{color:#74628f}
+.auth-card .primary{width:100%;min-height:48px;font-size:13px}
+.auth-card input:not([type=checkbox]):not([type=file]){min-height:48px}
+.auth-card .google-sign-in{min-height:47px;color:var(--brand-ink);border-color:#dcc7f5}
+.auth-bottom-actions .text-button{color:#6900d8}
+.auth-separator{color:#86739f}
+.auth-separator:before,.auth-separator:after{background:#e6d9f8}
+.spinner{border-color:#d0a9f6;border-top-color:#7700dd}
+.mobile-menu{color:#6725a8}
+@media(max-width:760px){
+ .sidebar.open{box-shadow:0 0 0 100vmax #200c4155}
+ .hero-amount{border-top-color:#ffffff55}
+ .auth-card{padding:28px 25px;max-width:520px}
+}
