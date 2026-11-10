@@ -21,7 +21,7 @@ export const METRICS=[
 export type MonthlyMetrics={period:string;fgts:number|null;irrfSalary:number|null;irrfVacation:number|null}&Record<MetricKey,number|null>
 export type TimeMetrics=MonthlyMetrics&{label:string;monthlyStatements:number}
 export type TaxTime={label:string;salary:number|null;vacation:number|null;thirteenth:number|null;ppr:number|null;total:number|null}
-export type ComparisonRow={label:string;gross:number;net:number;pension?:number;irrf:number;other:number}
+export type ComparisonRow={label:string;gross:number;net:number;pension?:number;inss?:number;irrf:number;other:number}
 const keys=['trienio','privatePension','inss','espp','meal','pension','overtime','irrfSalary','irrfVacation'] as const
 type Classified=typeof keys[number]
 const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()
@@ -126,11 +126,11 @@ export function taxTimeSeries(
  }
  return [...map.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,r])=>r)
 }
-export function thirteenthComparison(rows:readonly {year:string;gross:number;closingNet:number;advance:number;pension:number;irrf:number}[],year:string):ComparisonRow[]{
+export function thirteenthComparison(rows:readonly {year:string;gross:number;closingNet:number;advance:number;pension:number;inss:number;irrf:number}[],year:string):ComparisonRow[]{
  return rows.filter(r=>year==='all'||r.year===year).sort((a,b)=>a.year.localeCompare(b.year)).map(r=>{
   const net=roundMoney(r.closingNet+r.advance)
-  return {label:r.year,gross:r.gross,net,pension:r.pension,irrf:r.irrf,
-   other:roundMoney(r.gross-net-r.pension-r.irrf)}
+  return {label:r.year,gross:r.gross,net,pension:r.pension,inss:r.inss,irrf:r.irrf,
+   other:roundMoney(r.gross-net-r.pension-r.inss-r.irrf)}
  })
 }
 export function pprComparison(statements:readonly SavedStatement[],year:string):ComparisonRow[]{
