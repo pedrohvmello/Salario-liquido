@@ -71,12 +71,14 @@ describe('Análises com dados reais da folha',()=>{
   expect(series[11].thirteenth).toBe(1700)
   expect(series[11].total).toBe(1700)
  })
- it('13º: bruto e coluna líquida total+pensao+IRRF, com INSS fora da pilha',()=>{
+ it('13º: bruto fecha com líquido total, pensão, INSS e IRRF na pilha',()=>{
   const rows=thirteenthComparison([{year:'2025',gross:17854.65,advance:6299.94,
-    closingNet:5870.64,pension:2062.66,irrf:2669.79}],'all')
+    closingNet:5870.64,pension:2062.66,inss:951.62,irrf:2669.79}],'all')
   expect(rows).toHaveLength(1)
   expect(rows[0].net).toBe(12170.58)
-  expect(rows[0].other).toBe(951.62)
+  expect(rows[0].inss).toBe(951.62)
+  expect(rows[0].other).toBe(0)
+  expect(rows[0].net+rows[0].pension!+rows[0].inss!+rows[0].irrf).toBeCloseTo(rows[0].gross,2)
  })
  it('PPR soma apenas seus documentos e preserva diferença de contribuições',()=>{
   const ppr={...monthly('ppr','2025-11',null),document_type:'ppr' as const,
