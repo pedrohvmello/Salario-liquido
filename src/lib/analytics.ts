@@ -22,6 +22,14 @@ export type MonthlyMetrics={period:string;fgts:number|null;irrfSalary:number|nul
 export type TimeMetrics=MonthlyMetrics&{label:string;monthlyStatements:number}
 export type TaxTime={label:string;salary:number|null;vacation:number|null;thirteenth:number|null;ppr:number|null;total:number|null}
 export type ComparisonRow={label:string;gross:number;net:number;pension?:number;inss?:number;irrf:number;other:number}
+export type IrrfStackKey='salary'|'vacation'|'thirteenth'|'ppr'
+/** Returns the highest positive segment for each stacked IRRF bar.
+ * Only this segment has rounded top corners; middle segments remain square.
+ */
+export function topIrrfStackSegment(row:Pick<TaxTime,IrrfStackKey>):IrrfStackKey|null{
+ const order:IrrfStackKey[]=['ppr','thirteenth','vacation','salary']
+ return order.find(key=>(row[key]??0)>0)??null
+}
 const keys=['trienio','privatePension','inss','espp','meal','pension','overtime','irrfSalary','irrfVacation'] as const
 type Classified=typeof keys[number]
 const normalize=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim()
