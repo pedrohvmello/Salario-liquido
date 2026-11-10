@@ -44,7 +44,6 @@ const intersects=(month:string,start:string,end:string)=>{
  const [a,b]=monthRange(month)
  return a<=end&&start<=b
 }
-const prevMonth=(month:string)=>{const [y,m]=month.split('-').map(Number);return (m===1?y-1:y)+'-'+String(m===1?12:m-1).padStart(2,'0')}
 const monthFrom=(date:string)=>date.slice(0,7)
 export function reconcileVacations(statements:readonly VacationStatement[],lines:readonly StatementRubric[]):VacationLedger{
  const monthly=statements.filter(s=>s.document_type==='monthly'&&validMonth(s.period))
