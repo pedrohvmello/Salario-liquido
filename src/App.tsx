@@ -9,6 +9,8 @@ import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
 import {BasePicker} from './components/BasePicker'
 import {TaxPreview} from './components/TaxPreview'
 import {VacationOverview} from './components/VacationOverview'
+import {ThirteenthOverview} from './components/ThirteenthOverview'
+import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveSettings,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
@@ -115,10 +117,11 @@ export default function App(){
  const months=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const filtered=useMemo(()=>statements.filter(s=>year==='all'||s.period.startsWith(year)).sort((a,b)=>b.period.localeCompare(a.period)),[statements,year])
  const vacationLedger=useMemo(()=>reconcileVacations(statements,allLines),[statements,allLines])
+ const thirteenthLedger=useMemo(()=>reconcileThirteenth(statements,allLines),[statements,allLines])
  const annual=useMemo(()=>{
-  type AnnualItem={year:string;credits:number;net:number;closing:number;advance:number;vacation:number;vacationCount:number;unreconciled:number;missing:number;fgts:number;count:number;pprCount:number;pprGross:number;pprNet:number;pprIrrf:number}
+  type AnnualItem={year:string;credits:number;net:number;closing:number;advance:number;vacation:number;vacationCount:number;unreconciled:number;missing:number;fgts:number;count:number;pprCount:number;pprGross:number;pprNet:number;pprIrrf:number;thirteenthGross:number;thirteenthNet:number;thirteenthIrrf:number;thirteenthAdvance:number;thirteenthCount:number;totalFinancial:number}
   const map:Record<string,AnnualItem>={}
-  const ensure=(y:string):AnnualItem=>map[y]??(map[y]={year:y,credits:0,net:0,closing:0,advance:0,vacation:0,vacationCount:0,unreconciled:0,missing:0,fgts:0,count:0,pprCount:0,pprGross:0,pprNet:0,pprIrrf:0})
+  const ensure=(y:string):AnnualItem=>map[y]??(map[y]={year:y,credits:0,net:0,closing:0,advance:0,vacation:0,vacationCount:0,unreconciled:0,missing:0,fgts:0,count:0,pprCount:0,pprGross:0,pprNet:0,pprIrrf:0,thirteenthGross:0,thirteenthNet:0,thirteenthIrrf:0,thirteenthAdvance:0,thirteenthCount:0,totalFinancial:0})
   for(const s of statements){
    const y=s.document_type==='ppr'&&s.payment_date?s.payment_date.slice(0,4):s.period.slice(0,4)
    const item=ensure(y)
@@ -134,13 +137,22 @@ export default function App(){
    if(month.total===null)item.missing++
    else item.net+=month.total
   }
+  for(const t of thirteenthLedger.occurrences){
+   const item=ensure(t.year)
+   item.thirteenthCount++
+   item.thirteenthGross+=t.gross
+   item.thirteenthNet+=t.cashAdditional
+   item.thirteenthAdvance+=t.advance
+   item.thirteenthIrrf+=t.irrf
+  }
   for(const o of vacationLedger.occurrences){
    const item=ensure(o.month.slice(0,4))
    item.vacation+=o.booked;item.vacationCount++
    if(o.state!=='reconciled')item.unreconciled++
   }
+  for(const item of Object.values(map))item.totalFinancial=item.net+item.thirteenthNet+item.pprNet
   return Object.values(map).sort((a,b)=>a.year.localeCompare(b.year))
- },[statements,vacationLedger])
+ },[statements,vacationLedger,thirteenthLedger])
  const monthlyGraph=useMemo(()=>vacationLedger.months
   .filter(x=>year==='all'||x.period.startsWith(year)).reverse().map(x=>{
    const statement=statements.find(s=>s.document_type==='monthly'&&s.period===x.period)
@@ -148,6 +160,8 @@ export default function App(){
   }),[vacationLedger,statements,year])
  const actual=useMemo(()=>statements.find(s=>s.period===month&&s.document_type==='monthly')||null,[statements,month])
  const currentCash=vacationLedger.byMonth.get(month)
+ const thirteenthMonth=thirteenthLedger.cashByMonth.get(month)??0
+ const thirteenthThisMonth=thirteenthLedger.occurrences.find(t=>t.period===month)
  const pprMonth=useMemo(()=>statements.filter(s=>s.period===month&&s.document_type==='ppr'),[statements,month])
  const suggestions=useMemo(()=>{
   const sorted=previews.filter(s=>s.documentType==='monthly').sort((a,b)=>a.period.localeCompare(b.period))
