@@ -8,7 +8,7 @@
 import {roundMoney} from './money'
 import type {PayrollLine} from './parse'
 export type VacationStatement = {
- id:string;period:string;document_type:'monthly'|'ppr'|'vacation';
+ id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';
  vacation_start?:string|null;vacation_end?:string|null;payment_date?:string|null;
  net:number|null;salary_advance:number|null;net_received:number|null;
  credits:number|null;debits:number|null;warnings?:string[]
