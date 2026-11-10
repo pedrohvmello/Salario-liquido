@@ -3,7 +3,7 @@ import {ChevronRight, LockKeyhole, ShieldCheck, Wallet} from 'lucide-react'
 import {db} from '../lib/data'
 
 export function AuthGate(){
-  const [mode,setMode]=useState<'login'|'reset'>('login')
+  const [mode,setMode]=useState<'login'|'reset'|'signup'>('login')
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
   const [busy,setBusy]=useState(false)
@@ -17,6 +17,11 @@ export function AuthGate(){
         const {error}=await db.auth.resetPasswordForEmail(email.trim(),{redirectTo:window.location.origin})
         if(error)throw error
         setMessage('Se a conta existir, você receberá instruções para recuperar a senha.')
+      }else if(mode==='signup'){
+        const {data,error}=await db.auth.signUp({email:email.trim(),password})
+        if(error)throw error
+        if(!data.session)setMessage('Solicitação recebida. Se o cadastro for permitido, confira o e-mail para confirmar sua conta. O acesso poderá depender de aprovação administrativa.')
+        else setMessage('Conta criada. O aplicativo verificará sua autorização de acesso.')
       }else{
         const {error}=await db.auth.signInWithPassword({email:email.trim(),password})
         if(error)throw error
@@ -37,19 +42,22 @@ export function AuthGate(){
     <div className="brand auth-brand"><div className="brandmark"><Wallet size={24}/></div>
       <div><strong>Salário Líquido</strong><small>Gestão salarial pessoal</small></div>
     </div>
-    <h1>{mode==='reset'?'Recuperar senha':'Acesse sua conta'}</h1>
-    <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':'Seus holerites e registros ficam privados. Contas são habilitadas apenas por convite.'}</p>
+    <h1>{mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
+    <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.':'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>
     <form onSubmit={e=>{e.preventDefault();void act()}}>
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
-      {mode==='login'&&<label>Senha<input type="password" required minLength={6} autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Sua senha"/></label>}
-      <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':'Entrar'} <ChevronRight size={17}/></button>
+      {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?8:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 8 caracteres':'Sua senha'}/></label>}
+      <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
-    {mode==='login'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><span className="google-g">G</span> Continuar com Google</button></>}
-    <button className="text-button" type="button" onClick={()=>{setMode(mode==='login'?'reset':'login');setError('');setMessage('')}}>
-      <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
-    </button>
+    {mode!=='reset'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><span className="google-g">G</span> Continuar com Google</button></>}
+    <div className="auth-bottom-actions">
+      {mode==='login'&&<button className="text-button" type="button" onClick={()=>{setMode('signup');setError('');setMessage('')}}>Criar conta</button>}
+      <button className="text-button" type="button" onClick={()=>{setMode(mode==='login'?'reset':'login');setError('');setMessage('')}}>
+        <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
+      </button>
+    </div>
     <div className="secure"><ShieldCheck size={16}/> Acesso individual com autenticação</div>
   </div></div>
 }
