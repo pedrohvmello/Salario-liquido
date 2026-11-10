@@ -11,6 +11,7 @@ import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
 import {AnalyticsDashboard} from './components/AnalyticsDashboard'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
+import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveSettings,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
@@ -153,11 +154,13 @@ export default function App(){
   for(const item of Object.values(map))item.totalFinancial=item.net+item.thirteenthNet+item.pprNet
   return Object.values(map).sort((a,b)=>a.year.localeCompare(b.year))
  },[statements,vacationLedger,thirteenthLedger])
- const monthlyGraph=useMemo(()=>vacationLedger.months
-  .filter(x=>year==='all'||x.period.startsWith(year)).reverse().map(x=>{
+ const monthlyGraph=useMemo(()=>{
+  const months=vacationLedger.months.map(x=>{
    const statement=statements.find(s=>s.document_type==='monthly'&&s.period===x.period)
-   return {period:x.period.slice(5)+'/'+x.period.slice(2,4),bruto:statement?.credits??0,liquido:x.total,ferias:x.vacation,fgts:statement?.fgts??0}
-  }),[vacationLedger,statements,year])
+   return {period:x.period,bruto:statement?.credits??null,liquido:x.total,ferias:x.vacation}
+  })
+  return remunerationSeries(months,year)
+ },[vacationLedger,statements,year])
  const actual=useMemo(()=>statements.find(s=>s.period===month&&s.document_type==='monthly')||null,[statements,month])
  const currentCash=vacationLedger.byMonth.get(month)
  const thirteenthMonth=thirteenthLedger.cashByMonth.get(month)??0
