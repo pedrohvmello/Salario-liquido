@@ -91,7 +91,7 @@ Migração: `supabase/migrations/0005_net_received.sql` aplicada no projeto Supa
 
 ## Base de trabalho e feriados
 
-Em **Configurações → Base:**, cada usuário escolhe sua UF e município, a partir da lista oficial de localidades do IBGE, com código IBGE de sete dígitos. O valor fica no campo privado `user_settings.base_city`; usuários diferentes podem ter Bases distintas.
+Em **Configurações → Base:**, cada usuário escolhe sua UF e município, a partir da lista oficial de localidades do IBGE, com código IBGE de sete dígitos. O valor fica no campo privado `user_settings.base_city`; usuários diferentes podem ter Bases distintas. **Nenhuma cidade é presumida para contas novas:** é necessário selecionar e salvar a Base antes de usar o controle de horas.
 
 Em **Controle de horas**, a Base cadastrada aparece no formulário de ponto e determina os feriados automáticos aplicados à classificação de 100%:
 
