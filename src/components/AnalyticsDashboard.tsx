@@ -38,7 +38,7 @@ function Bars({data,children}:{data:Array<Record<string,string|number|null>>;chi
    <CartesianGrid stroke="#e9edf2" vertical={false}/>
    <XAxis dataKey="label" tick={{fontSize:11}}/>
    <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
-   <Tooltip formatter={fmt}/><Legend/>{children}
+   <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>{children}
   </BarChart>
  </ResponsiveContainer></div>
 }
@@ -94,7 +94,7 @@ export function AnalyticsDashboard({
      <CartesianGrid stroke="#e9edf2" vertical={false}/>
      <XAxis dataKey="period" tick={{fontSize:11}}/>
      <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
-     <Tooltip formatter={fmt}/><Legend/>
+     <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>
      <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} fill="#c5ddfd" fillOpacity={.65}/>
      <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.green} fill="#c3eade" fillOpacity={.5}/>
      <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.orange} fill="#f9d9ac" fillOpacity={.15}/>
