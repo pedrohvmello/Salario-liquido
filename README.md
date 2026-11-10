@@ -77,3 +77,14 @@ O botão `Continuar com Google` foi implementado, mas fica oculto enquanto `VITE
 4. Ativar `VITE_ENABLE_GOOGLE_OAUTH=true` apenas no ambiente de HML na Vercel, gerar novo deploy e testar com conta previamente autorizada.
 
 Para links de recuperação (`type=recovery`) e convites (`type=invite`), o app abre o formulário de definição de senha em tela dedicada, em vez do dashboard. Emails enviados pelo SMTP interno do Supabase são limitados; para piloto com até 20 usuários, configurar um SMTP apropriado antes de convidar participantes.
+
+## Líquido mensal efetivamente recebido
+
+Preservamos três valores históricos distintos por holerite:
+- **Líquido no fechamento**: campo original de pagamento líquido no PDF.
+- **Adiantamento salarial**: desconto que corresponde ao dinheiro já pago antecipadamente na mesma competência, identificado por código `07220` no formato antigo ou `/B02` no novo.
+- **Líquido mensal recebido**: fechamento + adiantamento salarial, armazenado também em `statements.net_received`.
+
+O total mensal é usado no histórico, totais anuais, gráficos e no quadro de realizado do dashboard. A prévia explicita todos os componentes antes de salvar. **Não somamos** automaticamente adiantamento de férias (ex.: `07200`) nem adiantamento de 13º (ex.: `07210`), que são pagamentos e eventos distintos e necessitam de fluxo próprio. Em meses com férias ou 13º, portanto, o total de dinheiro efetivamente transferido no mês pode exigir conciliação adicional. Esta mudança não altera o líquido originalmente impresso nem reinterpreta as bases de INSS/IRRF.
+
+Migração: `supabase/migrations/0005_net_received.sql` aplicada no projeto Supabase de homologação. Sem histórico real gravado pelo desenvolvimento.
