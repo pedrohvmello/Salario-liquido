@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound,ArrowUp,ArrowDown} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,overtimeValue,type DayEntry} from './lib/calendar'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
@@ -14,11 +14,13 @@ import {AdminDashboard} from './components/AdminDashboard'
 import {recordAppSession} from './lib/admin'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
 import {latestEffectiveEvent} from './lib/eventSources'
+import {defaultPensionRule,encodePensionNotes,parsePensionNotes,pensionRuleLabels,type PensionRule} from './lib/pensionRule'
+import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,type OverviewCardId} from './lib/overview'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
-import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
+import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveOverviewCards,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {requiresPasswordSetup} from './lib/authRedirect'
 
@@ -42,7 +44,7 @@ const dateBR=(s:string)=>{const [y,m,d]=s.split('-');return d+'/'+m+'/'+y}
 function Stat({name,value,note,tone}:{name:string;value:string;note?:string;tone?:string}){return <div className="stat"><span className="subtle">{name}</span><strong className={tone||''}>{value}</strong>{note&&<small>{note}</small>}</div>}
 function Panel({title,extra,children}:{title:string;extra?:React.ReactNode;children:React.ReactNode}){return <section className="panel"><div className="panel-heading"><h2>{title}</h2>{extra}</div>{children}</section>}
 function Empty({text}:{text:string}){return <div className="empty"><FileText size={27}/><p>{text}</p></div>}
-const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionFixed:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
+const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição (por dia útil)',fixedBenefit:'Vale-benefício',childcareBenefit:'Auxílio-creche',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionFixed:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
 
 const percentageFields=new Set<keyof SalaryParameters>(['esppPercent','privatePensionPercent','pensionPercent','advancePercent'])
 function displayEffectiveParameter(key:keyof SalaryParameters,value:number):string{
@@ -51,7 +53,7 @@ function displayEffectiveParameter(key:keyof SalaryParameters,value:number):stri
  return brl(value)
 }
 const pensionMethods:Record<SalaryParameters['pensionMethod'],string>={
- old26:'Método antigo, percentual sobre bruto menos INSS e IRRF',
+ old26:'Percentual sobre a base definida no evento de pensão',
  fixed:'Valor fixo informado',
  none:'Sem pensão'
 }
@@ -88,6 +90,8 @@ export default function App(){
  const [eventValue,setEventValue]=useState('')
  const [eventDate,setEventDate]=useState(today())
  const [eventNote,setEventNote]=useState('')
+ const [pensionOptions,setPensionOptions]=useState<PensionRule>({...defaultPensionRule})
+ const [overviewCards,setOverviewCards]=useState<OverviewCardId[]>([...defaultOverviewCards])
  const [entryId,setEntryId]=useState<string|undefined>()
  const [entry,setEntry]=useState<DayEntry>({date:today(),start:'09:00',lunchStart:'12:00',lunchEnd:'13:00',end:'18:00',holidayOverride:null})
 
@@ -115,6 +119,7 @@ export default function App(){
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
   setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
   setParams({...defaults,...d.settings})
+  setOverviewCards(normalizeOverviewCards(d.overviewCards))
   setBase(d.base)
  }
  useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
@@ -122,7 +127,8 @@ export default function App(){
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
  }
- const holidayYears=useMemo(()=>[...new Set([Number(entry.date.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,entry.date])
+ const benefitReferenceMonth=followingMonth(month)
+ const holidayYears=useMemo(()=>[...new Set([Number(entry.date.slice(0,4)),Number(month.slice(0,4)),Number(benefitReferenceMonth.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,entry.date,month,benefitReferenceMonth])
  const holidayYearsKey=holidayYears.join(',')
  useEffect(()=>{
   let active=true
@@ -137,8 +143,13 @@ export default function App(){
  const computedHours=useMemo(()=>holidayDates?records.flatMap(r=>{try{return [{...r,calc:classifyHours(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates])
  const monthHours=useMemo(()=>computedHours.filter(x=>x.calc.payMonth===month).reduce((a,x)=>({h60:a.h60+x.calc.h60,h80:a.h80+x.calc.h80,h100:a.h100+x.calc.h100}),{h60:0,h80:0,h100:0}),[computedHours,month])
  const effective=useMemo(()=>effectiveParams(params,events,month),[params,events,month])
+ const latestPension=useMemo(()=>latestEffectiveEvent(events,'pensionPercent',month),[events,month])
+ const pensionRule=useMemo(()=>latestPension?parsePensionNotes(latestPension.notes).rule:{...defaultPensionRule},[latestPension])
  const extraPay=overtimeValue(monthHours,effective.salary+effective.trienio)
- const payroll=useMemo(()=>calculatePayroll2026({...effective,overtimePay:extraPay}),[effective,extraPay])
+ const payroll=useMemo(()=>calculatePayroll2026({...effective,overtimePay:extraPay,pensionRule}),[effective,extraPay,pensionRule])
+ const mealEvent=useMemo(()=>latestEffectiveEvent(events,'mealBenefit',month),[events,month])
+ const hasPension=effective.pensionMethod!=='none'
+ const benefitEstimate=useMemo(()=>mealEvent&&holidayDates?projectedMealBenefit(effective.mealBenefit,month,holidayDates):null,[mealEvent,effective.mealBenefit,month,holidayDates])
  const months=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const filtered=useMemo(()=>statements.filter(s=>year==='all'||s.period.startsWith(year)).sort((a,b)=>b.period.localeCompare(a.period)),[statements,year])
  const vacationLedger=useMemo(()=>reconcileVacations(statements,allLines),[statements,allLines])
