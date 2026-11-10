@@ -7,3 +7,10 @@
 .auth-separator:before,.auth-separator:after{content:'';height:1px;flex:1;background:#e1e7ed}
 .google-sign-in{width:100%;min-height:44px}
 .google-g{font-size:18px;font-family:Arial,sans-serif;font-weight:800;color:#4285f4}
+
+/* Annual tax comparison uses the existing payroll table layout. */
+.year-filter{display:flex;flex-direction:column;gap:7px;font-size:11px;font-weight:700;color:#667891}
+.year-filter select{min-width:150px}
+.tax-number{max-width:190px;text-align:right;min-width:160px}
+.tax-actions{display:flex;flex-wrap:wrap;gap:13px;align-items:center;margin-top:20px}
+@media(max-width:760px){.year-filter{width:100%}.tax-number{min-width:130px;width:150px}}
