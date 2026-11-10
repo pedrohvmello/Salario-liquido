@@ -5,7 +5,7 @@ const receipt=(id:string,start:string,end:string,net:number):VacationStatement=>
  id,period:start.slice(0,7),document_type:'vacation',vacation_start:start,vacation_end:end,
  net,credits:20000,debits:20000-net,salary_advance:null,net_received:null
 })
-const debit=(id:string,code:string,amount:number):StatementRubric=>({statement_id:id,code,amount,side:'debit',description:'DESCONTO ADIANTAMENTO FERIAS MES I'})
+const debit=(id:string,code:string,amount:number,description='DESCONTO ADIANTAMENTO FERIAS MES I'):StatementRubric=>({statement_id:id,code,amount,side:'debit',description})
 describe('Vacation cash reconciliation',()=>{
  it('infers a vacation advance from monthly paycheck, keeping it separate from 13th taxable salary',()=>{
   const v=reconcileVacations([monthly('apr','2024-04')],[debit('apr','07200',8200),debit('apr','07210',6100)])
@@ -30,7 +30,7 @@ describe('Vacation cash reconciliation',()=>{
  })
  it('does not invent the unknown portion of a two-month vacation from a future adjustment code',()=>{
   const v=reconcileVacations([monthly('apr','2026-04'),monthly('may','2026-05',2400),receipt('vac','2026-04-06','2026-05-05',19600)],
-   [debit('apr','07200',8800),debit('apr','07210',7800),debit('may','8914',3790)])
+   [debit('apr','07200',8800),debit('apr','07210',7800),debit('may','8914',3790,'Fé - imp-leg')])
   expect(v.byMonth.get('2026-04')?.total).toBe(19600)
   expect(v.byMonth.get('2026-05')?.total).toBe(2400)
   expect(v.occurrences).toHaveLength(1)
