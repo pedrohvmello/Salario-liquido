@@ -123,3 +123,15 @@ A interface permite lançar manualmente os campos informados no comprovante ofic
 O IRRF específico do PPR já fica salvo em `statements.ppr_income_tax`, além das rubricas originais em `statement_lines`. Ele aparece no histórico, consolidado anual, em Análises e na prévia de IR. **Não se mistura IRRF de PLR/PPR com IRRF salarial**, pois PLR paga por PJ no Brasil é sujeita a tributação exclusiva/definitiva. Fontes: Receita Federal, manual Meu Imposto de Renda 2026, Rendimentos do Trabalho; IN RFB 1500/2014 art. 17.
 
 Próximas etapas de homologação: classificar por layouts e competência as rubricas de salários tributáveis, INSS, IRRF salarial, férias, 13º, pensão e previdência; identificar corretamente as datas de pagamentos mensais; importar o PDF oficial do comprovante e comparar automaticamente, sem substituí-lo como documento original. **Esta tela não é informe oficial nem permite entrega da declaração à Receita.**
+
+## Férias: holerite mensal como principal, recibo opcional
+
+A folha **MENSAL** continua sendo a fonte principal do histórico. No layout antigo, as rubricas de desconto `07200` (adiantamento de férias) e `07210` (adiantamento do 13º nas férias) permitem **estimar dinheiro já recebido**; elas não se transformam em remuneração tributável adicional. O líquido financeiro da competência = fechamento + adiantamento quinzenal + adiantamentos de férias/13º inferidos.
+
+O recibo independente identificado como **Folha: FERIAS** pode ser importado separadamente, com competência, início/fim, data de pagamento, proventos, descontos, líquido e todas as rubricas. O recibo é **opcional** e nunca se soma por cima do valor da folha: ao encontrá-lo, o algoritmo vincula as competências que interceptam o período de férias, **substitui o adiantamento inferido** pelo líquido original do recibo e apresenta a diferença, se houver. O agrupamento financeiro fica no **mês de início das férias**, mesmo quando o pagamento real ocorreu no mês anterior. A data real é preservada para conciliação futura do imposto de renda, sem alterar a competência financeira.
+
+A aba Histórico/Análises e a tela de Eventos exibem as ocorrências derivadas dos documentos com estados: **Estimado pela folha**, **Conciliado com recibo**, **Conciliação parcial**, **Diferença a conferir** ou **Somente recibo**. Mesmo com dois recibos iguais do mesmo período, o total não é duplicado. O arquivo PDF original continua privado no bucket `payslips`.
+
+Para férias que atravessam competências ou misturam o layout antigo e novo, valores não identificáveis pelas rubricas de adiantamento não são inventados. A conciliação deve permanecer visivelmente pendente quando não fechar. O recibo não deve ser adicionado ao total de proventos tributáveis da folha mensal nem ao PPR.
+
+Migração: `supabase/migrations/0009_vacation_documents.sql`. O código deriva os totais atuais a partir de `statements` e `statement_lines`; não sobrescreve os líquidos já armazenados.
