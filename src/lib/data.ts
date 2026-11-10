@@ -19,6 +19,20 @@ export const eventsKinds=[
 ] as const
 async function identity(){if(!db)throw new Error('Supabase não configurado');const {data:{user},error}=await db.auth.getUser();if(error||!user)throw new Error('Faça login');return user.id}
 export async function memberActive(){if(!db)return false;const id=await identity();const {data,error}=await db.from('app_members').select('active').eq('user_id',id).single();if(error)return false;return data?.active===true}
+async function listAllStatementRubrics(id:string):Promise<StatementRubric[]>{
+  if(!db)throw new Error('Banco não configurado')
+  const collected:StatementRubric[]=[]
+  const limit=500
+  for(let offset=0;offset<100000;offset+=limit){
+    const {data,error}=await db.from('statement_lines')
+      .select('statement_id,code,description,amount,side').eq('user_id',id)
+      .order('id',{ascending:true}).range(offset,offset+limit-1)
+    if(error)throw new Error(error.message)
+    collected.push(...(data||[]) as StatementRubric[])
+    if((data||[]).length<limit)return collected
+  }
+  throw new Error('Volume de rubricas acima do limite de leitura: contate o suporte')
+}
 export async function getData(){
   const id=await identity();if(!db)throw new Error('Banco não configurado')
   const [statements,events,entries,settings,lines]=await Promise.all([
@@ -26,10 +40,10 @@ export async function getData(){
     db.from('salary_events').select('*').eq('user_id',id).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
     db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
-    db.from('statement_lines').select('statement_id,code,description,amount,side').eq('user_id',id)
+    listAllStatementRubrics(id)
   ])
-  for(const r of [statements,events,entries,settings,lines])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],lines:(lines.data||[]) as StatementRubric[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
+  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
