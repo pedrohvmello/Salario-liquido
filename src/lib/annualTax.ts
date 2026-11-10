@@ -1,15 +1,18 @@
 import {roundMoney} from './money'
 
 export type TaxStatement={
-  id:string;period:string;document_type:'monthly'|'ppr'|'vacation';payment_date:string|null;
+  id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';payment_date:string|null;
   gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;
+  thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;
+  thirteenth_irrf:number;thirteenth_pension:number;
   credits:number|null;net:number|null;net_received:number|null
 }
 export type AnnualTaxSummary={
   year:number;monthlyDocuments:number;monthlyGrossIndicative:number;
   monthlyClosingNetIndicative:number;monthlyIncomplete:number;
   pprDocuments:number;pprGross:number;pprIrrf:number;pprNet:number;pprContribution:number;
-  pprUnassignedDates:number;notes:string[]
+  pprUnassignedDates:number;thirteenthDocuments:number;thirteenthGross:number;thirteenthIrrf:number;
+  thirteenthInss:number;thirteenthAdvance:number;thirteenthPension:number;notes:string[]
 }
 export const OFFICIAL_FIELDS=[
  {key:'ppr_gross',title:'PPR/PLR bruto',unit:'Rendimento de tributação exclusiva'},
@@ -27,7 +30,8 @@ export type OfficialValues=Partial<Record<OfficialField,number|null>>
 export type AnnualTaxComparison={user_id:string;calendar_year:number;official_values:OfficialValues;updated_at?:string}
 export function summarizeTaxYear(statements:readonly TaxStatement[],year:number):AnnualTaxSummary {
  const r:AnnualTaxSummary={year,monthlyDocuments:0,monthlyGrossIndicative:0,monthlyClosingNetIndicative:0,
-  monthlyIncomplete:0,pprDocuments:0,pprGross:0,pprIrrf:0,pprNet:0,pprContribution:0,pprUnassignedDates:0,notes:[]}
+  monthlyIncomplete:0,pprDocuments:0,pprGross:0,pprIrrf:0,pprNet:0,pprContribution:0,pprUnassignedDates:0,thirteenthDocuments:0,thirteenthGross:0,thirteenthIrrf:0,
+  thirteenthInss:0,thirteenthAdvance:0,thirteenthPension:0,notes:[]}
  for(const s of statements){
   if(s.document_type==='ppr'){
    if(!s.payment_date){if(s.period.startsWith(String(year)))r.pprUnassignedDates++;continue}
@@ -39,6 +43,15 @@ export function summarizeTaxYear(statements:readonly TaxStatement[],year:number)
    r.pprContribution+=s.ppr_union_contribution||0
    if(s.net!==null)r.pprNet+=s.net
    else r.notes.push('PPR sem valor líquido em '+s.period)
+  }else if(s.document_type==='thirteenth'){
+   if(!s.payment_date||!s.payment_date.startsWith(String(year)))continue
+   r.thirteenthDocuments++
+   if(s.thirteenth_gross===null)r.notes.push('13º sem bruto comprovado: '+s.period)
+   else r.thirteenthGross+=s.thirteenth_gross
+   r.thirteenthIrrf+=s.thirteenth_irrf||0
+   r.thirteenthInss+=s.thirteenth_inss||0
+   r.thirteenthAdvance+=s.thirteenth_advance||0
+   r.thirteenthPension+=s.thirteenth_pension||0
   }else if(s.document_type==='monthly'&&s.period.startsWith(String(year))){
    r.monthlyDocuments++
    r.monthlyGrossIndicative+=s.credits||0
@@ -46,7 +59,7 @@ export function summarizeTaxYear(statements:readonly TaxStatement[],year:number)
    if(s.credits===null||s.net===null)r.monthlyIncomplete++
   }
  }
- for(const k of ['monthlyGrossIndicative','monthlyClosingNetIndicative','pprGross','pprIrrf','pprNet','pprContribution'] as const)r[k]=roundMoney(r[k])
+ for(const k of ['monthlyGrossIndicative','monthlyClosingNetIndicative','pprGross','pprIrrf','pprNet','pprContribution','thirteenthGross','thirteenthIrrf','thirteenthInss','thirteenthAdvance','thirteenthPension'] as const)r[k]=roundMoney(r[k])
  if(r.monthlyDocuments!==12)r.notes.push('Cobertura mensal: '+r.monthlyDocuments+'/12 competências; podem faltar holerites.')
  if(r.pprUnassignedDates)r.notes.push(r.pprUnassignedDates+' PPR sem data de pagamento confirmada: excluído da totalização fiscal.')
  r.notes.push('Os totais de salário são apenas indicadores por competência, não rendimentos tributáveis anuais.')
@@ -55,6 +68,8 @@ export function summarizeTaxYear(statements:readonly TaxStatement[],year:number)
 export function calculatedOfficialValue(s:AnnualTaxSummary,field:OfficialField):number|null {
  if(field==='ppr_gross')return s.pprDocuments>0?s.pprGross:null
  if(field==='ppr_irrf')return s.pprDocuments>0?s.pprIrrf:null
+ if(field==='thirteenth')return s.thirteenthDocuments>0?s.thirteenthGross:null
+ if(field==='thirteenth_irrf')return s.thirteenthDocuments>0?s.thirteenthIrrf:null
  return null
 }
 export function officialDifference(estimated:number|null,official:number|null|undefined):number|null {
