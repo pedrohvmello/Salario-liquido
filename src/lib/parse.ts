@@ -8,7 +8,6 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {extractOldTotals} from './oldTotals'
 import {netMonthlyReceived,salaryAdvanceFromLines} from './netReceived'
 import {isPprPayslip,paymentDateFromHeader,pprDetails} from './ppr'
-import {nonMonthlyCashWarnings} from './cashCoverage'
 import {isVacationPayslip,vacationPeriodFromHeader} from './vacationDocument'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
@@ -104,7 +103,6 @@ function validate(s:ParsedStatement,rows:Row[]):ParsedStatement {
     if(!s.vacationStart||!s.vacationEnd||s.vacationStart>s.vacationEnd)s.warnings.push('Período de férias ausente ou inválido')
     if(!s.paymentDate)s.warnings.push('Data de pagamento de férias não encontrada')
   }
-  s.warnings.push(...nonMonthlyCashWarnings(s.lines,s.documentType))
   if(s.documentType==='ppr'){
     if(!s.paymentDate)s.warnings.push('Data de pagamento do PPR não encontrada')
     if(s.grossPpr===null)s.warnings.push('Rubrica de PPR bruto não identificada')
