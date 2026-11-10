@@ -2,7 +2,7 @@ import {createClient, type SupabaseClient} from '@supabase/supabase-js'
 import type {ParsedStatement} from './parse'
 import {type DayEntry,type Overtime} from './calendar'
 import type {SalaryParameters} from './money'
-import {type BaseLocation,isValidBase,DEFAULT_BASE} from './base'
+import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
 const anon=import.meta.env.VITE_SUPABASE_ANON_KEY
 export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
@@ -26,7 +26,7 @@ export async function getData(){
     db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle()
   ])
   for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:DEFAULT_BASE}
+  return {statements:(statements.data||[]) as SavedStatement[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
