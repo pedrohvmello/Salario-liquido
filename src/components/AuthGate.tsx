@@ -1,5 +1,5 @@
 import {useState} from 'react'
-import {ChevronRight, LockKeyhole, ShieldCheck, Wallet} from 'lucide-react'
+import {ChevronRight, LockKeyhole, ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
@@ -49,8 +49,8 @@ export function AuthGate(){
     }catch(e){setError(e instanceof Error?e.message:'Falha ao iniciar o login Google.');setBusy(false)}
   }
   return <div className="auth-background"><div className="auth-card">
-    <div className="brand auth-brand"><div className="brandmark"><Wallet size={24}/></div>
-      <div><strong>Salário Líquido</strong><small>Gestão salarial pessoal</small></div>
+    <div className="brand auth-brand brand--wordmark">
+      <div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div>
     </div>
     <h1>{mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
     <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.':'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>

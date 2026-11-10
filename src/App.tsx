@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,overtimeValue,type DayEntry} from './lib/calendar'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
@@ -237,7 +237,7 @@ export default function App(){
  ]
  return <div className="app">
   <aside className={menu?'sidebar open':'sidebar'}>
-   <div className="brand"><div className="brandmark"><Wallet size={23}/></div><div><strong>Salário Líquido</strong><small>Controle financeiro</small></div></div>
+   <div className="brand brand--wordmark"><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>{nav.filter(n=>n.id!=='admin'||isAdmin).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}</nav>
    <div className="side-bottom"><div className="lock-box"><ShieldCheck size={18}/><div><strong>Ambiente privado</strong><small>Dados isolados por usuário</small></div></div><div className="account"><div className="avatar">{(user?.email||'SL').slice(0,2).toUpperCase()}</div><div><strong>{user?.email?.split('@')[0]||'Demonstração'}</strong><small>{isDemo?'Sem dados salvos':'Conta individual'}</small></div>{db&&<button title="Sair" onClick={()=>db?.auth.signOut()}><LogOut size={17}/></button>}</div></div>

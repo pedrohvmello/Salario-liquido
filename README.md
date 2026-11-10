@@ -1,4 +1,4 @@
-# Salário Líquido
+# Payrep
 
 Aplicativo brasileiro multiusuário para simular salário líquido, controlar horas extras, registrar eventos com vigência e importar holerites em PDF.
 

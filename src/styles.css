@@ -238,3 +238,26 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .sidebar .nav:hover{
  box-shadow:none;
 }
+
+/* Identidade Payrep: wordmark sem ícone decorativo. */
+.brand--wordmark{gap:0}
+.brand--wordmark .brand-type{min-width:0}
+.brand--wordmark strong{
+ display:block;
+ font-family:Manrope,'DM Sans',system-ui,sans-serif;
+ font-size:25px;
+ font-weight:800;
+ line-height:1.12;
+ letter-spacing:-1.1px;
+}
+.brand--wordmark small{
+ display:block;
+ margin-top:5px;
+ font-size:11px;
+ line-height:1.4;
+ letter-spacing:.22px;
+}
+.sidebar .brand--wordmark strong{color:#fff}
+.sidebar .brand--wordmark small{color:#d7b7f6}
+.auth-brand.brand--wordmark strong{color:#6500cf}
+.auth-brand.brand--wordmark small{color:#76658e}
