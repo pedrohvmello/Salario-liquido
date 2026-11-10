@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react'
-import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,Cell,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
@@ -9,7 +9,7 @@ import type {ThirteenthLedger} from '../lib/thirteenthLedger'
 import {VacationOverview} from './VacationOverview'
 import {ThirteenthOverview} from './ThirteenthOverview'
 import {
- METRICS,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison,
+ METRICS,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison,topIrrfStackSegment,
  type MetricKey,type TimeMetrics
 } from '../lib/analytics'
 
@@ -66,7 +66,8 @@ export function AnalyticsDashboard({
  const taxBars=tax.map(x=>({label:x.label,
   salary:x.salary,vacation:x.vacation,thirteenth:x.thirteenth,ppr:x.ppr}))
  const completeThirteenth=thirteenth.map(x=>({
-  label:x.label,gross:x.gross,net:x.net,pension:x.pension??0,irrf:x.irrf
+  label:x.label,gross:x.gross,net:x.net,pension:x.pension??0,
+  inss:x.inss??0,other:Math.max(0,x.other),irrf:x.irrf
  }))
  const completePpr=ppr.map(x=>({label:x.label,gross:x.gross,net:x.net,irrf:x.irrf}))
  return <div className="stack">
@@ -139,16 +140,18 @@ export function AnalyticsDashboard({
   <VacationOverview ledger={vacationLedger} year={year}/>
   <ThirteenthOverview ledger={thirteenthLedger} year={year}/>
 
-  <Panel title="13º salário: bruto x composição do líquido, pensão e IRRF">
+  <Panel title="13º salário: bruto x líquido, pensão, INSS e IRRF">
    {completeThirteenth.length?
     <Bars data={completeThirteenth}>
      <Bar dataKey="gross" name="13º bruto" fill={color.blue} barSize={28} radius={[5,5,0,0]}/>
      <Bar dataKey="net" name="13º líquido total (com adiantamento)" stackId="13o" fill={color.green} barSize={28}/>
      <Bar dataKey="pension" name="Pensão do 13º" stackId="13o" fill={color.orange} barSize={28}/>
+     <Bar dataKey="inss" name="INSS do 13º" stackId="13o" fill={color.indigo} barSize={28}/>
+     <Bar dataKey="other" name="Outros descontos (diferença)" stackId="13o" fill={color.gray} barSize={28}/>
      <Bar dataKey="irrf" name="IRRF do 13º" stackId="13o" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
     </Bars>
     :<Empty label="Nenhum recibo de 13º registrado para o período."/>}
-   <div className="detail-hint"><Info size={16}/>A coluna à direita representa líquido total do 13º (fechamento + adiantamento), pensão e IRRF. A diferença para o bruto corresponde ao INSS e a eventuais outras rubricas não incluídas na pilha. O adiantamento não é somado de novo ao fluxo de caixa.</div>
+   <div className="detail-hint"><Info size={16}/>A coluna à direita representa líquido total do 13º (fechamento + adiantamento), pensão, INSS e IRRF. Eventuais diferenças residuais aparecem como outros descontos, sem criar novo recebimento. O adiantamento não é somado novamente ao fluxo de caixa.</div>
   </Panel>
 
   <Panel title="PPR: bruto x líquido e IRRF">
@@ -164,10 +167,18 @@ export function AnalyticsDashboard({
 
   <Panel title={year==='all'?'IRRF retido por ano':'IRRF retido por mês em '+year}>
    {taxEvidence?<Bars data={taxBars}>
-    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.blue} maxBarSize={44}/>
-    <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44}/>
-    <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44}/>
-    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.indigo} maxBarSize={44}/>
+    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.blue} maxBarSize={44}>
+     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='salary'?[6,6,0,0]:[0,0,0,0]}/>)}
+    </Bar>
+    <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44}>
+     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='vacation'?[6,6,0,0]:[0,0,0,0]}/>)}
+    </Bar>
+    <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44}>
+     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='thirteenth'?[6,6,0,0]:[0,0,0,0]}/>)}
+    </Bar>
+    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.indigo} maxBarSize={44}>
+     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='ppr'?[6,6,0,0]:[0,0,0,0]}/>)}
+    </Bar>
    </Bars>:<Empty label="Nenhum IRRF identificado nos documentos deste período."/>}
    <div className="detail-hint"><Info size={16}/>O gráfico consolida apenas retenções efetivamente identificadas: mensal, férias contabilizadas na folha, 13º e PPR. Não duplica impostos de recibos de férias quando já constam na folha mensal. Meses não importados permanecem sem informação.</div>
   </Panel>
