@@ -1,13 +1,14 @@
 import {createClient, type SupabaseClient} from '@supabase/supabase-js'
 import type {ParsedStatement} from './parse'
 import {makePprEvent} from './ppr'
+import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
 import type {SalaryParameters} from './money'
 import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
 const anon=import.meta.env.VITE_SUPABASE_ANON_KEY
 export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
-export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr';payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr'|'vacation';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -20,14 +21,15 @@ async function identity(){if(!db)throw new Error('Supabase não configurado');co
 export async function memberActive(){if(!db)return false;const id=await identity();const {data,error}=await db.from('app_members').select('active').eq('user_id',id).single();if(error)return false;return data?.active===true}
 export async function getData(){
   const id=await identity();if(!db)throw new Error('Banco não configurado')
-  const [statements,events,entries,settings]=await Promise.all([
+  const [statements,events,entries,settings,lines]=await Promise.all([
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
     db.from('salary_events').select('*').eq('user_id',id).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
-    db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle()
+    db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
+    db.from('statement_lines').select('statement_id,code,description,amount,side').eq('user_id',id)
   ])
-  for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  for(const r of [statements,events,entries,settings,lines])if(r.error)throw new Error(r.error.message)
+  return {statements:(statements.data||[]) as SavedStatement[],lines:(lines.data||[]) as StatementRubric[],events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
@@ -70,7 +72,15 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
   if(!db)throw new Error('Banco não configurado');const user_id=await identity()
   const chosen=pages.filter(p=>selected.includes(p.sourceFile+'#'+p.page))
   // Validate all PPR documents BEFORE any file or database write.
-  for(const s of chosen)if(s.documentType==='ppr')makePprEvent(s)
+  for(const s of chosen){
+    if(s.documentType==='ppr')makePprEvent(s)
+    if(s.documentType==='vacation'){
+      if(!s.vacationStart||!s.vacationEnd||s.vacationEnd<s.vacationStart||!s.paymentDate||
+         s.credits===null||s.debits===null||s.net===null||
+         Math.abs(s.credits-s.debits-s.net)>.02)
+        throw new Error('Recibo de férias incompleto. Verifique datas e totais antes de importar.')
+    }
+  }
   for(const s of chosen){
     const file=files.find(f=>f.name===s.sourceFile)
     if(!file)throw new Error('Arquivo original ausente: '+s.sourceFile)
@@ -83,6 +93,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
     const {data:statement,error}=await db.from('statements').upsert({
       user_id,period:s.period,source_sha256:hash,source_page:s.page,source_file:s.sourceFile,
       storage_key:key,format:s.format,document_type:s.documentType,payment_date:s.paymentDate,
+      vacation_start:s.vacationStart,vacation_end:s.vacationEnd,
       gross_ppr:s.grossPpr,ppr_income_tax:s.pprIncomeTax,ppr_union_contribution:s.pprUnionContribution,
       salary_contract:s.salaryContract,trienio:s.trienio,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
@@ -108,7 +119,7 @@ export function effectiveParams(base:SalaryParameters,events:SalaryEvent[],month
   return params
 }
 export function eventCandidates(newItem:ParsedStatement,prior:SavedStatement|null){
-  if(newItem.documentType==='ppr'||prior?.document_type==='ppr'||!prior||!newItem.period)return [] as Array<{kind:string;value:number;reason:string}>
+  if(newItem.documentType!=='monthly'||prior?.document_type!=='monthly'||!prior||!newItem.period)return [] as Array<{kind:string;value:number;reason:string}>
   const result:Array<{kind:string;value:number;reason:string}>=[]
   if(newItem.salaryContract!==null&&prior.salary_contract!==null&&newItem.salaryContract!==prior.salary_contract)
     result.push({kind:'salary',value:newItem.salaryContract,reason:'Salário contratual diferente. Data exata de vigência requer confirmação.'})
