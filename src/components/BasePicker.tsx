@@ -28,7 +28,7 @@ export function BasePicker({current,onSave,busy}:{current:BaseLocation|null;onSa
    <div className="detail-hint"><MapPin size={16}/>Base atual: <strong>{current?baseLabel(current):'Não configurada'}</strong>. Essa cidade define o calendário de feriados usado no controle de horas.</div>
    <div className="form-grid">
     <label>UF<select value={uf} onChange={e=>{setUf(e.target.value);setSelected('')}}>{UF_LIST.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-    <label>Base: (cidade)<select required disabled={status!=='ready'} value={selected} onChange={e=>setSelected(e.target.value)}>
+    <label>Base (cidade)<select required disabled={status!=='ready'} value={selected} onChange={e=>setSelected(e.target.value)}>
       <option value="">{status==='loading'?'Carregando municípios...':status==='failed'?'Municípios indisponíveis':'Selecione sua cidade'}</option>
       {municipalities.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}
     </select></label>
