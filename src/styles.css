@@ -232,9 +232,9 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  margin-left:0;
  flex-shrink:0;
 }
-.sidebar .nav.active{
- box-shadow:0 2px 8px rgba(47,6,92,.25);
-}
+/* Menu sem faixa/brilho inferior: o gradiente identifica a opção ativa. */
+.sidebar .nav,
+.sidebar .nav.active,
 .sidebar .nav:hover{
  box-shadow:none;
 }
