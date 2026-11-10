@@ -3,12 +3,12 @@ import {type BaseLocation,baseLabel,UF_LIST} from '../lib/base'
 import {Info,MapPin,Save} from 'lucide-react'
 
 type Municipality={id:number;nome:string}
-export function BasePicker({current,onSave,busy}:{current:BaseLocation;onSave:(b:BaseLocation)=>void;busy:boolean}){
- const [uf,setUf]=useState(current.uf)
- const [selected,setSelected]=useState(current.ibge)
+export function BasePicker({current,onSave,busy}:{current:BaseLocation|null;onSave:(b:BaseLocation)=>void;busy:boolean}){
+ const [uf,setUf]=useState(current?.uf||'SP')
+ const [selected,setSelected]=useState(current?.ibge||'')
  const [municipalities,setMunicipalities]=useState<Municipality[]>([])
  const [status,setStatus]=useState<'loading'|'ready'|'failed'>('loading')
- useEffect(()=>{setUf(current.uf);setSelected(current.ibge)},[current.uf,current.ibge])
+ useEffect(()=>{setUf(current?.uf||'SP');setSelected(current?.ibge||'')},[current?.uf,current?.ibge])
  useEffect(()=>{
   const abort=new AbortController()
   setStatus('loading')
@@ -25,7 +25,7 @@ export function BasePicker({current,onSave,busy}:{current:BaseLocation;onSave:(b
  },[uf])
  const city=municipalities.find(c=>String(c.id)===selected)
  return <form className="form" onSubmit={e=>{e.preventDefault();if(city)onSave({city:city.nome,uf,ibge:String(city.id)})}}>
-   <div className="detail-hint"><MapPin size={16}/>Base atual: <strong>{baseLabel(current)}</strong>. Essa cidade define o calendário de feriados usado no controle de horas.</div>
+   <div className="detail-hint"><MapPin size={16}/>Base atual: <strong>{current?baseLabel(current):'Não configurada'}</strong>. Essa cidade define o calendário de feriados usado no controle de horas.</div>
    <div className="form-grid">
     <label>UF<select value={uf} onChange={e=>{setUf(e.target.value);setSelected('')}}>{UF_LIST.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
     <label>Base: (cidade)<select required disabled={status!=='ready'} value={selected} onChange={e=>setSelected(e.target.value)}>
