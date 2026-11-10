@@ -2,6 +2,7 @@ import {useMemo,useState} from 'react'
 import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
+import {formatMoneyAxisTick} from '../lib/chartAxis'
 import type {SavedStatement} from '../lib/data'
 import type {StatementRubric,VacationLedger} from '../lib/vacation'
 import type {ThirteenthLedger} from '../lib/thirteenthLedger'
@@ -21,7 +22,6 @@ type Props={
 }
 const color={blue:'#2b78e4',green:'#0f9c86',orange:'#e49a42',red:'#e35755',
  indigo:'#7865d9',lightBlue:'#75abc9',gray:'#8492a5'}
-const moneyTick=(value:number)=>(Number(value)/1000).toFixed(0)+'k'
 const fmt=(value:unknown)=>brl(Number(value??0))
 function Panel({title,children}:{title:string;children:React.ReactNode}){
  return <section className="panel"><div className="panel-heading"><h2>{title}</h2></div>{children}</section>
@@ -37,7 +37,7 @@ function Bars({data,children}:{data:Array<Record<string,string|number|null>>;chi
   <BarChart data={data} barCategoryGap="24%" barGap={5} margin={{top:12,right:10,left:2,bottom:4}}>
    <CartesianGrid stroke="#e9edf2" vertical={false}/>
    <XAxis dataKey="label" tick={{fontSize:11}}/>
-   <YAxis tick={{fontSize:11}} tickFormatter={moneyTick}/>
+   <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
    <Tooltip formatter={fmt}/><Legend/>{children}
   </BarChart>
  </ResponsiveContainer></div>
@@ -85,7 +85,7 @@ export function AnalyticsDashboard({
     <AreaChart data={monthlyGraph}>
      <CartesianGrid stroke="#e9edf2" vertical={false}/>
      <XAxis dataKey="period" tick={{fontSize:11}}/>
-     <YAxis tick={{fontSize:11}} tickFormatter={moneyTick}/>
+     <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
      <Tooltip formatter={fmt}/><Legend/>
      <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} fill="#c5ddfd" fillOpacity={.65}/>
      <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.green} fill="#c3eade" fillOpacity={.5}/>
