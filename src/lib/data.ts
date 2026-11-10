@@ -19,7 +19,15 @@ export const eventsKinds=[
  ['vacation','Férias (ocorrência)'],['bonus','Bônus (ocorrência)'],['ppr','PPR (participação nos resultados)'],['thirteenth','13º salário (recibo anual)'],['absence','Falta (ocorrência)']
 ] as const
 async function identity(){if(!db)throw new Error('Supabase não configurado');const {data:{user},error}=await db.auth.getUser();if(error||!user)throw new Error('Faça login');return user.id}
-export async function memberActive(){if(!db)return false;const id=await identity();const {data,error}=await db.from('app_members').select('active').eq('user_id',id).single();if(error)return false;return data?.active===true}
+export type Membership={active:boolean;role:'member'|'admin';status:'pending'|'approved'|'suspended'|'rejected'}
+export async function getMembership():Promise<Membership|null>{
+ if(!db)return null
+ const id=await identity()
+ const {data,error}=await db.from('app_members').select('active,role,status').eq('user_id',id).maybeSingle()
+ if(error)throw new Error(error.message)
+ return data as Membership|null
+}
+export async function memberActive(){const membership=await getMembership();return membership?.active===true}
 async function listAllStatementRubrics(id:string):Promise<StatementRubric[]>{
   if(!db)throw new Error('Banco não configurado')
   const collected:StatementRubric[]=[]
