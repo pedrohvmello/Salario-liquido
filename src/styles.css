@@ -270,3 +270,24 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .sidebar .brand--wordmark small{color:#d9bdf5}
 .auth-brand.brand--wordmark{justify-content:center;align-items:center;padding:0 0 23px}
 .brand-full-logo{display:block;width:min(100%,290px);height:auto;object-fit:contain}
+
+/* Preferências de exibição da Visão Geral e critérios de pensão. */
+.overview-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.overview-stats .stat{min-width:0}
+.overview-stats .stat strong{overflow-wrap:anywhere}
+.overview-config{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.overview-config-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e8d9f7;background:#fdfaff;border-radius:12px;padding:11px 12px;min-width:0}
+.overview-config-row .checkbox-label{font-size:12px;color:#402260;font-weight:750;min-width:0}
+.overview-config-row .checkbox-label input{flex-shrink:0}
+.overview-config-actions{display:flex;gap:5px}
+.icon-reorder{padding:8px;min-width:32px;height:32px}
+.icon-reorder:disabled{opacity:.33;cursor:not-allowed}
+.pension-criteria{display:flex;flex-direction:column;gap:11px}
+.pension-criteria .subtle{font-size:12px;line-height:1.6;margin:0}
+.pension-criteria-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pension-criteria-grid fieldset{border:1px solid #e8d9f7;border-radius:12px;background:#fdfaff;padding:11px 14px;min-width:0}
+.pension-criteria-grid legend{color:#4a1d72;font-size:12px;font-weight:800;padding:0 4px}
+.pension-criteria-grid .checkbox-label{margin:9px 0;line-height:1.4;font-size:12px}
+@media(max-width:1120px){.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.overview-config,.pension-criteria-grid{grid-template-columns:1fr}.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px){.overview-stats{grid-template-columns:1fr 1fr}}
