@@ -2,7 +2,8 @@ import {describe,expect,it} from 'vitest'
 import {summarizeTaxYear,calculatedOfficialValue,officialDifference,type TaxStatement} from './annualTax'
 const make=(value:Partial<TaxStatement>):TaxStatement=>({
  id:'id',period:'2025-11',document_type:'ppr',payment_date:'2025-11-28',
- gross_ppr:25023,ppr_income_tax:3714.53,ppr_union_contribution:65,credits:25023,net:21243.47,net_received:21243.47,...value
+ gross_ppr:25023,ppr_income_tax:3714.53,ppr_union_contribution:65,
+ thirteenth_gross:null,thirteenth_advance:0,thirteenth_inss:0,thirteenth_irrf:0,thirteenth_pension:0,credits:25023,net:21243.47,net_received:21243.47,...value
 })
 describe('prévia anual de IR: consolidação segura',()=>{
  it('separa PPR e IRRF exclusivo por ANO DE PAGAMENTO',()=>{
@@ -25,6 +26,19 @@ describe('prévia anual de IR: consolidação segura',()=>{
   expect(s.pprGross).toBe(0)
   expect(s.pprUnassignedDates).toBe(1)
   expect(calculatedOfficialValue(s,'ppr_gross')).toBeNull()
+ })
+ it('IRRF do 13º não se mistura com o IRRF salarial ou PPR',()=>{
+  const summary=summarizeTaxYear([
+   make({id:'13',period:'2025-12',document_type:'thirteenth',payment_date:'2025-12-19',
+     thirteenth_gross:16000,thirteenth_irrf:2400,thirteenth_inss:900,
+     thirteenth_pension:1500,thirteenth_advance:6000,gross_ppr:null}),
+   make({id:'vac',period:'2025-04',document_type:'vacation',payment_date:'2025-03-27',gross_ppr:null})
+  ],2025)
+  expect(summary.thirteenthDocuments).toBe(1)
+  expect(calculatedOfficialValue(summary,'thirteenth')).toBe(16000)
+  expect(calculatedOfficialValue(summary,'thirteenth_irrf')).toBe(2400)
+  expect(calculatedOfficialValue(summary,'salary_irrf')).toBeNull()
+  expect(summary.pprDocuments).toBe(0)
  })
  it('não trata zero válido como valor ausente',()=>{
   expect(officialDifference(0,0)).toBe(0)
