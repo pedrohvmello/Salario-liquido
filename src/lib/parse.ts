@@ -5,6 +5,7 @@
  */
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import {extractOldTotals} from './oldTotals'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
 export type ParsedStatement={
@@ -49,13 +50,9 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
     const item=amounts.at(-1)
     if(item)lines.push({code:codeItem.text,description:desc,amount:money(item.text),side:item.x<505?'credit':'debit'})
   }
-  const total=rows.find(r=>r.text.includes('Total de proventos:'))
-  const figures=total?allMoney(total.text):[]
+  const {credits,debits,net}=extractOldTotals(rows)
   const totalsRow=rows.find(r=>r.text.includes('Sal. contrib. INSS:'))
   const figures2=totalsRow?allMoney((rows[rows.indexOf(totalsRow)+1]||{text:''}).text):[]
-  const net=figures.length>=3?money(figures[2]):null
-  const credits=figures.length>=3?money(figures[0]):null
-  const debits=figures.length>=3?money(figures[1]):null
   const trienio=lines.find(l=>l.code==='00135')?.amount??null
   const result:ParsedStatement={period,format:'old',salaryContract,trienio,credits,debits,net,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
   return validate(result)
