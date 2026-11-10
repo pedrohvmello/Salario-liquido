@@ -34,7 +34,6 @@ const nav=[
 ] as const
 const today=()=>new Date().toISOString().slice(0,10)
 const currentMonth=()=>today().slice(0,7)
-const numeric=(v:string)=>Number(v.replace(',','.'))||0
 const monthLabel=(m:string)=>{const [y,mm]=m.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,mm-1,1)))}
 const dateBR=(s:string)=>{const [y,m,d]=s.split('-');return d+'/'+m+'/'+y}
 function Stat({name,value,note,tone}:{name:string;value:string;note?:string;tone?:string}){return <div className="stat"><span className="subtle">{name}</span><strong className={tone||''}>{value}</strong>{note&&<small>{note}</small>}</div>}
