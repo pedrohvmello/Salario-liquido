@@ -13,7 +13,7 @@ import {
  type MetricKey,type TimeMetrics
 } from '../lib/analytics'
 
-type SalaryGraphRow={period:string;bruto:number;liquido:number|null;ferias:number;fgts:number}
+type SalaryGraphRow={period:string;bruto:number|null;liquido:number|null;ferias:number}
 type Props={
  year:string;onYearChange:(value:string)=>void;years:string[];
  statements:SavedStatement[];lines:StatementRubric[];
@@ -80,7 +80,7 @@ export function AnalyticsDashboard({
    </select>
   </div>
 
-  <Panel title="Remuneração mensal e líquido registrado (sem PPR e 13º)">
+  <Panel title={year==='all'?"Remuneração anual totalizada (sem PPR e 13º)":"Remuneração mensal e líquido registrado (sem PPR e 13º)"}>
    {monthlyGraph.length?<div className="chart"><ResponsiveContainer width="100%" height="100%">
     <AreaChart data={monthlyGraph}>
      <CartesianGrid stroke="#e9edf2" vertical={false}/>
@@ -92,6 +92,7 @@ export function AnalyticsDashboard({
      <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.orange} fill="#f9d9ac" fillOpacity={.15}/>
     </AreaChart>
    </ResponsiveContainer></div>:<Empty label="Importe holerites mensais para acompanhar a evolução."/>}
+   <div className="detail-hint"><Info size={16}/>{year==='all'?"Cada ponto representa a soma das competências importadas daquele ano. Férias antecipadas já estão incluídas no líquido e não devem ser somadas uma segunda vez.":"Cada ponto representa uma competência mensal. Férias antecipadas fazem parte do líquido financeiro."}</div>
   </Panel>
 
   <Panel title="Benefícios, descontos e remuneração variável">
