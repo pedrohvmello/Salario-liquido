@@ -66,3 +66,14 @@ Consultar `docs/PLANO.md`. Nenhuma informação de remuneração, PDF ou credenc
 ## Primeiro acesso e recuperação de senha
 
 O app possui login, solicitação de recuperação e formulário de atualização de senha em Configurações. Para que o convite ou e-mail de recuperação chegue ao app, configure **Auth → URL Configuration** no Supabase com o domínio da versão de homologação, preservando o bloqueio de cadastro aberto. O cadastro inicial deve ser enviado pelo painel Supabase Auth (Invite User), não por SQL direto em `auth.users`.
+
+## Login Google (OAuth)
+
+O botão `Continuar com Google` foi implementado, mas fica oculto enquanto `VITE_ENABLE_GOOGLE_OAUTH` não for `true` na Vercel. Antes de habilitar:
+
+1. No Google Auth Platform, configurar a tela de consentimento e criar credenciais OAuth do tipo **Web application**. Origem autorizada para HML: `https://salario-liquido-hml.vercel.app`; URI de redirecionamento: `https://klvurrcmfrwetmynscjc.supabase.co/auth/v1/callback`.
+2. Configurar **Google** no Supabase Authentication → Sign In / Providers com o Client ID e Client Secret. **Nunca versionar ou enviar o Client Secret ao frontend ou ao GitHub.**
+3. No Supabase Auth → URL Configuration, adicionar a URL de HML à allowlist de redirects; manter cadastro público desabilitado.
+4. Ativar `VITE_ENABLE_GOOGLE_OAUTH=true` apenas no ambiente de HML na Vercel, gerar novo deploy e testar com conta previamente autorizada.
+
+Para links de recuperação (`type=recovery`) e convites (`type=invite`), o app abre o formulário de definição de senha em tela dedicada, em vez do dashboard. Emails enviados pelo SMTP interno do Supabase são limitados; para piloto com até 20 usuários, configurar um SMTP apropriado antes de convidar participantes.
