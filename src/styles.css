@@ -14,3 +14,6 @@
 .tax-number{max-width:190px;text-align:right;min-width:160px}
 .tax-actions{display:flex;flex-wrap:wrap;gap:13px;align-items:center;margin-top:20px}
 @media(max-width:760px){.year-filter{width:100%}.tax-number{min-width:130px;width:150px}}
+
+/* Separate vacation reconciliation badge from the monthly net value. */
+.vacation-status-pill{display:inline-block;margin-left:14px;vertical-align:middle;white-space:nowrap}
