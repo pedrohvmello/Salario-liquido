@@ -5,7 +5,7 @@ import type {SalaryParameters} from './money'
 const url=import.meta.env.VITE_SUPABASE_URL
 const anon=import.meta.env.VITE_SUPABASE_ANON_KEY
 export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
-export type SavedStatement={id:string;period:string;format:string;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;period:string;format:string;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -72,7 +72,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
     const {data:statement,error}=await db.from('statements').upsert({
       user_id,period:s.period,source_sha256:hash,source_page:s.page,source_file:s.sourceFile,
       storage_key:key,format:s.format,salary_contract:s.salaryContract,trienio:s.trienio,
-      credits:s.credits,debits:s.debits,net:s.net,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
+      credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
     },{onConflict:'user_id,source_sha256,source_page'}).select('id').single()
     if(error)throw new Error(error.message)
     const removed=await db.from('statement_lines').delete().eq('statement_id',statement.id)
