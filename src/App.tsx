@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,overtimeValue,type DayEntry} from './lib/calendar'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
@@ -10,17 +10,19 @@ import {TaxPreview} from './components/TaxPreview'
 import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
 import {AnalyticsDashboard} from './components/AnalyticsDashboard'
+import {AdminDashboard} from './components/AdminDashboard'
+import {recordAppSession} from './lib/admin'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
 import {latestEffectiveEvent} from './lib/eventSources'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
-import {db,eventsKinds,eventCandidates,effectiveParams,getData,memberActive,removeEvent,removeTimeEntry,saveEvent,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
+import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {requiresPasswordSetup} from './lib/authRedirect'
 
-type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'settings'
+type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'settings'|'admin'
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
@@ -30,7 +32,8 @@ const nav=[
  {id:'analytics',label:'Análises',icon:ChartNoAxesCombined},
  {id:'income-tax',label:'Informe IR (prévia)',icon:FileSpreadsheet},
  {id:'imports',label:'Importar holerites',icon:FileInput},
- {id:'settings',label:'Configurações',icon:Settings2}
+ {id:'settings',label:'Configurações',icon:Settings2},
+ {id:'admin',label:'Gestão de usuários',icon:UsersRound}
 ] as const
 const today=()=>new Date().toISOString().slice(0,10)
 const currentMonth=()=>today().slice(0,7)
@@ -60,6 +63,8 @@ export default function App(){
  const [authReady,setAuthReady]=useState(!db)
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
  const [allowed,setAllowed]=useState(false)
+ const [isAdmin,setIsAdmin]=useState(false)
+ const [accessStatus,setAccessStatus]=useState<'pending'|'approved'|'suspended'|'rejected'>('pending')
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
  const [busy,setBusy]=useState(false)
@@ -98,15 +103,21 @@ export default function App(){
  },[])
  const refresh=async()=>{
   if(!db||!user)return
-  const active=await memberActive();setAllowed(active)
+  const membership=await getMembership()
+  const active=membership?.active===true
+  setAllowed(active)
+  setIsAdmin(active&&membership?.role==='admin')
+  setAccessStatus(membership?.status??'pending')
   if(!active)return
+  // Metrics are supplementary: a monitoring error must never block payroll access.
+  void recordAppSession().catch(()=>{})
   const d=await getData()
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
   setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
   setParams({...defaults,...d.settings})
   setBase(d.base)
  }
- useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
+ useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
@@ -217,7 +228,7 @@ export default function App(){
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
  if(db&&!user)return <AuthGate/>
  if(db&&user&&passwordSetup)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={33}/><h1>Defina sua senha</h1><p>O link autenticou sua conta temporariamente. Antes de acessar o painel, escolha a senha que será usada nos próximos logins.</p><ChangePassword onComplete={()=>{setPasswordSetup(false);setSection('overview');window.history.replaceState(null,'',window.location.pathname)}}/><button type="button" className="text-button" onClick={()=>db?.auth.signOut()}>Sair sem definir a senha</button></div></div>
- if(db&&user&&!allowed)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>Conta aguardando liberação</h1><p>Seu login existe, mas o administrador ainda não ativou seu acesso. Nenhum dado financeiro está disponível.</p><button onClick={()=>db?.auth.signOut()} className="secondary">Sair</button>{error&&<p className="error">{error}</p>}</div></div>
+ if(db&&user&&!allowed)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>{accessStatus==='suspended'?'Acesso suspenso':accessStatus==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1><p>{accessStatus==='suspended'?'O administrador suspendeu o acesso desta conta.':accessStatus==='rejected'?'Seu cadastro não foi aprovado pelo administrador.':'Seu cadastro foi recebido e aguarda aprovação, quando exigida pela política atual.'} Seus dados financeiros não estão acessíveis enquanto a conta estiver bloqueada.</p><button onClick={()=>void refresh().catch(e=>setError(e instanceof Error?e.message:'Erro ao consultar acesso'))} className="secondary">Verificar aprovação</button><button onClick={()=>db?.auth.signOut()} className="secondary">Sair</button>{error&&<p className="error">{error}</p>}</div></div>
  const metricRows=[
   ['Salário-base',brl(effective.salary)],['Triênio',brl(effective.trienio)],
   ['Horas extras (sem DSR)',brl(extraPay)],['INSS',brl(payroll.inss)],['IRRF',brl(payroll.irrf)],
@@ -228,7 +239,7 @@ export default function App(){
   <aside className={menu?'sidebar open':'sidebar'}>
    <div className="brand"><div className="brandmark"><Wallet size={23}/></div><div><strong>Salário Líquido</strong><small>Controle financeiro</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
-   <nav>{nav.map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}</nav>
+   <nav>{nav.filter(n=>n.id!=='admin'||isAdmin).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}</nav>
    <div className="side-bottom"><div className="lock-box"><ShieldCheck size={18}/><div><strong>Ambiente privado</strong><small>Dados isolados por usuário</small></div></div><div className="account"><div className="avatar">{(user?.email||'SL').slice(0,2).toUpperCase()}</div><div><strong>{user?.email?.split('@')[0]||'Demonstração'}</strong><small>{isDemo?'Sem dados salvos':'Conta individual'}</small></div>{db&&<button title="Sair" onClick={()=>db?.auth.signOut()}><LogOut size={17}/></button>}</div></div>
   </aside>
   <main className="main">
@@ -265,6 +276,7 @@ export default function App(){
     <td><strong>{s.documentType==='thirteenth'?brl(s.net??0):s.documentType==='vacation'?brl(s.net??0):s.documentType==='monthly'&&s.netReceived!==null?brl(s.netReceived+vacationAdvanceFromLines(s.lines)):s.netReceived===null?'A conferir':brl(s.netReceived)}</strong>
       {s.documentType==='vacation'&&<div className="subtle">Valor do recibo; não somar novamente</div>}{s.documentType==='thirteenth'&&<div className="subtle">Fechamento do 13º; adiantamento será conciliado ao salvar</div>}
       {s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0&&<div className="subtle">Estimado; recibo opcional</div>}</td><td>{s.warnings.length?<span title={s.warnings.join('; ')} className="flag">{s.warnings.length} aviso(s)</span>:<span className="ok">OK</span>}</td></tr>})}</tbody></table></div>{previews.some(s=>s.documentType==='vacation'||(s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0))&&<div className="notice subtle-notice"><Info size={18}/><div><strong>Conciliação automática de férias</strong><p style={{margin:'5px 0 0'}}>A folha mensal é suficiente para registrar os adiantamentos identificados. O recibo de férias é opcional e confirma ou substitui esse valor. O pagamento antecipado nunca será contabilizado duas vezes. Caso exista diferença, ela será exibida no Histórico salarial.</p></div></div>}{previews.some(s=>s.documentType==='thirteenth')&&<div className="suggestion"><strong>13º salário: prévia do recibo anual</strong>{previews.filter(s=>s.documentType==='thirteenth').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: bruto {s.thirteenthGross===null?'A conferir':brl(s.thirteenthGross)}; adiantamento anterior {brl(s.thirteenthAdvance)}; fechamento {s.net===null?'A conferir':brl(s.net)}; INSS {brl(s.thirteenthInss)}; IRRF exclusivo {brl(s.thirteenthIrrf)}; pensão {brl(s.thirteenthPension)}; pago em {s.paymentDate?dateBR(s.paymentDate):'data não identificada'}.</span></div>)}<small>Ao confirmar, o recibo ficará separado da folha mensal e será vinculado aos adiantamentos já contabilizados nas férias. O sistema não duplicará essas parcelas.</small></div>}{previews.some(s=>s.documentType==='ppr')&&<div className="suggestion"><strong>Evento PPR automático após confirmação</strong>{previews.filter(s=>s.documentType==='ppr').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: PPR bruto {s.grossPpr===null?'Não encontrado':brl(s.grossPpr)}; IRRF PPR {brl(s.pprIncomeTax)}; contribuição negocial {brl(s.pprUnionContribution)}; líquido pago {s.net===null?'A conferir':brl(s.net)}; data {s.paymentDate?dateBR(s.paymentDate):'Não encontrada'}.</span></div>)}<small>O evento será criado apenas ao confirmar o documento, uma vez por holerite, e não altera a projeção salarial fixa.</small></div>}{suggestions.length>0&&<div className="suggestion"><strong>Possíveis mudanças encontradas</strong>{suggestions.map((s,i)=><div key={i}><span>{s.period}: {fieldNames[s.kind]||s.kind} → {brl(s.value)}. {s.reason}</span></div>)}<small>As mudanças NÃO serão criadas automaticamente. Use a tela Eventos após verificar cada vigência.</small></div>}<button className="primary" disabled={busy||!db||importSelected.length===0} onClick={()=>task(async()=>{await saveStatements(previews,importFiles,importSelected);await refresh();setPreviews([])},'Holerites importados com valores originais preservados')}><Upload size={17}/> Confirmar {importSelected.length} documento(s)</button>{!db&&<p className="subtle">Configure o banco para habilitar o salvamento.</p>}</Panel>}</div>}
+    {section==='admin'&&isAdmin&&<AdminDashboard/>}
     {section==='settings'&&<div className="stack"><div className="page-intro"><div><h2>Configurações pessoais</h2><p>Base de trabalho, parâmetros salariais e preferências. Cada pessoa configura sua própria localização.</p></div></div><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
       <p className="subtle">Valores efetivos da competência <strong>{monthLabel(month)}</strong>. Para alterar, cadastre um evento em <button type="button" className="text-button" onClick={()=>setSection('events')}>Eventos e vigências</button>.</p>
     </div>
