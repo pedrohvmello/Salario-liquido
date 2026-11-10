@@ -4,7 +4,8 @@ const dateBR=(input:string):string|null=>{
  const match=input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
  if(!match)return null
  const value=match[3]+'-'+match[2]+'-'+match[1]
- return new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value?value:null
+ const date=new Date(value+'T12:00:00Z')
+ return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value?value:null
 }
 export function isVacationPayslip(rows:readonly VacationPdfRow[]):boolean{
  const index=rows.findIndex(row=>row.items.some(i=>i.text.trim()==='Folha:'&&i.x<120))
