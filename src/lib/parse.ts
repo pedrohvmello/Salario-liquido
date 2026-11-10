@@ -9,10 +9,11 @@ import {extractOldTotals} from './oldTotals'
 import {netMonthlyReceived,salaryAdvanceFromLines} from './netReceived'
 import {isPprPayslip,paymentDateFromHeader,pprDetails} from './ppr'
 import {nonMonthlyCashWarnings} from './cashCoverage'
+import {isVacationPayslip,vacationPeriodFromHeader} from './vacationDocument'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
 export type ParsedStatement={
- period:string; format:'old'|'new'; documentType:'monthly'|'ppr'; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; salaryContract:number|null; trienio:number|null;
+ period:string; format:'old'|'new'; documentType:'monthly'|'ppr'|'vacation'; vacationStart:string|null; vacationEnd:string|null; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; salaryContract:number|null; trienio:number|null;
  credits:number|null; debits:number|null; net:number|null; salaryAdvance:number|null; netReceived:number|null; irBase:number|null; fgts:number|null;
  lines:PayrollLine[]; warnings:string[]; sourceFile:string; page:number
 }
@@ -37,6 +38,8 @@ function group(items:Item[]):Row[]{
 function rowValue(row:Pick<Row,'items'>,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
 function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const isPpr=isPprPayslip(rows)
+  const isVacation=isVacationPayslip(rows)
+  const vacationDates=isVacation?vacationPeriodFromHeader(rows):{start:null,end:null}
   const whole=rows.map(r=>r.text).join('\n')
   const range=whole.match(/\d{2}\/(\d{2})\/(\d{4})\s+a\s+\d{2}\/\d{2}\/\d{4}/i)
   const period=range ? range[2]+'-'+range[1] : ''
@@ -59,10 +62,11 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const figures2=totalsRow?allMoney((rows[rows.indexOf(totalsRow)+1]||{text:''}).text):[]
   const trienio=lines.find(l=>l.code==='00135')?.amount??null
   const ppr=isPpr?pprDetails(lines):null
-  const result:ParsedStatement={period,format:'old',documentType:isPpr?'ppr':'monthly',
-    paymentDate:isPpr?paymentDateFromHeader(rows):null,grossPpr:ppr?.gross??null,
+  const result:ParsedStatement={period,format:'old',documentType:isPpr?'ppr':isVacation?'vacation':'monthly',
+    vacationStart:vacationDates.start,vacationEnd:vacationDates.end,
+    paymentDate:isPpr||isVacation?paymentDateFromHeader(rows):null,grossPpr:ppr?.gross??null,
     pprIncomeTax:ppr?.incomeTax??0,pprUnionContribution:ppr?.unionContribution??0,
-    salaryContract:isPpr?null:salaryContract,trienio:isPpr?null:trienio,
+    salaryContract:isPpr||isVacation?null:salaryContract,trienio:isPpr||isVacation?null:trienio,
     credits,debits,net,salaryAdvance:null,netReceived:null,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
   return validate(result,rows)
 }
@@ -88,7 +92,7 @@ function newParse(rows:Row[],name:string,page:number):ParsedStatement{
   const baseIndex=rows.findIndex(r=>r.text.includes('Base IR')&&r.text.includes('Base INSS'))
   const bases=baseIndex>=0?allMoney((rows[baseIndex+1]||{text:''}).text):[]
   const trienio=lines.find(l=>l.code==='3301')?.amount??null
-  return validate({period,format:'new',documentType:'monthly',paymentDate:null,grossPpr:null,pprIncomeTax:0,pprUnionContribution:0,salaryContract,trienio,
+  return validate({period,format:'new',documentType:'monthly',vacationStart:null,vacationEnd:null,paymentDate:null,grossPpr:null,pprIncomeTax:0,pprUnionContribution:0,salaryContract,trienio,
     credits:totals.length>=2?money(totals[0]):null,
     debits:totals.length>=2?money(totals[1]):null,
     net:bases.length>=6?money(bases.at(-1)!):null,salaryAdvance:null,netReceived:null,
@@ -96,6 +100,10 @@ function newParse(rows:Row[],name:string,page:number):ParsedStatement{
     lines,warnings:[],sourceFile:name,page},rows)
 }
 function validate(s:ParsedStatement,rows:Row[]):ParsedStatement {
+  if(s.documentType==='vacation'){
+    if(!s.vacationStart||!s.vacationEnd||s.vacationStart>s.vacationEnd)s.warnings.push('Período de férias ausente ou inválido')
+    if(!s.paymentDate)s.warnings.push('Data de pagamento de férias não encontrada')
+  }
   s.warnings.push(...nonMonthlyCashWarnings(s.lines,s.documentType))
   if(s.documentType==='ppr'){
     if(!s.paymentDate)s.warnings.push('Data de pagamento do PPR não encontrada')
@@ -104,7 +112,10 @@ function validate(s:ParsedStatement,rows:Row[]):ParsedStatement {
   const advanceCode=s.format==='old'?'07220':'/B02'
   const advanceMentioned=rows.some(r=>r.text.split(/\\s+/)[0]===advanceCode)
   const advanceParsed=s.lines.some(l=>l.code===advanceCode)
-  if(advanceMentioned&&!advanceParsed){
+  if(s.documentType==='vacation'){
+    // The receipt is its own already-paid cash transfer, not a monthly closing.
+    s.salaryAdvance=null;s.netReceived=null
+  }else if(advanceMentioned&&!advanceParsed){
     s.warnings.push('Adiantamento salarial presente no PDF, mas sem valor interpretado. Conferência necessária.')
   } else {
     try {
