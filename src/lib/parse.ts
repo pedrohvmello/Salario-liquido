@@ -6,11 +6,12 @@
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {extractOldTotals} from './oldTotals'
+import {netMonthlyReceived,salaryAdvanceFromLines} from './netReceived'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
 export type ParsedStatement={
  period:string; format:'old'|'new'; salaryContract:number|null; trienio:number|null;
- credits:number|null; debits:number|null; net:number|null; irBase:number|null; fgts:number|null;
+ credits:number|null; debits:number|null; net:number|null; salaryAdvance:number|null; netReceived:number|null; irBase:number|null; fgts:number|null;
  lines:PayrollLine[]; warnings:string[]; sourceFile:string; page:number
 }
 type Item={text:string;x:number;y:number}
@@ -54,8 +55,8 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const totalsRow=rows.find(r=>r.text.includes('Sal. contrib. INSS:'))
   const figures2=totalsRow?allMoney((rows[rows.indexOf(totalsRow)+1]||{text:''}).text):[]
   const trienio=lines.find(l=>l.code==='00135')?.amount??null
-  const result:ParsedStatement={period,format:'old',salaryContract,trienio,credits,debits,net,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
-  return validate(result)
+  const result:ParsedStatement={period,format:'old',salaryContract,trienio,credits,debits,net,salaryAdvance:null,netReceived:null,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
+  return validate(result,rows)
 }
 // The new layout prints each rubric as a monospaced line, often as ONE text item.
 const NEW_CREDIT_CODES=new Set(['1000','3301','3041','3042','315Z','3065','3261','4389','6913','6914','6915','6916','4503'])
@@ -82,11 +83,24 @@ function newParse(rows:Row[],name:string,page:number):ParsedStatement{
   return validate({period,format:'new',salaryContract,trienio,
     credits:totals.length>=2?money(totals[0]):null,
     debits:totals.length>=2?money(totals[1]):null,
-    net:bases.length>=6?money(bases.at(-1)!):null,
+    net:bases.length>=6?money(bases.at(-1)!):null,salaryAdvance:null,netReceived:null,
     irBase:bases.length>=1?money(bases[0]):null,fgts:bases.length>=4?money(bases[3]):null,
-    lines,warnings:[],sourceFile:name,page})
+    lines,warnings:[],sourceFile:name,page},rows)
 }
-function validate(s:ParsedStatement):ParsedStatement {
+function validate(s:ParsedStatement,rows:Row[]):ParsedStatement {
+  const advanceCode=s.format==='old'?'07220':'/B02'
+  const advanceMentioned=rows.some(r=>r.text.split(/\\s+/)[0]===advanceCode)
+  const advanceParsed=s.lines.some(l=>l.code===advanceCode)
+  if(advanceMentioned&&!advanceParsed){
+    s.warnings.push('Adiantamento salarial presente no PDF, mas sem valor interpretado. Conferência necessária.')
+  } else {
+    try {
+      s.salaryAdvance=salaryAdvanceFromLines(s.lines,s.format)
+      s.netReceived=netMonthlyReceived(s.net,s.salaryAdvance)
+    } catch (e) {
+      s.warnings.push(e instanceof Error?e.message:'Adiantamento salarial inválido')
+    }
+  }
   if(!/^\d{4}-\d{2}$/.test(s.period))s.warnings.push('Competência não identificada')
   if(!s.lines.length)s.warnings.push('Nenhuma rubrica reconhecida')
   if(s.lines.some(x=>x.side==='unknown'))s.warnings.push('Rubricas sem classificação: revisar antes de salvar')
