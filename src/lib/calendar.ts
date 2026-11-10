@@ -22,13 +22,13 @@ export function paidMonth(date:string) {
   const value = new Date(Date.UTC(y,m-1+(d>=16?1:0),1))
   return value.toISOString().slice(0,7)
 }
-export function classifyHours(entry:DayEntry):Overtime {
+export function classifyHours(entry:DayEntry,holidayDates?:ReadonlySet<string>):Overtime {
   const a=mins(entry.start),b=mins(entry.lunchStart),c=mins(entry.lunchEnd),d=mins(entry.end)
   if (![a,b,c,d].every(Number.isFinite) || !(a<=b&&b<=c&&c<=d)) throw new Error('Horários inválidos: entrada, almoço e saída devem estar em ordem')
   const total = roundMoney(((b-a)+(d-c))/60)
   if (total>24) throw new Error('Jornada superior a 24 horas')
   const dow=new Date(entry.date+'T12:00:00Z').getUTCDay()
-  const holiday=entry.holidayOverride??saoPauloHoliday(entry.date)
+  const holiday=entry.holidayOverride??(holidayDates?holidayDates.has(entry.date):saoPauloHoliday(entry.date))
   const paid = paidMonth(entry.date)
   if (holiday||dow===0) return {h60:0,h80:0,h100:total,total,payMonth:paid}
   const extra=dow===6 ? total : Math.max(0,total-8)
