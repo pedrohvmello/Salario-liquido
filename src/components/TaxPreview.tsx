@@ -67,12 +67,15 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
    </label>
   </div>
   <div className="notice subtle-notice"><Info size={18}/>
-   O PPR/PLR pago por pessoa jurídica no Brasil possui tributação exclusiva na fonte e não deve ser somado ao salário tributável sujeito ao ajuste anual. Aqui o PPR é agrupado pelo <strong>ano do pagamento</strong>.
+   O PPR/PLR e o 13º possuem tributação exclusiva na fonte, em quadros próprios. Seus IRRFs não são somados ao IRRF mensal. Cada documento é agrupado pelo <strong>ano do pagamento</strong>.
   </div>
   <div className="stats-grid">
    <div className="stat"><span className="subtle">PPR bruto identificado</span><strong>{summary.pprDocuments?brl(summary.pprGross):'Não identificado'}</strong><small>{summary.pprDocuments} documento(s) importado(s)</small></div>
    <div className="stat"><span className="subtle">IRRF exclusivo do PPR</span><strong>{summary.pprDocuments?brl(summary.pprIrrf):'Não identificado'}</strong><small>Retido na fonte, sem somar ao IRRF salarial</small></div>
    <div className="stat"><span className="subtle">PPR líquido pago</span><strong>{summary.pprDocuments?brl(summary.pprNet):'Não identificado'}</strong><small>Montante líquido do documento</small></div>
+   <div className="stat"><span className="subtle">13º bruto comprovado</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthGross):'Não identificado'}</strong><small>{summary.thirteenthDocuments} recibo(s) anual(is)</small></div>
+   <div className="stat"><span className="subtle">IRRF exclusivo do 13º</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthIrrf):'Não identificado'}</strong><small>Separado de salários e PPR</small></div>
+   <div className="stat"><span className="subtle">Adiantamento do 13º descontado</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthAdvance):'Não identificado'}</strong><small>Não equivale a novo pagamento</small></div>
    <div className="stat"><span className="subtle">Holerites mensais</span><strong>{summary.monthlyDocuments}/12</strong><small>Competências identificadas, não cobertura fiscal certificada</small></div>
   </div>
   <section className="panel">
@@ -109,12 +112,14 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
   <section className="panel">
    <div className="panel-heading"><h2>Cobertura e critérios de apuração</h2><FileCheck2 size={19}/></div>
    <div className="breakdown">
+    <div className="break-row"><span>INSS do 13º comprovado</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthInss):'Não identificado'}</strong></div>
+    <div className="break-row"><span>Pensão sobre 13º comprovada</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthPension):'Não identificado'}</strong></div>
     <div className="break-row"><span>Contribuição negocial PPR identificada</span><strong>{summary.pprDocuments?brl(summary.pprContribution):'Não identificada'}</strong></div>
     <div className="break-row"><span>Proventos de folhas mensais por competência (informativo, NÃO é base tributável)</span><strong>{summary.monthlyDocuments?brl(summary.monthlyGrossIndicative):'Não identificado'}</strong></div>
     <div className="break-row"><span>Líquidos de fechamento mensais identificados (informativo)</span><strong>{summary.monthlyDocuments?brl(summary.monthlyClosingNetIndicative):'Não identificado'}</strong></div>
    </div>
    {summary.notes.map((note,i)=><div className="detail-hint" key={i}><Info size={16}/>{note}</div>)}
-   <div className="detail-hint"><AlertTriangle size={16}/>Rendimentos tributáveis, deduções, IRRF salarial e 13º exigem classificação e conciliação das rubricas por ano e data de pagamento. Não devem ser inferidos de proventos ou líquidos da folha.</div>
+   <div className="detail-hint"><AlertTriangle size={16}/>Rendimentos tributáveis mensais, IRRF salarial e demais deduções exigem classificação e conciliação por pagamento. O 13º bruto e seu IRRF são apurados apenas quando o recibo específico for importado; adiantamentos não são somados novamente. Não devem ser inferidos de proventos ou líquidos da folha.</div>
   </section>
  </div>
 }
