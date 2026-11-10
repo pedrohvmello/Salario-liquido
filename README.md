@@ -101,3 +101,15 @@ Em **Controle de horas**, a Base cadastrada aparece no formulário de ponto e de
 - Mudança de Base refaz a classificação de jornadas antigas **sem ajuste manual**; não altera os horários nem os holerites históricos.
 
 A migração é `supabase/migrations/0006_user_base.sql`. Este é um mecanismo inicial, não uma certificação jurídica de feriados de todos os 5.570 municípios. Para expansão comercial, preferir uma fonte de feriados municipais auditável, com cobertura e fundamento legal documentados.
+
+## Holerites de PPR (participação nos resultados)
+
+O importador distingue, no cabeçalho do formato antigo Accenture, a **folha PPR** da folha **MENSAL**. No PDF de PPR, preserva todas as rubricas, identifica o pagamento pela data impressa e registra em `statements` com `document_type='ppr'`, `gross_ppr` e `payment_date`.
+
+Após o usuário conferir e confirmar a importação, um trigger da migração `supabase/migrations/0007_ppr_events.sql` cria automaticamente um evento pontual `salary_events.kind='ppr'`, vinculado ao mesmo `source_statement_id`. Reimportar o mesmo documento atualiza o evento existente, sem duplicar; os dados usados nos testes públicos são fictícios. O histórico salarial regular, o cálculo mensal de salário e os gráficos de salário não somam o PPR. Os totais de PPR aparecem separadamente no histórico e em Análises.
+
+O valor bruto do evento corresponde à rubrica de PPR, e o líquido à quantia impressa no holerite. O código inicialmente homologável é `00845` no layout antigo. Outros modelos de PPR devem passar por revisão do importador antes de serem aceitos. Nenhum PDF privado foi versionado no GitHub.
+
+## Jornada
+
+O horário default de **saída** para novos apontamentos é `18:00`. Apontamentos existentes não são modificados.
