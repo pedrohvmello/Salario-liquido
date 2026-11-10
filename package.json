@@ -15,7 +15,8 @@
     "pdfjs-dist": "^4.10.38",
     "recharts": "^2.15.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "date-holidays": "^3.36.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
