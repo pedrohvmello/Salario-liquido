@@ -26,3 +26,14 @@
 .analytics-description{font-size:12px;line-height:1.6;margin:10px 0 13px}
 @media(max-width:1120px){.analytics-overview{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.analytics-filter{flex-direction:column;align-items:stretch}.analytics-filter select{width:100%}}
+
+/* Salary parameters are read-only, sourced from events effective for the selected month. */
+.settings-readonly-heading{margin-bottom:14px}
+.settings-readonly-heading p{margin:0;font-size:12px;line-height:1.7}
+.settings-readonly-heading .text-button{display:inline;padding:0;text-decoration:underline;text-underline-offset:2px;vertical-align:baseline;font-weight:700}
+.settings-readonly-field{display:flex;flex-direction:column;gap:6px;min-width:0;padding:13px 15px;border:1px solid #e0e8f2;border-radius:11px;background:#f9fbfe}
+.settings-readonly-label{font-size:11px;font-weight:750;color:#63758f}
+.settings-readonly-value{font-size:17px;font-weight:750;color:#162b46;overflow-wrap:anywhere}
+.settings-readonly-source{font-size:11px;color:#72839a;line-height:1.4}
+.settings-pension-method{margin:14px 0 18px}
+.settings-pension-method .settings-readonly-value{font-size:13px}
