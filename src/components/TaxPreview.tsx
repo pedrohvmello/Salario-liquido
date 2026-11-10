@@ -3,7 +3,7 @@ import {AlertTriangle,CheckCircle2,FileCheck2,Info,Save} from 'lucide-react'
 import {brl} from '../lib/money'
 import {
   summarizeTaxYear,calculatedOfficialValue,officialDifference,OFFICIAL_FIELDS,
-  type OfficialField,type OfficialValues,type TaxStatement
+  type OfficialValues,type TaxStatement
 } from '../lib/annualTax'
 import {db} from '../lib/data'
 
