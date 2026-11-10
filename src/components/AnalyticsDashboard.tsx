@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react'
-import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,Cell,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
@@ -10,7 +10,7 @@ import {VacationOverview} from './VacationOverview'
 import {ThirteenthOverview} from './ThirteenthOverview'
 import {
  METRICS,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison,topIrrfStackSegment,
- type MetricKey,type TimeMetrics
+ type MetricKey,type TimeMetrics,type IrrfStackKey,type TaxTime
 } from '../lib/analytics'
 
 type SalaryGraphRow={period:string;bruto:number|null;liquido:number|null;ferias:number}
@@ -41,6 +41,13 @@ function Bars({data,children}:{data:Array<Record<string,string|number|null>>;chi
    <Tooltip formatter={fmt}/><Legend/>{children}
   </BarChart>
  </ResponsiveContainer></div>
+}
+function roundedIrrfShape(segment:IrrfStackKey){
+ return (props:unknown)=>{
+  const rect=props as React.ComponentProps<typeof Rectangle> & {payload?:TaxTime}
+  const top=rect.payload?topIrrfStackSegment(rect.payload):null
+  return <Rectangle {...rect} radius={top===segment?[6,6,0,0]:[0,0,0,0]}/>
+ }
 }
 function sumKnown(rows:TimeMetrics[],key:MetricKey):number|null {
  const present=rows.filter(r=>r[key]!==null)
@@ -167,18 +174,10 @@ export function AnalyticsDashboard({
 
   <Panel title={year==='all'?'IRRF retido por ano':'IRRF retido por mês em '+year}>
    {taxEvidence?<Bars data={taxBars}>
-    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.blue} maxBarSize={44}>
-     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='salary'?[6,6,0,0]:[0,0,0,0]}/>)}
-    </Bar>
-    <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44}>
-     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='vacation'?[6,6,0,0]:[0,0,0,0]}/>)}
-    </Bar>
-    <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44}>
-     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='thirteenth'?[6,6,0,0]:[0,0,0,0]}/>)}
-    </Bar>
-    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.indigo} maxBarSize={44}>
-     {taxBars.map((row,index)=><Cell key={index} radius={topIrrfStackSegment(row)==='ppr'?[6,6,0,0]:[0,0,0,0]}/>)}
-    </Bar>
+    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.blue} maxBarSize={44} shape={roundedIrrfShape('salary')}/>
+    <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44} shape={roundedIrrfShape('vacation')}/>
+    <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44} shape={roundedIrrfShape('thirteenth')}/>
+    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.indigo} maxBarSize={44} shape={roundedIrrfShape('ppr')}/>
    </Bars>:<Empty label="Nenhum IRRF identificado nos documentos deste período."/>}
    <div className="detail-hint"><Info size={16}/>O gráfico consolida apenas retenções efetivamente identificadas: mensal, férias contabilizadas na folha, 13º e PPR. Não duplica impostos de recibos de férias quando já constam na folha mensal. Meses não importados permanecem sem informação.</div>
   </Panel>
