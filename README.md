@@ -147,3 +147,16 @@ Para o **fluxo financeiro**, o app verifica se a antecipação de 13º indicada 
 No **Histórico** e em **Análises**, bruto, adiantamento, INSS, IRRF e líquido do 13º aparecem separadamente. O **Informe IR (prévia)** inclui bruto e IRRF exclusivo do 13º no ano de pagamento, sem misturá-los ao IRRF mensal ou ao PPR. Valores estimados de adiantamentos são apenas fluxo financeiro, não novos rendimentos tributáveis.
 
 **Limites:** inicialmente homologado para o cabeçalho e as rubricas do formato antigo demonstrado; outros layouts requerem adaptação. O PDF original é privado, não versionado no repositório. Evitar importar no ambiente real antes de confirmar os resultados da prévia com os seis recibos fornecidos.
+
+## Histórico analítico por rubrica (previdência, ESPP, VR, triênio)
+
+A tela **Análises** identifica, a partir de `statement_lines` das folhas mensais, valores efetivamente registrados de previdência privada (VGBL/PGBL), INSS, pensão alimentícia, triênio regular, horas extras, ESPP e créditos de vale-refeição. Cada rubrica tem classificação explícita de tipo/descrição; reembolsos retroativos de triênio não são confundidos com o valor recorrente, e ausência de rubrica não vira zero histórico.
+
+Há seletor de indicador e tabela geral, ambos com **agregação anual** no filtro "Todos os anos" e **janeiro a dezembro** ao selecionar um ano. Um parâmetro atual de VR/ESPP aparece apenas como contexto e não retroage para fabricar transações antigas. Contrapartida da previdência pelo empregador também não é presumida.
+
+- **13º:** duas colunas por ano: bruto azul e pilha de líquido total (fechamento + adiantamento) verde, pensão laranja e IRRF vermelho. INSS explica a diferença para o bruto. O líquido total apresentado neste gráfico não é o mesmo que o valor adicional conciliado do fluxo de caixa.
+- **PPR:** um único gráfico com bruto azul e pilha de líquido verde + IRRF vermelho; outras deduções como contribuição negocial explicam eventuais diferenças.
+- **IRRF:** gráfico próprio com retenções de folha mensal, férias contabilizadas na folha, 13º e PPR, sem cruzar impostos de recibos de férias já representados na folha.
+- **FGTS:** agregação anual para todos os anos, mas os **12 meses** separados para filtro por ano, com meses sem documentação indicados como ausentes.
+
+A implementação está em `src/lib/analytics.ts` e `src/components/AnalyticsDashboard.tsx`, com testes sintéticos em `analytics.test.ts`.
