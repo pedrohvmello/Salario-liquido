@@ -154,7 +154,7 @@ export function AnalyticsDashboard({
      <Bar dataKey="net" name="13º líquido total (com adiantamento)" stackId="13o" fill={color.green} barSize={28}/>
      <Bar dataKey="pension" name="Pensão do 13º" stackId="13o" fill={color.orange} barSize={28}/>
      <Bar dataKey="inss" name="INSS do 13º" stackId="13o" fill={color.indigo} barSize={28}/>
-     <Bar dataKey="other" name="Outros descontos (diferença)" stackId="13o" fill={color.gray} barSize={28}/>
+     {completeThirteenth.some(x=>x.other>0.01)&&<Bar dataKey="other" name="Outros descontos (diferença)" stackId="13o" fill={color.gray} barSize={28}/>}
      <Bar dataKey="irrf" name="IRRF do 13º" stackId="13o" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
     </Bars>
     :<Empty label="Nenhum recibo de 13º registrado para o período."/>}
