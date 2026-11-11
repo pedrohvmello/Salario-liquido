@@ -330,11 +330,41 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .events-filterbar{margin-bottom:18px}
 }
 
-/* 13º: títulos e valores compartilham o mesmo eixo horizontal por coluna. */
-.thirteenth-table th,.thirteenth-table td{vertical-align:middle}
-.thirteenth-table th{white-space:normal;line-height:1.45}
-.thirteenth-table th:nth-child(n+2):nth-child(-n+10),
-.thirteenth-table td:nth-child(n+2):nth-child(-n+10){text-align:center}
-.thirteenth-table td:nth-child(n+2):nth-child(-n+10){white-space:nowrap}
-.thirteenth-table th:first-child,.thirteenth-table td:first-child,
-.thirteenth-table th:last-child,.thirteenth-table td:last-child{text-align:left}
+/* Tabela do 13º: alinhamento consistente dos valores com o cabeçalho.
+   As larguras controladas evitam que os dados se desloquem entre as linhas. */
+.thirteenth-table{table-layout:fixed;width:100%;min-width:1760px}
+.thirteenth-table .thirteenth-year{width:75px}
+.thirteenth-table .thirteenth-gross{width:133px}
+.thirteenth-table .thirteenth-advance{width:166px}
+.thirteenth-table .thirteenth-matched{width:170px}
+.thirteenth-table .thirteenth-closing{width:158px}
+.thirteenth-table .thirteenth-cash{width:176px}
+.thirteenth-table .thirteenth-irrf{width:139px}
+.thirteenth-table .thirteenth-inss{width:120px}
+.thirteenth-table .thirteenth-pension{width:126px}
+.thirteenth-table .thirteenth-status{width:171px}
+.thirteenth-table .thirteenth-comment{width:326px}
+.thirteenth-table th,.thirteenth-table td{
+ text-align:center;
+ vertical-align:middle;
+}
+.thirteenth-table th{
+ white-space:normal;
+ line-height:1.45;
+ overflow-wrap:normal;
+}
+.thirteenth-table td:not(:last-child){white-space:nowrap}
+.thirteenth-table th:last-child,
+.thirteenth-table td:last-child{text-align:left}
+.thirteenth-comment-cell{min-width:0}
+.thirteenth-comment-preview{
+ display:-webkit-box;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:2;
+ line-clamp:2;
+ overflow:hidden;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ line-height:1.5;
+ max-height:3em;
+}
