@@ -379,7 +379,7 @@ export default function App(){
       <small className="settings-readonly-source">{hasPension?'Definida pelos eventos vigentes':'Nenhum evento de pensão vigente'}</small>
     </div>
     <div className="detail-hint"><Info size={16}/>Os valores são carregados automaticamente do evento mais recente vigente até a competência selecionada. Quando não existe evento para um campo, permanece o valor-base previamente cadastrado. Para modificá-los, utilize Eventos e vigências.</div>
-  </div></Panel></div>
+  </div></Panel></div>}
    </div>
   </main>
  </div>
