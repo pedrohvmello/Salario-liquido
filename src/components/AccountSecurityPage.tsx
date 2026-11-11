@@ -27,7 +27,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
   finally{setResetBusy(false)}
  }
  const deleteAccount=async()=>{
-  if(hml){setDeleteError('Exclusão bloqueada em homologação: a base é compartilhada com produção.');return}
+  if(hml){setDeleteError('Exclusão indisponível em HML: a função de exclusão ainda precisa ser publicada e validada no novo Supabase.');return}
   if(!canConfirmDeletion(deleteText,acknowledged)||!db){setDeleteError('Confirme a exclusão da conta.');return}
   setDeleteBusy(true);setDeleteError('')
   try{
@@ -55,7 +55,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    <label className="security-disabled-switch"><span>Ativar autenticador (TOTP)</span><input type="checkbox" disabled aria-label="Aguardando integração completa de 2FA"/></label>
    <p className="subtle">A ativação depende da verificação de segundo fator no login e de regras de acesso no servidor. Ainda não está habilitada no Payrep.</p>
    <div className="account-security-row"><MessageCircle size={19}/><div><strong>WhatsApp como segundo fator</strong><small>Suportado pelo Supabase mediante configuração de um provedor de mensagens. Ainda não configurado neste projeto.</small></div></div>
-   {hml&&<div className="detail-hint"><Info size={16}/>Não é seguro cadastrar MFA de teste enquanto HML e PRD compartilham a mesma autenticação. O recurso permanecerá desativado até isolar os ambientes.</div>}
+   {hml&&<div className="detail-hint"><Info size={16}/>A autenticação de HML já está separada. A ativação de 2FA continua pendente de implementação e testes completos.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Fingerprint size={17}/> Biometria e passkeys</h2></div>
    <label className="security-disabled-switch"><span>Ativar login por biometria</span><input type="checkbox" disabled aria-label="Recurso experimental indisponível"/></label>
@@ -63,7 +63,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
    <p className="subtle">Exclusão permanente da conta e dados vinculados. Não é possível desfazer.</p>
-   {hml&&<div className="detail-hint"><Info size={16}/>Exclusão desativada em HML para proteger os dados de produção.</div>}
+   {hml&&<div className="detail-hint"><Info size={16}/>Exclusão temporariamente indisponível em HML até a publicação e validação da função de exclusão.</div>}
    {!deleting?<button type="button" className="secondary profile-destructive" disabled={hml} onClick={()=>setDeleting(true)}><Trash2 size={15}/> Excluir minha conta</button>:<>
     <div className="profile-delete-confirm"><strong>Confirmação de exclusão permanente</strong><p>Essa ação remove dados financeiros, holerites e a conta do Supabase.</p>
      <label>Digite EXCLUIR para confirmar<input type="text" autoComplete="off" value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="EXCLUIR"/></label>
