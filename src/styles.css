@@ -291,3 +291,41 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 @media(max-width:1120px){.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.overview-config,.pension-criteria-grid{grid-template-columns:1fr}.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px){.overview-stats{grid-template-columns:1fr 1fr}}
+
+/* Eventos: uma linha de respiro antes da tabela, colunas visíveis sem scroll lateral
+   no desktop e observações limitadas visualmente a duas linhas. */
+.events-filterbar{margin-bottom:22px}
+.events-table{width:100%;table-layout:fixed}
+.events-table .event-col-name{width:17%}
+.events-table .event-col-date{width:9%}
+.events-table .event-col-value{width:8%}
+.events-table .event-col-status{width:12%}
+.events-table .event-col-notes{width:42%}
+.events-table .event-col-actions{width:12%}
+.events-table th,.events-table td{white-space:normal;overflow-wrap:break-word;vertical-align:middle}
+.events-table .events-notes-cell{min-width:0}
+.events-table .events-note-preview{
+ display:-webkit-box;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:2;
+ line-clamp:2;
+ overflow:hidden;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ line-height:1.5;
+ max-height:3em;
+}
+.events-table .events-actions-cell{white-space:normal}
+.events-table .events-actions-cell .icon-button{vertical-align:middle}
+@media(max-width:1100px){
+ .events-table .event-col-name{width:18%}
+ .events-table .event-col-date{width:11%}
+ .events-table .event-col-value{width:9%}
+ .events-table .event-col-status{width:14%}
+ .events-table .event-col-notes{width:34%}
+ .events-table .event-col-actions{width:14%}
+}
+@media(max-width:760px){
+ .events-table{min-width:660px}
+ .events-filterbar{margin-bottom:18px}
+}
