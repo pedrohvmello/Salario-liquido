@@ -449,3 +449,28 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .profile-popover{right:-5px}
  .topbar .profile-avatar{display:flex}
 }
+
+/* Profile menu redesign: larger centered avatar and photo controls below it. */
+.profile-photo-section{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;margin:16px 0 20px}
+.profile-avatar-large{width:102px;height:102px;font-size:29px;box-shadow:0 0 0 3px #f1e2ff}
+.profile-photo-actions{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.profile-photo-actions .secondary{font-size:12px}
+.profile-popover{width:min(375px,calc(100vw - 24px))}
+.profile-actions{margin-top:15px}
+.profile-action{width:100%}
+.account-page{max-width:1100px;margin:0 auto}
+.account-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.account-form-grid label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:700;color:#493268}
+.account-field-wide{grid-column:1/-1}
+.account-readonly{background:#f8f4fc!important;color:#7e668e!important;cursor:default}
+.account-page .panel-heading h2{display:flex;align-items:center;gap:9px}
+.subscription-current{border-radius:13px;border:1px solid #e7d9f4;background:#faf5ff;padding:18px;display:flex;flex-direction:column;gap:8px}
+.subscription-current strong{font-size:22px;color:#4b0a84}
+.subscription-current span{color:#6b5381;font-size:13px}
+.subscription-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.subscription-plan{min-width:0;border:1px solid #e4d6f2;border-radius:13px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.subscription-plan-active{background:#f8f0ff;border-color:#af6eed}
+.subscription-plan span{font-size:12px;color:#6b5390;font-weight:750}
+.subscription-plan strong{font-size:18px;color:#361452}
+.subscription-plan small{font-size:12px;color:#876da1}
+@media(max-width:760px){.account-form-grid{grid-template-columns:1fr}.subscription-plans{grid-template-columns:1fr}}

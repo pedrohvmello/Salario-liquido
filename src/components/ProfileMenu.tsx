@@ -1,8 +1,8 @@
 import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {Camera,Check,LogOut,Save,Trash2,X} from 'lucide-react'
+import {Camera,Check,LogOut,Trash2,X,UserRound,CreditCard} from 'lucide-react'
 import {db} from '../lib/data'
-import {accountInitials,canConfirmDeletion,profileDisplayName} from '../lib/profile'
+import {accountInitials,canConfirmDeletion} from '../lib/profile'
 
 const BUCKET='profile-avatars'
 const MAX_SOURCE=5*1024*1024
@@ -34,9 +34,8 @@ async function toAvatar(file:File):Promise<Blob>{
  }finally{URL.revokeObjectURL(url)}
 }
 
-export function ProfileMenu({user}:{user:User|null}){
+export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'profile'|'subscription')=>void}){
  const [open,setOpen]=useState(false)
- const [displayName,setDisplayName]=useState(()=>profileDisplayName(user))
  const [avatar,setAvatar]=useState<string|null>(null)
  const [avatarVersion,setAvatarVersion]=useState(0)
  const [busy,setBusy]=useState(false)
@@ -48,7 +47,6 @@ export function ProfileMenu({user}:{user:User|null}){
  const root=useRef<HTMLDivElement>(null)
  const uploadInput=useRef<HTMLInputElement>(null)
  const initial=accountInitials(user)
- useEffect(()=>{setDisplayName(profileDisplayName(user))},[user?.id,user?.user_metadata?.display_name,user?.user_metadata?.full_name,user?.user_metadata?.name])
  useEffect(()=>{
   if(!user||!db)return
   let mounted=true,objectUrl:string|null=null
@@ -76,13 +74,6 @@ export function ProfileMenu({user}:{user:User|null}){
   catch(e){setError(e instanceof Error?e.message:'Não foi possível completar a operação.')}
   finally{setBusy(false)}
  }
- const saveName=()=>perform(async()=>{
-  if(!db||!user)throw Error('Faça login para alterar o perfil.')
-  const name=displayName.trim().replace(/\s+/g,' ')
-  if(name.length<2||name.length>100)throw Error('Informe um nome entre 2 e 100 caracteres.')
-  const {error:saveError}=await db.auth.updateUser({data:{display_name:name}})
-  if(saveError)throw saveError
- },'Nome atualizado.')
  const uploadPhoto=(file?:File)=>{if(!file)return
   void perform(async()=>{
    if(!db||!user)throw Error('Faça login para alterar a imagem.')
@@ -133,10 +124,10 @@ export function ProfileMenu({user}:{user:User|null}){
     <div className="profile-photo-actions"><button disabled={busy} type="button" className="secondary" onClick={()=>uploadInput.current?.click()}><Camera size={15}/> Alterar foto</button>{avatar&&<button disabled={busy} type="button" className="profile-text-action" onClick={removePhoto}>Remover foto</button>}</div>
     <input ref={uploadInput} className="profile-hidden-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadPhoto(e.target.files?.[0]);e.currentTarget.value=''}} aria-label="Escolher foto de perfil"/>
    </div>
-   <div className="profile-name"><label htmlFor="profile-display-name">Nome</label><div className="profile-name-actions"><input id="profile-display-name" type="text" maxLength={100} value={displayName} onChange={e=>setDisplayName(e.target.value)} placeholder="Seu nome"/><button disabled={busy} className="primary" onClick={saveName} type="button"><Save size={15}/> Salvar</button></div></div>
+
    {message&&<p className="profile-feedback success"><Check size={14}/>{message}</p>}
    {error&&<p className="profile-feedback danger">{error}</p>}
-   <div className="profile-actions"><button type="button" disabled={busy} className="profile-action" onClick={logout}><LogOut size={17}/> Sair da conta</button><button type="button" disabled={busy} className="profile-action profile-destructive" onClick={()=>{setConfirmDelete(v=>!v);setDeleteText('');setAcknowledged(false)}}><Trash2 size={17}/> Excluir minha conta</button></div>
+   <div className="profile-actions"><button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('profile')}}><UserRound size={17}/> Editar perfil e cadastro</button><button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('subscription')}}><CreditCard size={17}/> Assinatura</button><button type="button" disabled={busy} className="profile-action" onClick={logout}><LogOut size={17}/> Sair da conta</button><button type="button" disabled={busy} className="profile-action profile-destructive" onClick={()=>{setConfirmDelete(v=>!v);setDeleteText('');setAcknowledged(false)}}><Trash2 size={17}/> Excluir minha conta</button></div>
    {confirmDelete&&<div className="profile-delete-confirm">
     <strong>Excluir conta permanentemente</strong>
     <p>Esta ação remove sua conta, eventos, jornadas, holerites e arquivos enviados. Não será possível recuperar os dados.</p>
