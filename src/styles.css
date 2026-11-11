@@ -409,3 +409,43 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 @media(max-width:760px){
  .overview-config{grid-template-rows:none;grid-auto-flow:row}
 }
+
+/* Header-only account control. Sidebar footer retired. */
+.profile-menu-root{position:relative;flex:none;margin-left:15px;z-index:105}
+.profile-avatar{width:38px;height:38px;border-radius:50%;background:#efdfff;color:#6100bb;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
+.profile-avatar-trigger{border:0;padding:0;box-shadow:0 0 0 1px #e6d0fb;cursor:pointer}
+.profile-avatar-trigger:hover,.profile-avatar-trigger:focus-visible{outline:2px solid #8d19e4;outline-offset:2px}
+.profile-avatar-image{width:100%;height:100%;object-fit:cover;display:block}
+.profile-avatar-large{width:72px;height:72px;font-size:20px}
+.profile-popover{position:absolute;right:0;top:calc(100% + 14px);width:min(375px,calc(100vw - 28px));max-height:min(80vh,700px);overflow-y:auto;border:1px solid #e3d0f7;border-radius:16px;background:#fff;box-shadow:0 18px 55px #23054d34;padding:18px;color:#27114d}
+.profile-popover-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:18px}
+.profile-popover-header strong{font-size:16px;display:block;margin-bottom:4px}
+.profile-popover-header small{font-size:11px;color:#7b6591;overflow-wrap:anywhere}
+.profile-icon-button{background:transparent;border:0;padding:4px;color:#674b85}
+.profile-photo-section{display:flex;align-items:center;gap:16px;margin-bottom:19px}
+.profile-photo-actions{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.profile-photo-actions .secondary{padding:9px 11px}
+.profile-text-action{border:0;background:none;color:#7c32ba;font-size:11px;padding:4px 0}
+.profile-hidden-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none}
+.profile-name label,.profile-delete-confirm label{display:block;font-size:11px;font-weight:750;margin-bottom:7px}
+.profile-name-actions{display:flex;align-items:center;gap:7px}
+.profile-name-actions input{min-width:0;flex:1}
+.profile-name-actions button{padding:11px}
+.profile-actions{display:flex;flex-direction:column;gap:3px;border-top:1px solid #eadff6;margin-top:17px;padding-top:9px}
+.profile-action{display:flex;align-items:center;gap:10px;background:transparent;border:0;border-radius:9px;text-align:left;padding:11px 9px;color:#3f2857;font-size:12px;font-weight:700}
+.profile-action:hover{background:#f8f1ff}
+.profile-action.profile-destructive{color:#a72c45}
+.profile-delete-confirm{background:#fff8f9;border:1px solid #f3c5ce;border-radius:11px;margin-top:10px;padding:13px}
+.profile-delete-confirm strong{font-size:12px;color:#8b2138}
+.profile-delete-confirm p{font-size:11px;line-height:1.6;color:#764b56;margin:8px 0 12px}
+.profile-delete-confirm .checkbox-label{display:flex;gap:8px;font-size:11px;line-height:1.5;font-weight:500;margin:10px 0}
+.profile-delete-buttons{display:flex;justify-content:flex-end;gap:8px}
+.profile-delete-submit{background:#ae2446;border:1px solid #ae2446;color:white;border-radius:9px;font-weight:700;font-size:11px;padding:10px}
+.profile-delete-submit:disabled{opacity:.4}
+.profile-feedback{display:flex;gap:8px;align-items:center;padding:9px;border-radius:8px;margin:12px 0;font-size:11px;line-height:1.5}
+@media(max-width:760px){
+ .topbar .profile-menu-root{margin-left:6px}
+ .profile-menu-root{z-index:200}
+ .profile-popover{right:-5px}
+ .topbar .profile-avatar{display:flex}
+}

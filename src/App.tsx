@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,LogOut,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound,ArrowUp,ArrowDown} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,UsersRound,ArrowUp,ArrowDown} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,type DayEntry} from './lib/calendar'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
@@ -24,6 +24,7 @@ import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveOverviewCards,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {requiresPasswordSetup} from './lib/authRedirect'
+import {ProfileMenu} from './components/ProfileMenu'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'settings'|'admin'
 type TimeRecord=DayEntry&{id:string}
@@ -290,10 +291,10 @@ export default function App(){
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>{nav.filter(n=>n.id!=='admin'||isAdmin).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}</nav>
-   <div className="side-bottom"><div className="lock-box"><ShieldCheck size={18}/><div><strong>Ambiente privado</strong><small>Dados isolados por usuário</small></div></div><div className="account"><div className="avatar">{(user?.email||'SL').slice(0,2).toUpperCase()}</div><div><strong>{user?.email?.split('@')[0]||'Demonstração'}</strong><small>{isDemo?'Sem dados salvos':'Conta individual'}</small></div>{db&&<button title="Sair" onClick={()=>db?.auth.signOut()}><LogOut size={17}/></button>}</div></div>
+   
   </aside>
   <main className="main">
-   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label}</h1></div><div className="top-actions"><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(selectCompetence(e.target.value,currentMonth()))}/><div className="circle-avatar">{(user?.email||'S').charAt(0).toUpperCase()}</div></div></header>
+   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label}</h1></div><div className="top-actions"><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(selectCompetence(e.target.value,currentMonth()))}/><ProfileMenu user={user}/></div></header>
    <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
     {error&&<div className="notice danger"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}
