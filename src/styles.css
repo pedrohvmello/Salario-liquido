@@ -507,7 +507,7 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .avatar-crop-stage{position:relative;width:min(100%,342px);height:304px;display:grid;place-items:center;touch-action:none;cursor:grab;user-select:none;background:radial-gradient(circle at 50% 45%,#565066,#30233e);border-radius:15px;overflow:hidden}
 .avatar-crop-stage:active{cursor:grabbing}
 .avatar-crop-stage:focus-visible{outline:2px solid #8900dd;outline-offset:3px}
-.avatar-crop-circle{width:268px;height:268px;border-radius:50%;position:relative;overflow:hidden;background:#e1d4ed;border:3px solid #e0b9ff;box-shadow:0 0 0 3px #ffffff6b;pointer-events:none}
+.avatar-crop-circle{width:268px;height:268px;border-radius:50%;position:relative;overflow:hidden;background:#e1d4ed;outline:3px solid #e0b9ff;box-shadow:0 0 0 6px #ffffff50;pointer-events:none}
 .avatar-crop-circle img{position:absolute;left:50%;top:50%;max-width:none!important;max-height:none!important;object-fit:fill;user-select:none;pointer-events:none}
 .avatar-crop-move-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;padding:9px;box-sizing:content-box;border-radius:50%;background:#3f185fa6;pointer-events:none}
 .avatar-crop-instruction{font-size:11px;color:#746087;text-align:center;margin:13px 0 11px}
