@@ -31,7 +31,7 @@ export function AuthGate(){
       }else if(mode==='signup'){
         if(password.length<8)throw Error('A senha deve ter pelo menos 8 caracteres.')
         if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
-        const {data,error}=await db.auth.signUp({email:email.trim(),password})
+        const {data,error}=await db.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin}})
         if(error)throw error
         if(!data.session)setMessage('Solicitação recebida. Se o cadastro for permitido, confira o e-mail para confirmar sua conta. O acesso poderá depender de aprovação administrativa.')
         else setMessage('Conta criada. O aplicativo verificará sua autorização de acesso.')
