@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import {ChevronRight, LockKeyhole, ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
+import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -29,7 +30,8 @@ export function AuthGate(){
         if(error)throw error
         setMessage('Se a conta existir, você receberá instruções para recuperar a senha.')
       }else if(mode==='signup'){
-        if(password.length<8)throw Error('A senha deve ter pelo menos 8 caracteres.')
+        const missing=checkPassword(password)
+        if(missing.length)throw Error('A senha precisa conter: '+missing.join(', ')+'.')
         if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
         const {data,error}=await db.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin}})
         if(error)throw error
@@ -59,7 +61,9 @@ export function AuthGate(){
     <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.':'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>
     <form onSubmit={e=>{e.preventDefault();void act()}}>
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
-      {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?8:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 8 caracteres':'Sua senha'}/></label>}
+      {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?passwordPolicyDefaults.minLength:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 12 caracteres':'Sua senha'}/></label>}
+      {mode==='signup'&&<p className="subtle password-policy-description">Use no mínimo 12 caracteres, com letras minúsculas, maiúsculas, números e símbolos.</p>}
+      {mode==='signup'&&password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
       {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check" placeholder="Digite a senha novamente"/></label>}
       {mode==='signup'&&<small id="signup-password-check" className={confirmation.length===0?'password-confirm-hint':password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">{confirmation.length===0?'Repita a mesma senha para confirmar.':password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}</small>}
       <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
@@ -77,8 +81,9 @@ export function AuthGate(){
   </div></div>
 }
 
-export function ChangePassword({onComplete}:{onComplete?:()=>void}={}){
+export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()=>void;requireCurrent?:boolean}={}){
   const [password,setPassword]=useState('')
+  const [currentPassword,setCurrentPassword]=useState('')
   const [confirmation,setConfirmation]=useState('')
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
@@ -86,21 +91,26 @@ export function ChangePassword({onComplete}:{onComplete?:()=>void}={}){
   async function update(){
     if(!db)return
     setError('');setMessage('')
-    if(password.length<8){setError('A senha deve ter pelo menos 8 caracteres.');return}
+    const missing=checkPassword(password)
+    if(missing.length){setError('A senha precisa conter: '+missing.join(', ')+'.');return}
     if(password!==confirmation){setError('As senhas informadas são diferentes.');return}
+    if(requireCurrent&&!currentPassword){setError('Informe a senha atual.');return}
+    if(requireCurrent&&password===currentPassword){setError('A nova senha deve ser diferente da atual.');return}
     setBusy(true)
     try{
-      const {error}=await db.auth.updateUser({password})
+      const {error}=await db.auth.updateUser(requireCurrent?{password,current_password:currentPassword}:{password})
       if(error)throw error
-      setPassword('');setConfirmation('');setMessage('Senha definida com sucesso.')
+      setPassword('');setConfirmation('');setCurrentPassword('');setMessage('Senha atualizada com sucesso.')
       onComplete?.()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar a senha.')}
     finally{setBusy(false)}
   }
   return <form className="form" onSubmit={e=>{e.preventDefault();void update()}}>
-    <p className="subtle">Após aceitar seu convite, defina uma senha nesta área. Ela também pode ser alterada posteriormente.</p>
-    <label>Nova senha<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={8} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
+    <p className="subtle">A senha deve ter 12 caracteres ou mais, incluindo minúsculas, maiúsculas, números e símbolos.</p>
+    {requireCurrent&&<label>Senha atual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>}
+    <label>Nova senha<input type="password" autoComplete="new-password" minLength={passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
+    {password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
     {error&&<p role="alert" className="error">{error}</p>}
     {message&&<p role="status" className="auth-success">{message}</p>}
     <button type="submit" disabled={!db||busy} className="primary"><LockKeyhole size={16}/> Definir senha</button>
