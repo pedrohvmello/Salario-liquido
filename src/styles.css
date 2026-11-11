@@ -533,3 +533,44 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .cep-lookup-status{display:block;padding:7px 0 0;font-size:11px;color:#795a94;line-height:1.5}
 .payrep-feedback-toast{position:fixed;right:20px;bottom:20px;z-index:350;max-width:min(500px,calc(100vw - 40px));box-shadow:0 9px 28px #25044528}
 @media(max-width:650px){.account-save-action{flex-direction:column}.account-save-feedback{width:100%}.payrep-feedback-toast{left:14px;right:14px;bottom:14px}}
+
+/* Hero competence: identical visual identity, interactive popover on click. */
+.hero-competence{position:relative;display:inline-block;z-index:16}
+.hero .hero-kicker-trigger{font-family:inherit;cursor:pointer;text-align:center;appearance:none;white-space:normal}
+.hero .hero-kicker-trigger:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.competence-popover{position:absolute;top:calc(100% + 9px);left:0;width:278px;max-width:calc(100vw - 62px);padding:14px;z-index:25;background:#fff;color:#32124d;border:1px solid #e2cef3;border-radius:13px;box-shadow:0 18px 40px #14032744;letter-spacing:normal;text-shadow:none}
+.competence-year-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;font-size:15px;font-weight:800}
+.competence-year-arrow{display:grid;place-items:center;width:30px;height:30px;border:1px solid #e7d6f8;background:#fbf8ff;border-radius:8px;color:#62009b}
+.competence-year-arrow:disabled{opacity:.3}
+.competence-month-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.competence-month{background:transparent;border:1px solid transparent;border-radius:8px;padding:9px 0;color:#3d205a;font-size:12px;font-weight:650}
+.competence-month:hover,.competence-month:focus-visible{background:#f1e5ff}
+.competence-month.selected{background:#7300d3;border-color:#7300d3;color:#fff}
+.competence-now{background:transparent;border:0;color:#7200ce;font-weight:750;font-size:12px;display:block;margin:10px 0 0 auto;padding:6px 1px}
+
+/* Hold for one second, then hold again and drag to reorder. The two-column
+   layout is inherited from .overview-stats on phone-sized viewports. */
+.overview-editor{position:relative}
+.overview-editor .overview-stats{min-width:0}
+.overview-card{position:relative;min-width:0;-webkit-touch-callout:none}
+.overview-card-editing{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;transform-origin:50% 50%;border-color:#9f5de2!important;animation:overview-card-jiggle .32s ease-in-out infinite alternate}
+.overview-card-editing:nth-child(even){animation-delay:-.16s;animation-direction:alternate-reverse}
+.overview-card-editing:focus-visible{outline:2px solid #7400ce;outline-offset:3px}
+.overview-card-dragging{animation:none;z-index:20;transform:scale(1.045);box-shadow:0 10px 24px #50039936;border-color:#7700dd!important;cursor:grabbing}
+@keyframes overview-card-jiggle{0%{transform:rotate(-.4deg)}100%{transform:rotate(.4deg)}}
+.overview-card-editing .subtle{padding-right:22px}
+.overview-remove-card{position:absolute;right:7px;top:7px;width:27px;height:27px;border:1px solid #c794ef;border-radius:50%;background:#fff;color:#8100db;display:grid;place-items:center;z-index:2;padding:0;box-shadow:0 2px 6px #35025a12}
+.overview-remove-card:hover{background:#7400c8;color:white}
+.overview-edit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:11px;padding:9px 11px;border:1px solid #e6d3f6;background:#fbf7ff;border-radius:11px;font-size:12px;font-weight:650;color:#4d2679}
+.overview-edit-toolbar span{display:flex;align-items:center;gap:6px;flex:1;min-width:160px}
+.overview-edit-done{border:1px solid #7c02c5;color:#fff;background:#7200d3;padding:8px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:750}
+.overview-edit-hint{display:flex;align-items:center;gap:6px;font-size:11px;color:#745993;line-height:1.5;margin-top:10px}
+.overview-edit-error{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#fff0f2;color:#9c2141;border:1px solid #ffcbd4;border-radius:9px;padding:9px 11px;font-size:12px;margin:9px 0}
+.overview-edit-error button{border:0;background:transparent;color:inherit;display:grid;place-items:center}
+@media(prefers-reduced-motion:reduce){.overview-card-editing{animation:none;outline:1px dashed #9f5de2}}
+@media(max-width:760px){
+ .hero .hero-kicker-trigger{font-size:11px}
+ .competence-popover{width:276px}
+ .overview-edit-toolbar{align-items:flex-start}
+ .overview-card-editing{touch-action:none}
+}
