@@ -1,10 +1,10 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,LockKeyhole,Info,Save} from 'lucide-react'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
-import {passwordPolicyDefaults,validatePasswordPolicy,type PasswordPolicy} from '../lib/passwordPolicy'
+import {passwordPolicyDefaults,type PasswordPolicy} from '../lib/passwordPolicy'
 
 const policyLabels:{key:keyof Omit<PasswordPolicy,'minLength'>;label:string}[]=[
- {key:'requireLetters',label:'Exigir letras'},
+ {key:'requireLowercase',label:'Exigir letras minúsculas'},
  {key:'requireUppercase',label:'Exigir letras maiúsculas'},
  {key:'requireNumbers',label:'Exigir números'},
  {key:'requireSymbols',label:'Exigir caracteres especiais'}
@@ -13,7 +13,7 @@ const policyLabels:{key:keyof Omit<PasswordPolicy,'minLength'>;label:string}[]=[
 export function AdminSettingsPage(){
  const [approval,setApproval]=useState(true)
  const [savedApproval,setSavedApproval]=useState(true)
- const [policy,setPolicy]=useState<PasswordPolicy>(passwordPolicyDefaults)
+ const policy=passwordPolicyDefaults
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
@@ -30,7 +30,6 @@ export function AdminSettingsPage(){
   catch(e){setError(e instanceof Error?e.message:'Erro ao salvar a política.')}
   finally{setBusy(false)}
  }
- const policyError=validatePasswordPolicy(policy)
  return <div className="stack">
   <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas globais do Payrep, disponíveis apenas para administradores.</p></div></div>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={18}/> Política de cadastro</h2></div>
@@ -41,14 +40,14 @@ export function AdminSettingsPage(){
    <p className="subtle">A política de aprovação controla o acesso ao Payrep, não a criação de usuários no Supabase Auth.</p>
   </section>
   <section className="panel"><div className="panel-heading"><h2><LockKeyhole size={18}/> Requisitos de senha</h2></div>
-   <p className="subtle">Modelo para criação e redefinição de senhas. Senhas atuais não são alteradas por esta tela.</p>
+   <p className="subtle">Padrão da Fase 1 aplicado ao cadastro e à alteração de senha na interface do Payrep.</p>
    <div className="password-policy-layout">
-    <label className="password-policy-length">Quantidade mínima de caracteres<input type="number" inputMode="numeric" min={8} max={128} value={policy.minLength} onChange={e=>setPolicy(p=>({...p,minLength:Number(e.target.value)}))}/></label>
-    {policyLabels.map(({key,label})=><label key={key} className="password-policy-toggle"><span>{label}</span><input type="checkbox" checked={policy[key]} onChange={e=>setPolicy(p=>({...p,[key]:e.target.checked}))}/></label>)}
+    <label className="password-policy-length">Quantidade mínima de caracteres<input type="number" value={policy.minLength} readOnly aria-label="Mínimo de caracteres"/></label>
+    {policyLabels.map(({key,label})=><label key={key} className="password-policy-toggle"><span>{label}</span><input type="checkbox" checked={policy[key]} readOnly disabled/></label>)}
    </div>
-   {policyError&&<p className="error" role="alert">{policyError}</p>}
-   <div className="detail-hint"><Info size={16}/>Prévia visual. Estas opções ainda não alteram as regras do Supabase Auth. Para segurança efetiva, a validação deve ser aplicada no provedor, inclusive em cadastros feitos fora da interface do Payrep.</div>
-   <button className="primary" type="button" disabled aria-label="Aplicar política indisponível até integração com Supabase Auth"><Save size={16}/> Aplicar política no Supabase (pendente)</button>
+   <div className="detail-hint"><Info size={16}/>O padrão está disponível na interface. Para torná-lo obrigatório também na API, configure os mesmos requisitos no Supabase Auth. Até lá, os controles administrativos ficam bloqueados para não criar divergência entre cliente e servidor.</div>
+   <p className="subtle">No Supabase HML, configure mínimo de 12 caracteres e os quatro grupos: minúsculas, maiúsculas, números e símbolos. Habilite a exigência de senha atual na troca de senha, se disponível.</p>
+   <a className="secondary" href="https://supabase.com/dashboard/project/nrpqcrhschztdwbfgnyo/auth/providers?provider=Email" target="_blank" rel="noopener noreferrer">Abrir configurações de senha no Supabase HML</a>
   </section>
  </div>
 }
