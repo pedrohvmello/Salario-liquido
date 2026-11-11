@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {Camera,Check,LogOut,Save,Trash2,UserRound,X} from 'lucide-react'
+import {Camera,Check,LogOut,Save,Trash2,X} from 'lucide-react'
 import {db} from '../lib/data'
 import {accountInitials,canConfirmDeletion,profileDisplayName} from '../lib/profile'
 
