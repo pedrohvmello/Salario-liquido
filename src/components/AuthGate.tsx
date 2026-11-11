@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {ChevronRight, LockKeyhole, ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
+import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -98,8 +99,11 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
     if(requireCurrent&&password===currentPassword){setError('A nova senha deve ser diferente da atual.');return}
     setBusy(true)
     try{
-      const {error}=await db.auth.updateUser(requireCurrent?{password,current_password:currentPassword}:{password})
-      if(error)throw error
+      if(requireCurrent)await changePasswordWithCurrentVerification(currentPassword,password)
+      else{
+        const {error}=await db.auth.updateUser({password})
+        if(error)throw error
+      }
       setPassword('');setConfirmation('');setCurrentPassword('');setMessage('Senha atualizada com sucesso.')
       onComplete?.()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível atualizar a senha.')}
@@ -113,6 +117,6 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
     {password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
     {error&&<p role="alert" className="error">{error}</p>}
     {message&&<p role="status" className="auth-success">{message}</p>}
-    <button type="submit" disabled={!db||busy} className="primary"><LockKeyhole size={16}/> Definir senha</button>
+    <button type="submit" disabled={!db||busy} className="primary"><LockKeyhole size={16}/> {requireCurrent?"Alterar senha":"Definir senha"}</button>
   </form>
 }
