@@ -645,3 +645,40 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  }
  .sidebar.open{box-shadow:0 15px 30px rgba(27,2,50,.25)}
 }
+
+/* Payrep: sidebar admin-only grouping. */
+.admin-nav-separator{margin:21px 4px 10px;display:flex;align-items:center;gap:9px;color:#b8a0d1;font-size:10px;font-weight:800;letter-spacing:1.4px}
+.admin-nav-separator:before,.admin-nav-separator:after{content:"";height:1px;flex:1;background:#8f6db333}
+.admin-nav-separator span{white-space:nowrap}
+
+/* Password confirmation and editable policy preview. */
+.password-confirm-hint,.password-confirm-ok,.password-confirm-error{display:block;font-size:11px;margin:-6px 0 4px;line-height:1.4}
+.password-confirm-hint{color:#7c7190}
+.password-confirm-ok{color:#148d62}
+.password-confirm-error{color:#b5344b}
+.password-policy-layout{display:flex;flex-direction:column;gap:9px;margin:16px 0}
+.password-policy-length{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:700;padding:0 0 8px}
+.password-policy-length input{width:90px!important;flex:0 0 90px}
+.password-policy-toggle{background:#fcfaff;border:1px solid #eadcf7;border-radius:11px;min-height:51px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:700}
+.password-policy-toggle input{accent-color:#7d00d3;min-width:18px;width:19px;height:19px;flex-shrink:0}
+.admin-settings-actions{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin:14px 0}
+.admin-settings-actions .error,.admin-settings-actions .auth-success{margin:0}
+
+/* Security overview in account Settings. */
+.account-security-reset{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.account-security-reset .notice{margin:0;flex:1;min-width:200px}
+.account-security-details{border-top:1px solid #ebdff6;padding-top:15px;margin-top:20px}
+.account-security-details summary{font-size:13px;font-weight:750;color:#6800bd;cursor:pointer;margin:0 0 14px}
+.account-security-details .form{max-width:560px}
+.security-disabled-switch{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px;background:#f8f5fc;border:1px solid #e8dff2;border-radius:12px;font-size:13px;font-weight:700;opacity:.78}
+.security-disabled-switch input{width:19px;height:19px;accent-color:#7400d9}
+.account-security-row{display:flex;gap:12px;align-items:flex-start;margin:18px 0;color:#643b84}
+.account-security-row div{display:flex;flex-direction:column;gap:6px}
+.account-security-row strong{font-size:13px;color:#33164c}
+.account-security-row small{font-size:12px;color:#81708f;line-height:1.6}
+
+/* Banking preview: fields are intentionally disabled until private persistence is ready. */
+.bank-details-placeholder{padding:0;border:0;margin:12px 0 0;min-width:0}
+.bank-details-placeholder label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:650;color:#6d5b82}
+.bank-details-placeholder input,.bank-details-placeholder select{background:#f8f5fc!important;opacity:.72;cursor:not-allowed}
+@media(max-width:600px){.admin-nav-separator{margin:17px 2px 10px}.password-policy-length{align-items:flex-start}.password-policy-toggle{min-height:56px}}
