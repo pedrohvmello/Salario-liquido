@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes} from './pensionRule'
-import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays} from './overview'
+import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence} from './overview'
 import {effectiveParams} from './data'
 import {calculatePayroll2026,defaults} from './money'
 describe('pension event semantics',()=>{
@@ -39,6 +39,12 @@ describe('overview cards and advance month VR',()=>{
   expect(normalizeOverviewCards(['espp','gross','espp','unknown'])).toEqual(['espp','gross'])
  })
  it('handles year rollover',()=>expect(followingMonth('2026-12')).toBe('2027-01'))
+ it('restores the current month when the native picker is cleared',()=>{
+  expect(selectCompetence('','2026-11')).toBe('2026-11')
+  expect(selectCompetence('2026-01','2026-11')).toBe('2026-01')
+  expect(selectCompetence('2026-00','2026-11')).toBe('2026-11')
+  expect(selectCompetence('invalid','2026-11')).toBe('2026-11')
+ })
  it('calculates 19 working days of November 2026 and R$842,27',()=>{
   const holidays=new Set(['2026-11-02','2026-11-20'])
   expect(workingDays('2026-11',holidays)).toBe(19)

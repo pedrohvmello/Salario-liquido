@@ -15,7 +15,7 @@ import {recordAppSession} from './lib/admin'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
 import {latestEffectiveEvent} from './lib/eventSources'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes,pensionRuleLabels,type PensionRule} from './lib/pensionRule'
-import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,type OverviewCardId} from './lib/overview'
+import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,selectCompetence,type OverviewCardId} from './lib/overview'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
@@ -273,7 +273,7 @@ export default function App(){
    <div className="side-bottom"><div className="lock-box"><ShieldCheck size={18}/><div><strong>Ambiente privado</strong><small>Dados isolados por usuário</small></div></div><div className="account"><div className="avatar">{(user?.email||'SL').slice(0,2).toUpperCase()}</div><div><strong>{user?.email?.split('@')[0]||'Demonstração'}</strong><small>{isDemo?'Sem dados salvos':'Conta individual'}</small></div>{db&&<button title="Sair" onClick={()=>db?.auth.signOut()}><LogOut size={17}/></button>}</div></div>
   </aside>
   <main className="main">
-   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label}</h1></div><div className="top-actions"><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(e.target.value)}/><div className="circle-avatar">{(user?.email||'S').charAt(0).toUpperCase()}</div></div></header>
+   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label}</h1></div><div className="top-actions"><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(selectCompetence(e.target.value,currentMonth()))}/><div className="circle-avatar">{(user?.email||'S').charAt(0).toUpperCase()}</div></div></header>
    <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
     {error&&<div className="notice danger"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}

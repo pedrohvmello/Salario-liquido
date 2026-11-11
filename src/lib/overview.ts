@@ -31,6 +31,13 @@ export function moveOverviewCard(current:OverviewCardId[],id:OverviewCardId,dire
  const out=[...items];[out[from],out[to]]=[out[to],out[from]]
  return out
 }
+/** The native month picker may emit an empty string when Chrome's "Limpar" is selected.
+ * Keep a valid competence in controlled state so projection calculations never crash.
+ * An empty or malformed selection returns to the current month.
+ */
+export function selectCompetence(value:string,currentMonth:string):string {
+ return /^\d{4}-(0[1-9]|1[0-2])$/.test(value)?value:currentMonth
+}
 export function followingMonth(month:string):string{
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Competência inválida')
  const [year,index]=month.split('-').map(Number)
