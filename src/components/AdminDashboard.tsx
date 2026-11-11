@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
 import {RefreshCw,ShieldCheck,UsersRound,UserCheck,Clock3,ShieldAlert,Activity,Info,CreditCard,MapPin} from 'lucide-react'
 import {AdminUserDetailDialog} from './AdminUserDetail'
+import {AdminAvatar} from './AdminAvatar'
 import {localityCounts,planCount,planLabels,type Plan} from '../lib/adminMetrics'
 import {fetchAdminDashboard,fetchAdminUserDetail,changeApprovalRequirement,changeUserStatus,type AdminUserDetail,type AdminDashboardData,type AdminUser,type AccessStatus} from '../lib/admin'
 
@@ -17,6 +18,7 @@ export function AdminDashboard(){
  const [data,setData]=useState<AdminDashboardData|null>(null)
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
+ const [feedbackTarget,setFeedbackTarget]=useState<'policy'|'account'>('policy')
  const [busy,setBusy]=useState(false)
  const [loading,setLoading]=useState(true)
  const [requireApproval,setRequireApproval]=useState(true)
@@ -38,6 +40,7 @@ export function AdminDashboard(){
  useEffect(()=>{void load()},[load])
  const changePolicy=async()=>{
   if(!data)return
+  setFeedbackTarget('policy')
   setError('');setMessage('');setBusy(true)
   try{
    await changeApprovalRequirement(requireApproval)
@@ -48,6 +51,7 @@ export function AdminDashboard(){
  }
  const changeStatus=async(user:AdminUser,status:AccessStatus)=>{
   if(['rejected','suspended'].includes(status)&&!window.confirm('Confirma '+(status==='suspended'?'a suspensão':'a rejeição')+' de '+(user.email||'esta conta')+'? O acesso aos dados será bloqueado.'))return
+  setFeedbackTarget('account')
   setBusy(true);setError('');setMessage('')
   try{
    await changeUserStatus(user.id,status)
@@ -81,7 +85,7 @@ export function AdminDashboard(){
    <p>Aprovação de cadastros, controle de acesso e indicadores de utilização. Somente administradores podem consultar esta área.</p>
   </div><button type="button" className="secondary" onClick={()=>{setLoading(true);void load()}} disabled={loading||busy}><RefreshCw size={16}/>Atualizar</button></div>
   {error&&<p className="error" role="alert">{error}</p>}
-  {message&&<p className="auth-success" role="status">{message}</p>}
+  {message&&feedbackTarget==='account'&&<div className="payrep-feedback-toast" role="status">{message}<button type="button" onClick={()=>setMessage('')} aria-label="Fechar mensagem">×</button></div>}
   {loading&&!data?<div className="panel">Carregando usuários...</div>:null}
   {data&&<>
    <div className="admin-kpis">
@@ -96,23 +100,6 @@ export function AdminDashboard(){
     <Kpi label="Full" value={planCounts.full} note="Assinaturas Full" icon={CreditCard}/>
     <Kpi label="Localidades" value={locations.filter(x=>x.location!=='Não informado').length} note="Cidades com cadastro informado" icon={MapPin}/>
    </div>
-   <section className="panel">
-    <div className="panel-heading"><h2>Usuários por localidade</h2><span className="pill">{users.length} usuário(s)</span></div>
-    <div className="admin-locality-list">{locations.map(loc=><div className="admin-locality-row" key={loc.location}>
-      <span>{loc.location}</span><div className="admin-locality-track"><div style={{width:((loc.count/Math.max(1,locations[0]?.count||1))*100)+'%'}}/></div><strong>{loc.count}</strong>
-    </div>)}</div>
-    <p className="subtle">Localidade informada no cadastro do usuário. Contas sem endereço aparecem como “Não informado”.</p>
-   </section>
-   <section className="panel">
-    <div className="panel-heading"><h2>Política de cadastro</h2></div>
-    <label className="admin-switch"><input type="checkbox" checked={requireApproval} disabled={busy} onChange={e=>setRequireApproval(e.target.checked)}/>
-     <span><strong>Exigir aprovação administrativa para novos usuários</strong><small>{requireApproval?'Novas contas ficam pendentes até sua aprovação.':'Novas contas serão liberadas automaticamente após o cadastro e autenticação.'}</small></span>
-    </label>
-    <button type="button" className="primary" disabled={busy||requireApproval===data.requireApproval} onClick={()=>void changePolicy()}>
-     Salvar política de aprovação
-    </button>
-    <div className="detail-hint"><Info size={16}/>Essa opção controla o acesso ao aplicativo, não a criação de contas no Supabase Authentication. Para permitir cadastro público, a opção de criação de usuários também precisa estar habilitada no provedor. A alteração só afeta novos cadastros; contas já existentes mantêm seu status.</div>
-   </section>
    <section className="panel">
     <div className="panel-heading"><h2>Usuários cadastrados</h2><span className="pill">{filtered.length} usuário(s)</span></div>
     <div className="admin-filters">
@@ -131,8 +118,7 @@ export function AdminDashboard(){
      <th>Sessões (30 dias)</th><th>Plano</th><th>Localidade</th><th>Status</th><th>Ações</th>
     </tr></thead><tbody>
      {filtered.map(u=><tr key={u.id} className="clickable" tabIndex={0} role="button" aria-label={'Ver detalhes de '+(u.email||'usuário')} onClick={()=>void openDetails(u.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();void openDetails(u.id)}}}>
-      <td><strong>{u.displayName||u.email||'E-mail não disponível'}</strong>
-       <div className="subtle">{u.email||'E-mail não disponível'} · {u.role==='admin'?'Administrador':u.emailConfirmed?'E-mail confirmado':'E-mail não confirmado'}</div></td>
+      <td><div className="admin-user-identity"><AdminAvatar userId={u.id} email={u.email} name={u.displayName}/><div className="admin-user-identity-text"><strong>{u.displayName||u.email||'E-mail não disponível'}</strong><div className="subtle">{u.email||'E-mail não disponível'}</div></div></div></td>
       <td>{smallDate(u.createdAt)}</td><td>{dateTime(u.lastSignInAt)}</td>
       <td>{dateTime(u.lastAppAccess)}</td><td>{u.sessions30d}</td>
       <td><span className="pill">{planLabels[u.plan||'free']}</span></td>
@@ -150,6 +136,24 @@ export function AdminDashboard(){
      {filtered.length===0&&<tr><td colSpan={9} className="subtle">Nenhuma conta corresponde aos filtros.</td></tr>}
     </tbody></table></div>
     <div className="detail-hint"><Info size={16}/>“Último login” vem do provedor de autenticação. O contador de sessões começa com a ativação deste recurso, não inclui histórico anterior e não mede páginas visualizadas. Suspender uma conta revoga o acesso aos dados pela política do banco, inclusive se o usuário permanecer autenticado.</div>
+   </section>
+   <section className="panel">
+    <div className="panel-heading"><h2>Usuários por localidade</h2><span className="pill">{users.length} usuário(s)</span></div>
+    <div className="admin-locality-list">{locations.map(loc=><div className="admin-locality-row" key={loc.location}>
+      <span>{loc.location}</span><div className="admin-locality-track"><div style={{width:((loc.count/Math.max(1,locations[0]?.count||1))*100)+'%'}}/></div><strong>{loc.count}</strong>
+    </div>)}</div>
+    <p className="subtle">Localidade informada no cadastro do usuário. Contas sem endereço aparecem como “Não informado”.</p>
+   </section>
+   <section className="panel">
+    <div className="panel-heading"><h2>Política de cadastro</h2></div>
+    <label className="admin-switch"><input type="checkbox" checked={requireApproval} disabled={busy} onChange={e=>setRequireApproval(e.target.checked)}/>
+     <span><strong>Exigir aprovação administrativa para novos usuários</strong><small>{requireApproval?'Novas contas ficam pendentes até sua aprovação.':'Novas contas serão liberadas automaticamente após o cadastro e autenticação.'}</small></span>
+    </label>
+    <button type="button" className="primary" disabled={busy||requireApproval===data.requireApproval} onClick={()=>void changePolicy()}>
+     Salvar política de aprovação
+    </button>
+    {message&&feedbackTarget==='policy'&&<p className="auth-success" role="status">{message}</p>}
+    <div className="detail-hint"><Info size={16}/>Essa opção controla o acesso ao aplicativo, não a criação de contas no Supabase Authentication. Para permitir cadastro público, a opção de criação de usuários também precisa estar habilitada no provedor. A alteração só afeta novos cadastros; contas já existentes mantêm seu status.</div>
    </section>
    <section className="panel"><div className="panel-heading"><h2>Auditoria recente</h2></div>
     {data.recentActions.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Ação</th><th>Usuário</th><th>Anterior</th><th>Novo</th></tr></thead>
