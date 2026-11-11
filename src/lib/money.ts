@@ -50,7 +50,7 @@ export function calculatePayroll2026(p: SalaryParameters & {pensionRule?: {exclu
   if (p.pensionMethod==='old26') {
     const rule=p.pensionRule??{excludeInss:true,excludeIrrf:true,includeOvertime:true}
     for (let i=0;i<40;i++) {
-      const eligibleGross=Math.max(0,gross-(rule.includeOvertime?0:Math.max(0,p.overtimePay)))
+      const eligibleGross=Math.max(0,gross-(rule.includeOvertime?0:(Math.max(0,p.overtimePay)+Math.max(0,p.dsrPay))))
       const base=Math.max(0,eligibleGross-(rule.excludeInss?inss:0)-(rule.excludeIrrf?ir.tax:0))
       const nextPension=roundMoney(base*Math.min(100,Math.max(0,p.pensionPercent))/100)
       const nextIR=calculateIRRF2026(gross,inss,nextPension,p.dependents)

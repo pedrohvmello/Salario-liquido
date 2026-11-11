@@ -400,3 +400,12 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  white-space:nowrap;
 }
 
+
+/* Filtros do ponto e ordenação vertical legível dos cartões da Visão Geral. */
+.hours-filterbar{margin-bottom:22px;flex-wrap:wrap}
+.hours-filterbar select{width:165px;max-width:100%}
+.overview-config{grid-template-rows:repeat(5,minmax(0,auto));grid-auto-flow:column}
+.overview-config-rank{display:inline-flex;align-items:center;justify-content:center;min-width:22px;color:#795b9c;font-weight:800;font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+ .overview-config{grid-template-rows:none;grid-auto-flow:row}
+}

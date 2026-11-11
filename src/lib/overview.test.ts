@@ -36,6 +36,7 @@ describe('overview cards and advance month VR',()=>{
   const a=changeCardVisibility(defaultOverviewCards,'fgts',false)
   expect(a).not.toContain('fgts')
   expect(moveOverviewCard(a,'pensionPercent',-1).indexOf('pensionPercent')).toBe(1)
+  expect(moveOverviewCard(['gross','pensionPercent','fgts'],'fgts',-1)).toEqual(['gross','fgts','pensionPercent'])
   expect(normalizeOverviewCards(['espp','gross','espp','unknown'])).toEqual(['espp','gross'])
  })
  it('handles year rollover',()=>expect(followingMonth('2026-12')).toBe('2027-01'))

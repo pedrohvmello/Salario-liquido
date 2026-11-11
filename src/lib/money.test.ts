@@ -9,6 +9,12 @@ describe('2026 official tables',()=>{
    const r=calculatePayroll2026({...defaults,salary:14000,trienio:200,dependents:1,pensionMethod:'old26',pensionPercent:26})
    expect(Math.abs(r.pension-0.26*(r.gross-r.inss-r.irrf))).toBeLessThan(.02)
  })
+ it('includes DSR in gross, tax base and pension calculation',()=>{
+  const withDsr=calculatePayroll2026({...defaults,salary:15400,overtimePay:560,dsrPay:134.4,pensionMethod:'old26',pensionPercent:26})
+  const withoutDsr=calculatePayroll2026({...defaults,salary:15400,overtimePay:560,pensionMethod:'old26',pensionPercent:26})
+  expect(withDsr.gross-withoutDsr.gross).toBeCloseTo(134.4,2)
+  expect(withDsr.pension).toBeGreaterThan(withoutDsr.pension)
+ })
  it('does not subtract FGTS from net',()=>{const r=calculatePayroll2026({...defaults,salary:10000});expect(r.netMonth).toBeCloseTo(r.gross-r.inss-r.irrf-r.pension,2)})
 })
 describe('hours and São Paulo holidays',()=>{
