@@ -495,3 +495,41 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .admin-detail-field span{font-size:11px;color:#89729b}
 .admin-detail-field strong{font-size:12px;font-weight:650;color:#3b2452;overflow-wrap:anywhere}
 @media(max-width:760px){.admin-detail-grid{grid-template-columns:1fr}.admin-detail-header,.admin-detail-body{padding:17px}.admin-locality-row{grid-template-columns:100px 1fr 28px;gap:7px}}
+
+/* Editor circular de foto: arraste no desktop/mobile e aplique zoom antes do upload. */
+.avatar-crop-backdrop{position:fixed;inset:0;background:rgba(19,5,40,.62);z-index:700;display:grid;place-items:center;padding:18px}
+.avatar-crop-dialog{width:min(460px,100%);max-height:min(92vh,760px);overflow-y:auto;background:white;border:1px solid #e6d1fa;border-radius:20px;padding:22px;box-shadow:0 24px 85px #16052e66;color:#281348}
+.avatar-crop-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.avatar-crop-heading strong{display:flex;align-items:center;gap:10px;font-size:18px}
+.avatar-crop-heading strong svg{color:#8400e4}
+.avatar-crop-heading p{font-size:12px;color:#8b709b;margin:7px 0 15px;line-height:1.5}
+.avatar-crop-center{display:flex;flex-direction:column;align-items:center}
+.avatar-crop-stage{position:relative;width:min(100%,342px);height:304px;display:grid;place-items:center;touch-action:none;cursor:grab;user-select:none;background:radial-gradient(circle at 50% 45%,#565066,#30233e);border-radius:15px;overflow:hidden}
+.avatar-crop-stage:active{cursor:grabbing}
+.avatar-crop-stage:focus-visible{outline:2px solid #8900dd;outline-offset:3px}
+.avatar-crop-circle{width:268px;height:268px;border-radius:50%;position:relative;overflow:hidden;background:#e1d4ed;border:3px solid #e0b9ff;box-shadow:0 0 0 3px #ffffff6b;pointer-events:none}
+.avatar-crop-circle img{position:absolute;left:50%;top:50%;max-width:none!important;max-height:none!important;object-fit:fill;user-select:none;pointer-events:none}
+.avatar-crop-move-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;padding:9px;box-sizing:content-box;border-radius:50%;background:#3f185fa6;pointer-events:none}
+.avatar-crop-instruction{font-size:11px;color:#746087;text-align:center;margin:13px 0 11px}
+.avatar-crop-zoom{display:flex;align-items:center;gap:13px;color:#7338b2;margin:15px 0 21px}
+.avatar-crop-zoom input[type=range]{flex:1;min-width:0;accent-color:#8000df}
+.avatar-crop-footer{display:flex;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #eee2f7}
+.avatar-crop-footer button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+@media(max-width:420px){.avatar-crop-dialog{padding:15px}.avatar-crop-stage{height:292px}.avatar-crop-footer{justify-content:stretch}.avatar-crop-footer button{flex:1}}
+
+/* Foto, nome e e-mail juntos na gestão de usuários. */
+.admin-user-identity{display:flex;align-items:center;gap:11px;min-width:205px}
+.admin-user-avatar{width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#efdfff;color:#6900cb;font-weight:800;font-size:12px}
+.admin-user-avatar img{width:100%;height:100%;object-fit:cover}
+.admin-user-identity-text{display:flex;flex-direction:column;min-width:0;gap:4px}
+.admin-user-identity-text strong{font-size:12px;white-space:normal;overflow-wrap:anywhere}
+.admin-user-identity-text .subtle{font-size:11px;white-space:normal;overflow-wrap:anywhere}
+
+/* Mensagens permanecem perto do botão ou no campo visual quando ação altera a tela. */
+.account-save-action{display:flex;align-items:flex-start;gap:15px;flex-wrap:wrap;padding-bottom:12px}
+.account-save-action .primary{flex-shrink:0}
+.account-save-feedback{flex:1;min-width:min(330px,100%);scroll-margin:35px}
+.account-save-feedback .notice{margin:0;min-height:44px;display:flex;align-items:center}
+.cep-lookup-status{display:block;padding:7px 0 0;font-size:11px;color:#795a94;line-height:1.5}
+.payrep-feedback-toast{position:fixed;right:20px;bottom:20px;z-index:350;max-width:min(500px,calc(100vw - 40px));box-shadow:0 9px 28px #25044528}
+@media(max-width:650px){.account-save-action{flex-direction:column}.account-save-feedback{width:100%}.payrep-feedback-toast{left:14px;right:14px;bottom:14px}}
