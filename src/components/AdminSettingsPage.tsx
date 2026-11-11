@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react'
-import {Settings2,ShieldCheck,LockKeyhole,Info,Save} from 'lucide-react'
+import {ShieldCheck,LockKeyhole,Info,Save} from 'lucide-react'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 import {isHomologationHost} from '../lib/overviewPreview'
 import {passwordPolicyDefaults,validatePasswordPolicy,type PasswordPolicy} from '../lib/passwordPolicy'
