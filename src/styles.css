@@ -362,7 +362,7 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 }
 
 /* Férias: todas as sete colunas cabem na largura do painel em desktop.
-   Valores centralizados e comentário com duas linhas e texto integral no tooltip. */
+   Valores centralizados e comentários integrais com quebra automática de linha. */
 .vacation-table{width:100%;table-layout:fixed;min-width:0}
 .vacation-table .vacation-month{width:14%}
 .vacation-table .vacation-period{width:14%}
@@ -381,14 +381,22 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .vacation-table th:last-child,.vacation-table td:last-child{text-align:left}
 .vacation-comment-cell{min-width:0}
 .vacation-comment-preview{
- display:-webkit-box;
- -webkit-box-orient:vertical;
- -webkit-line-clamp:2;
- line-clamp:2;
+ display:block;
  white-space:normal;
- overflow:hidden;
+ overflow:visible;
  overflow-wrap:anywhere;
  line-height:1.5;
- max-height:3em;
+ max-height:none;
 }
 @media(max-width:1100px){.vacation-table{min-width:950px}}
+
+/* Registros de ponto: cabeçalhos e valores alinhados no centro das colunas. */
+.time-records-table th,
+.time-records-table td{
+ text-align:center;
+ vertical-align:middle;
+}
+.time-records-table td:last-child{
+ white-space:nowrap;
+}
+
