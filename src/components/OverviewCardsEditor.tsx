@@ -70,12 +70,13 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
   if(event.target instanceof Element&&event.target.closest('button'))return
   stopTimer()
   pointer.current={id:event.pointerId,x:event.clientX,y:event.clientY,card:id}
+  const cardElement=event.currentTarget
   if(editingRef.current){
    holdTimer.current=setTimeout(()=>{
     if(pointer.current?.id!==event.pointerId)return
     dragRef.current=id;setDragging(id)
     // Capture only after dragging starts, allowing the first short tap to remain inert.
-    try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}
+    try{cardElement.setPointerCapture(event.pointerId)}catch{}
    },DRAG_MS)
   }else{
    holdTimer.current=setTimeout(()=>{
@@ -129,6 +130,7 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
     onPointerMove={cardMove}
     onPointerUp={cardUp}
     onPointerCancel={cardUp}
+    onContextMenu={e=>e.preventDefault()}
     onKeyDown={e=>cardKey(e,id)}
    >
     {editing&&<button type="button" className="overview-remove-card" aria-label={'Ocultar cartão '+labels[id]} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();endDrag();setCards(draftRef.current.filter(x=>x!==id))}}><X size={15}/></button>}
