@@ -75,6 +75,12 @@ const pensionMethods:Record<SalaryParameters['pensionMethod'],string>={
 export default function App(){
  const [section,setSection]=useState<Section>('overview')
  const [menu,setMenu]=useState(false)
+ useEffect(()=>{
+  if(!menu)return
+  const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')setMenu(false)}
+  window.addEventListener('keydown',closeOnEscape)
+  return ()=>window.removeEventListener('keydown',closeOnEscape)
+ },[menu])
  const [user,setUser]=useState<User|null>(null)
  const [authReady,setAuthReady]=useState(!db)
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
@@ -301,14 +307,15 @@ export default function App(){
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
  return <div className="app">
-  <aside className={menu?'sidebar open':'sidebar'}>
+  <aside id="payrep-sidebar" className={menu?'sidebar open':'sidebar'}>
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>{nav.filter(n=>n.id!=='admin'||isAdmin).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}</nav>
    
   </aside>
+  {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
-   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label|| (section==='profile'?'Meu perfil':'Assinatura')}</h1></div><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{nav.find(n=>n.id===section)?.label|| (section==='profile'?'Meu perfil':'Assinatura')}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
    <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
     {error&&<div className="notice danger payrep-feedback-toast" role="alert"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}

@@ -604,3 +604,44 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .overview-drag-ghost{transform:none}
  .overview-card-dragging{outline:2px dashed #9f5de2}
 }
+
+
+/* One-line title, styled as the former violet section eyebrow. */
+.topbar h1.topbar-title{
+ color:#8a29da;
+ font-family:inherit;
+ font-size:15px;
+ font-weight:800;
+ letter-spacing:1.55px;
+ line-height:1.35;
+ text-transform:uppercase;
+ margin:0 auto 0 0;
+ min-width:0;
+}
+.sidebar-backdrop{display:none}
+@media(max-width:760px){
+ .topbar{justify-content:flex-start;gap:8px}
+ .topbar .mobile-menu{padding:5px;flex-shrink:0}
+ .topbar h1.topbar-title{
+  color:#8a29da;
+  font-size:14px;
+  letter-spacing:1.25px;
+  line-height:1.35;
+  margin:0 auto 0 0;
+ }
+ .topbar .top-actions{flex-shrink:0;margin-left:auto}
+ .sidebar-backdrop{
+  display:block;
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:99;
+  border:0;
+  border-radius:0;
+  background:rgba(32,12,65,.34);
+  cursor:default;
+  padding:0;
+ }
+ .sidebar.open{box-shadow:0 15px 30px rgba(27,2,50,.25)}
+}
