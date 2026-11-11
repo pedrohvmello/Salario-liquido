@@ -3,41 +3,17 @@ import type {User} from '@supabase/supabase-js'
 import {Camera,Check,LogOut,Trash2,X,UserRound,CreditCard} from 'lucide-react'
 import {db} from '../lib/data'
 import {accountInitials,canConfirmDeletion} from '../lib/profile'
+import {PhotoCropDialog} from './PhotoCropDialog'
 
 const BUCKET='profile-avatars'
 const MAX_SOURCE=5*1024*1024
-const MAX_OUTPUT=1024*1024
-const AVATAR_SIZE=512
 const accepted=new Set(['image/jpeg','image/png','image/webp'])
-
-async function toAvatar(file:File):Promise<Blob>{
- if(!accepted.has(file.type))throw Error('Escolha uma imagem JPG, PNG ou WebP.')
- if(file.size>MAX_SOURCE)throw Error('A imagem deve ter até 5 MB.')
- const url=URL.createObjectURL(file)
- try{
-  const image=new Image()
-  await new Promise<void>((resolve,reject)=>{
-   image.onload=()=>resolve()
-   image.onerror=()=>reject(Error('Não foi possível abrir a imagem selecionada.'))
-   image.src=url
-  })
-  const scale=Math.min(1,AVATAR_SIZE/Math.max(image.naturalWidth,image.naturalHeight))
-  const canvas=document.createElement('canvas')
-  canvas.width=Math.max(1,Math.round(image.naturalWidth*scale))
-  canvas.height=Math.max(1,Math.round(image.naturalHeight*scale))
-  const context=canvas.getContext('2d')
-  if(!context)throw Error('Navegador não permite tratar esta imagem.')
-  context.drawImage(image,0,0,canvas.width,canvas.height)
-  const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('Não foi possível converter a imagem.')),'image/webp',0.83))
-  if(blob.size>MAX_OUTPUT)throw Error('A imagem otimizada ainda excede o limite de 1 MB.')
-  return blob
- }finally{URL.revokeObjectURL(url)}
-}
 
 export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'profile'|'subscription')=>void}){
  const [open,setOpen]=useState(false)
  const [avatar,setAvatar]=useState<string|null>(null)
  const [avatarVersion,setAvatarVersion]=useState(0)
+ const [cropFile,setCropFile]=useState<File|null>(null)
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
@@ -63,26 +39,38 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
  useEffect(()=>{
   if(!open)return
   const closeOutside=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false)}
-  const closeEscape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setConfirmDelete(false);setOpen(false)}}
+  const closeEscape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!cropFile){setConfirmDelete(false);setOpen(false)}}
   document.addEventListener('pointerdown',closeOutside)
   document.addEventListener('keydown',closeEscape)
   return ()=>{document.removeEventListener('pointerdown',closeOutside);document.removeEventListener('keydown',closeEscape)}
- },[open])
+ },[open,cropFile])
  const perform=async(action:()=>Promise<void>,success?:string)=>{
   setBusy(true);setError('');setMessage('')
   try{await action();if(success)setMessage(success)}
   catch(e){setError(e instanceof Error?e.message:'Não foi possível completar a operação.')}
   finally{setBusy(false)}
  }
- const uploadPhoto=(file?:File)=>{if(!file)return
-  void perform(async()=>{
-   if(!db||!user)throw Error('Faça login para alterar a imagem.')
-   const photo=await toAvatar(file)
+ const choosePhoto=(file?:File)=>{
+  if(!file)return
+  setError('');setMessage('')
+  if(!accepted.has(file.type)){setError('Escolha uma imagem JPG, PNG ou WebP.');return}
+  if(file.size>MAX_SOURCE){setError('A imagem deve ter até 5 MB.');return}
+  setCropFile(file)
+ }
+ const savePhoto=async(photo:Blob)=>{
+  if(!db||!user)throw Error('Faça login para alterar a imagem.')
+  setBusy(true);setError('');setMessage('')
+  try{
    const {error:storageError}=await db.storage.from(BUCKET).upload(user.id+'/avatar.webp',photo,{upsert:true,contentType:'image/webp',cacheControl:'60'})
    if(storageError)throw storageError
    setAvatarVersion(v=>v+1)
-  },'Foto atualizada.')
+   setMessage('Foto atualizada.')
+   setCropFile(null)
+  }catch(err){
+   throw err instanceof Error?err:Error('Não foi possível salvar a foto.')
+  }finally{setBusy(false)}
  }
+
  const removePhoto=()=>perform(async()=>{
   if(!db||!user)throw Error('Faça login para remover a imagem.')
   const {error:storageError}=await db.storage.from(BUCKET).remove([user.id+'/avatar.webp'])
@@ -122,7 +110,7 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
    <div className="profile-photo-section">
     <div className="profile-avatar profile-avatar-large">{avatar?<img src={avatar} alt="Minha foto de perfil" className="profile-avatar-image"/>:initial}</div>
     <div className="profile-photo-actions"><button disabled={busy} type="button" className="secondary" onClick={()=>uploadInput.current?.click()}><Camera size={15}/> Alterar foto</button>{avatar&&<button disabled={busy} type="button" className="profile-text-action" onClick={removePhoto}>Remover foto</button>}</div>
-    <input ref={uploadInput} className="profile-hidden-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{uploadPhoto(e.target.files?.[0]);e.currentTarget.value=''}} aria-label="Escolher foto de perfil"/>
+    <input ref={uploadInput} className="profile-hidden-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{choosePhoto(e.target.files?.[0]);e.currentTarget.value=''}} aria-label="Escolher foto de perfil"/>
    </div>
 
    {message&&<p className="profile-feedback success"><Check size={14}/>{message}</p>}
@@ -137,5 +125,6 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
     <div className="profile-delete-buttons"><button type="button" className="secondary" onClick={()=>setConfirmDelete(false)} disabled={busy}>Cancelar</button><button type="button" className="profile-delete-submit" disabled={busy||!canConfirmDeletion(deleteText,acknowledged)} onClick={deleteAccount}>{busy?'Processando...':'Excluir permanentemente'}</button></div>
    </div>}
   </div>}
+  {cropFile&&<PhotoCropDialog file={cropFile} onCancel={()=>setCropFile(null)} onConfirm={savePhoto}/>}
  </div>
 }
