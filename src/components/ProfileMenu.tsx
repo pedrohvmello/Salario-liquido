@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {Camera,Check,LogOut,X,UserRound,CreditCard,Settings2} from 'lucide-react'
+import {Camera,Check,LogOut,X,UserRound,CreditCard,ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 import {accountInitials} from '../lib/profile'
 import {PhotoCropDialog} from './PhotoCropDialog'
@@ -99,7 +99,7 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
    <div className="profile-actions">
     <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('profile')}}><UserRound size={17}/> Meu cadastro</button>
     <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('subscription')}}><CreditCard size={17}/> Assinatura</button>
-    <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('account-settings')}}><Settings2 size={17}/> Configurações</button>
+    <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('account-settings')}}><ShieldCheck size={17}/> Segurança</button>
     <button type="button" disabled={busy} className="profile-action" onClick={logout}><LogOut size={17}/> Sair da conta</button>
    </div>
   </div>}

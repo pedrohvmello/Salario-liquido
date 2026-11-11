@@ -41,7 +41,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
   finally{setDeleteBusy(false)}
  }
  return <div className="stack">
-  <div className="page-intro"><div><h2>Configurações da conta</h2><p>Segurança, autenticação, senha e privacidade.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
+  <div className="page-intro"><div><h2>Segurança da conta</h2><p>Senha, autenticação em dois fatores, biometria e exclusão da conta.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   <section className="panel"><div className="panel-heading"><h2><KeyRound size={17}/> Senha</h2></div>
    <p className="subtle">Redefina sua senha por e-mail ou altere-a estando autenticado.</p>
    <div className="account-security-reset"><button className="secondary" type="button" disabled={resetBusy} onClick={()=>void recover()}><LockKeyhole size={16}/>{resetBusy?'Enviando...':'Enviar link para redefinir senha'}</button>
