@@ -1,8 +1,9 @@
-import {useEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent} from 'react'
+import {useEffect,useLayoutEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent} from 'react'
 import {Check,Grip,RotateCcw,X} from 'lucide-react'
 import {normalizeOverviewCards,reorderOverviewCardTo,type OverviewCardId} from '../lib/overview'
 
 type CardDetails=Record<OverviewCardId,{value:string;note:string}>
+type DragGhost={id:OverviewCardId;left:number;top:number;width:number;height:number}
 type Props={
  cards:OverviewCardId[]
  details:CardDetails
@@ -18,9 +19,13 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
  const [editing,setEditing]=useState(false)
  const [draft,setDraft]=useState<OverviewCardId[]>(cards)
  const [dragging,setDragging]=useState<OverviewCardId|null>(null)
+ const [ghost,setGhost]=useState<DragGhost|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const root=useRef<HTMLDivElement>(null)
+ const ghostRef=useRef<HTMLDivElement>(null)
+ const previousRects=useRef<Map<OverviewCardId,DOMRect>|null>(null)
+ const positionAnimations=useRef<Map<OverviewCardId,Animation>>(new Map())
  const holdTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
  const pointer=useRef<{id:number;x:number;y:number;card:OverviewCardId}|null>(null)
  const draftRef=useRef<OverviewCardId[]>(cards)
@@ -28,7 +33,43 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
  const dragRef=useRef<OverviewCardId|null>(null)
  const busyRef=useRef(false)
  const finishRef=useRef<()=>void>(()=>{})
- const setCards=(next:OverviewCardId[])=>{draftRef.current=next;setDraft(next)}
+ const setCards=(next:OverviewCardId[])=>{
+  if(editingRef.current&&root.current){
+   const rects=new Map<OverviewCardId,DOMRect>()
+   root.current.querySelectorAll<HTMLElement>('[data-overview-card]').forEach(element=>{
+    const id=element.dataset.overviewCard as OverviewCardId
+    rects.set(id,element.getBoundingClientRect())
+   })
+   previousRects.current=rects
+  }
+  draftRef.current=next
+  setDraft(next)
+ }
+ // FLIP animation: capture old positions before reordering, then animate cards
+ // from their visual locations to the new grid cells (including row changes).
+ useLayoutEffect(()=>{
+  const before=previousRects.current
+  previousRects.current=null
+  if(!before)return
+  for(const active of positionAnimations.current.values())active.cancel()
+  positionAnimations.current.clear()
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return
+  root.current?.querySelectorAll<HTMLElement>('[data-overview-card]').forEach(element=>{
+   const id=element.dataset.overviewCard as OverviewCardId
+   if(id===dragRef.current)return
+   const old=before.get(id)
+   if(!old)return
+   const current=element.getBoundingClientRect()
+   const dx=old.left-current.left,dy=old.top-current.top
+   if(Math.abs(dx)<1&&Math.abs(dy)<1)return
+   const animation=element.animate([
+    {translate:`${dx}px ${dy}px`},
+    {translate:'0px 0px'}
+   ],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'})
+   positionAnimations.current.set(id,animation)
+   animation.onfinish=()=>{if(positionAnimations.current.get(id)===animation)positionAnimations.current.delete(id)}
+  })
+ },[draft])
  const setEditor=(next:boolean)=>{editingRef.current=next;setEditing(next)}
  const stopTimer=()=>{
   if(holdTimer.current!==null){clearTimeout(holdTimer.current);holdTimer.current=null}
@@ -38,6 +79,7 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
   pointer.current=null
   dragRef.current=null
   setDragging(null)
+  setGhost(null)
  }
  const finish=()=>{
   if(!editingRef.current||busyRef.current)return
@@ -69,7 +111,7 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
   document.addEventListener('keydown',escape)
   return ()=>{document.removeEventListener('pointerdown',outside,true);document.removeEventListener('keydown',escape)}
  },[editing])
- useEffect(()=>()=>{stopTimer()},[])
+ useEffect(()=>()=>{stopTimer();for(const animation of positionAnimations.current.values())animation.cancel()},[])
  const cardDown=(event:ReactPointerEvent<HTMLDivElement>,id:OverviewCardId)=>{
   if(busyRef.current||event.button!==0)return
   if(event.target instanceof Element&&event.target.closest('button'))return
@@ -80,6 +122,8 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
    holdTimer.current=setTimeout(()=>{
     if(pointer.current?.id!==event.pointerId)return
     dragRef.current=id;setDragging(id)
+    const rect=cardElement.getBoundingClientRect()
+    setGhost({id,left:rect.left,top:rect.top,width:rect.width,height:rect.height})
     // Capture only after dragging starts, allowing the first short tap to remain inert.
     try{cardElement.setPointerCapture(event.pointerId)}catch{}
    },DRAG_MS)
@@ -100,6 +144,8 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
    return
   }
   event.preventDefault()
+  const dx=event.clientX-pointer.current.x,dy=event.clientY-pointer.current.y
+  if(ghostRef.current)ghostRef.current.style.translate=`${dx}px ${dy}px`
   const found=document.elementFromPoint(event.clientX,event.clientY)?.closest('[data-overview-card]')
   const id=found?.getAttribute('data-overview-card') as OverviewCardId|null
   if(!id||!draftRef.current.includes(id)||id===dragRef.current)return
@@ -144,8 +190,10 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
     {details[id].note&&<small>{details[id].note}</small>}
    </div>)}
   </div>
+  {ghost&&<div className="stat overview-drag-ghost" ref={ghostRef} aria-hidden="true" style={{left:ghost.left,top:ghost.top,width:ghost.width,height:ghost.height}}>
+   <span className="subtle">{labels[ghost.id]}</span><strong>{details[ghost.id].value}</strong>{details[ghost.id].note&&<small>{details[ghost.id].note}</small>}
+  </div>}
   {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Os cartões ocultos podem ser restaurados em Configurações. Toque fora ou em Concluir para salvar.</div>}
   {busy&&<div className="overview-edit-hint" role="status">Salvando disposição...</div>}
-  {!editing&&list.length>0&&<span className="sr-only">Pressione e segure um cartão por um segundo para reorganizar ou ocultar.</span>}
  </div>
 }
