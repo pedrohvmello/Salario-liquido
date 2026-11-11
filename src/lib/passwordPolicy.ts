@@ -1,21 +1,21 @@
 export type PasswordPolicy={
- minLength:number;requireLetters:boolean;requireUppercase:boolean;
+ minLength:number;requireLowercase:boolean;requireUppercase:boolean;
  requireNumbers:boolean;requireSymbols:boolean
 }
-export const passwordPolicyDefaults:PasswordPolicy={
- minLength:8,requireLetters:true,requireUppercase:true,requireNumbers:true,requireSymbols:true
-}
-/** UI policy preview only; actual enforcement must be configured in Supabase Auth. */
+/** Phase 1 baseline; mirror these requirements in Supabase Auth native settings. */
+export const passwordPolicyDefaults:Readonly<PasswordPolicy>=Object.freeze({
+ minLength:12,requireLowercase:true,requireUppercase:true,requireNumbers:true,requireSymbols:true
+})
 export function validatePasswordPolicy(p:PasswordPolicy):string|null{
- if(!Number.isInteger(p.minLength)||p.minLength<8||p.minLength>128)return 'Informe de 8 a 128 caracteres.'
+ if(!Number.isInteger(p.minLength)||p.minLength<12||p.minLength>128)return 'Informe de 12 a 128 caracteres.'
  return null
 }
-export function checkPassword(s:string,p:PasswordPolicy):string[]{
+export function checkPassword(s:string,p:PasswordPolicy=passwordPolicyDefaults):string[]{
  const missing:string[]=[]
  if(s.length<p.minLength)missing.push('mínimo de '+p.minLength+' caracteres')
- if(p.requireLetters&&!/[a-zA-ZÀ-ÿ]/.test(s))missing.push('letra')
- if(p.requireUppercase&&!/[A-ZÀ-Ý]/.test(s))missing.push('letra maiúscula')
- if(p.requireNumbers&&!/\d/.test(s))missing.push('número')
- if(p.requireSymbols&&!/[^a-zA-ZÀ-ÿ0-9\s]/.test(s))missing.push('caractere especial')
+ if(p.requireLowercase&&!/[a-z]/.test(s))missing.push('letra minúscula')
+ if(p.requireUppercase&&!/[A-Z]/.test(s))missing.push('letra maiúscula')
+ if(p.requireNumbers&&!/[0-9]/.test(s))missing.push('número')
+ if(p.requireSymbols&&!/[!@#$%^&*()_+\-=\[\]{};'\\:"|<>?,./\`~]/.test(s))missing.push('caractere especial')
  return missing
 }
