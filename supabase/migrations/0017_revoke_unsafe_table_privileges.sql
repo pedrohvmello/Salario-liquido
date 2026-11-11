@@ -8,3 +8,7 @@ revoke truncate, trigger, references on table
  public.time_entries,
  public.user_settings
 from anon, authenticated;
+
+-- Prevent new application tables created by postgres from inheriting these grants.
+alter default privileges for role postgres in schema public
+ revoke truncate, trigger, references on tables from anon, authenticated;
