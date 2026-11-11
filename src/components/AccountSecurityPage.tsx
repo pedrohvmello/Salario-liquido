@@ -10,12 +10,25 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
  const [resetBusy,setResetBusy]=useState(false)
  const [resetMessage,setResetMessage]=useState('')
  const [resetError,setResetError]=useState('')
+ const [sessionsBusy,setSessionsBusy]=useState(false)
+ const [sessionsMessage,setSessionsMessage]=useState('')
+ const [sessionsError,setSessionsError]=useState('')
  const [deleting,setDeleting]=useState(false)
  const [deleteText,setDeleteText]=useState('')
  const [acknowledged,setAcknowledged]=useState(false)
  const [deleteBusy,setDeleteBusy]=useState(false)
  const [deleteError,setDeleteError]=useState('')
  const hml=isHomologationHost(window.location.hostname)
+ const endOtherSessions=async()=>{
+  if(!db)return
+  setSessionsBusy(true);setSessionsError('');setSessionsMessage('')
+  try{
+   const {error}=await db.auth.signOut({scope:'others'})
+   if(error)throw error
+   setSessionsMessage('Outras sessões encerradas no servidor. Os tokens de acesso existentes permanecem válidos até expirar.')
+  }catch(e){setSessionsError(e instanceof Error?e.message:'Não foi possível encerrar outras sessões.')}
+  finally{setSessionsBusy(false)}
+ }
  const recover=async()=>{
   if(!db||!user.email){setResetError('E-mail indisponível para recuperação.');return}
   setResetBusy(true);setResetError('');setResetMessage('')
@@ -48,7 +61,15 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
     {resetMessage&&<div role="status" className="notice success">{resetMessage}</div>}
     {resetError&&<div role="alert" className="notice danger">{resetError}</div>}
    </div>
-   <details className="account-security-details"><summary>Alterar senha diretamente</summary><ChangePassword/></details>
+   <details className="account-security-details"><summary>Alterar senha diretamente</summary><ChangePassword requireCurrent/></details>
+  </section>
+  <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Sessões e dispositivos</h2></div>
+   <p className="subtle">Revogue os tokens de renovação dos demais aparelhos sem desconectar esta sessão. Os tokens de acesso já emitidos permanecem válidos até o vencimento.</p>
+   <div className="account-security-reset">
+    <button type="button" className="secondary" disabled={sessionsBusy} onClick={()=>void endOtherSessions()}><ShieldCheck size={16}/>{sessionsBusy?'Encerrando...':'Encerrar sessões de outros dispositivos'}</button>
+    {sessionsMessage&&<div className="notice success" role="status">{sessionsMessage}</div>}
+    {sessionsError&&<div className="notice danger" role="alert">{sessionsError}</div>}
+   </div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Autenticação em dois fatores (2FA)</h2></div>
    <p className="subtle">O Supabase suporta códigos TOTP de aplicativos autenticadores, como Google Authenticator ou Microsoft Authenticator.</p>
