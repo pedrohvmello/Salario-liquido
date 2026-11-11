@@ -27,6 +27,9 @@ import {requiresPasswordSetup} from './lib/authRedirect'
 import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
+import {CompetencePicker} from './components/CompetencePicker'
+import {OverviewCardsEditor} from './components/OverviewCardsEditor'
+import {isHomologationHost,readHomologationCards,saveHomologationCards} from './lib/overviewPreview'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'settings'|'admin'|'profile'|'subscription'
 type TimeRecord=DayEntry&{id:string}
@@ -133,13 +136,22 @@ export default function App(){
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
   setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
   setParams({...defaults,...d.settings})
-  setOverviewCards(normalizeOverviewCards(d.overviewCards))
+  setOverviewCards(isHomologationHost(window.location.hostname)
+   ?(readHomologationCards(user.id)??normalizeOverviewCards(d.overviewCards))
+   :normalizeOverviewCards(d.overviewCards))
   setBase(d.base)
  }
  useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
+ }
+ const persistOverviewCards=async(next:OverviewCardId[])=>{
+  if(!db||!user)throw Error('Faça login para salvar os cartões.')
+  const cards=normalizeOverviewCards(next)
+  if(isHomologationHost(window.location.hostname))saveHomologationCards(user.id,cards)
+  else await saveOverviewCards(cards)
+  setOverviewCards(cards)
  }
  const benefitReferenceMonth=followingMonth(month)
  const holidayYears=useMemo(()=>[...new Set([Number(entry.date.slice(0,4)),Number(month.slice(0,4)),Number(benefitReferenceMonth.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,entry.date,month,benefitReferenceMonth])
@@ -296,14 +308,17 @@ export default function App(){
    
   </aside>
   <main className="main">
-   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label|| (section==='profile'?'Meu perfil':'Assinatura')}</h1></div><div className="top-actions">{section!=='profile'&&section!=='subscription'&&<><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(selectCompetence(e.target.value,currentMonth()))}/></>}<ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <header className="topbar"><button className="mobile-menu" onClick={()=>setMenu(!menu)}><Menu size={22}/></button><div><span className="eyebrow">PAINEL FINANCEIRO</span><h1>{nav.find(n=>n.id===section)?.label|| (section==='profile'?'Meu perfil':'Assinatura')}</h1></div><div className="top-actions">{section!=='profile'&&section!=='subscription'&&section!=='overview'&&<><span className="period-label">Competência</span><input className="month-input" type="month" value={month} onChange={e=>setMonth(selectCompetence(e.target.value,currentMonth()))}/></>}<ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
    <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
     {error&&<div className="notice danger payrep-feedback-toast" role="alert"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}
     {notice&&<div className="notice success payrep-feedback-toast" role="status"><CheckCircle2 size={18}/>{notice}<button onClick={()=>setNotice('')}>Fechar</button></div>}
     {section==='overview'&&<div className="stack">
-     <div className="hero"><div><div className="hero-kicker">PROJEÇÃO DE {monthLabel(month).toUpperCase()}</div><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong><small>Antes de descontar o adiantamento quinzenal</small></div></div>
-     <div className="stats-grid overview-stats">{overviewCards.map(id=><Stat key={id} name={overviewCardDefinitions.find(([key])=>key===id)?.[1]||id} value={cardDetails[id].value} note={cardDetails[id].note}/>)}</div>
+     <div className="hero"><div><CompetencePicker month={month} onChange={setMonth}/><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong><small>Antes de descontar o adiantamento quinzenal</small></div></div>
+     <OverviewCardsEditor cards={overviewCards} details={cardDetails}
+       labels={Object.fromEntries(overviewCardDefinitions.map(([id,label])=>[id,label])) as Record<OverviewCardId,string>}
+       onCommit={persistOverviewCards}
+       onSaved={()=>setNotice('Disposição dos cartões salva com sucesso')}/>
      <div className="two-col"><Panel title="Composição do salário" extra={<span className="pill">Estimativa 2026</span>}><div className="breakdown">{metricRows.map(([label,value])=><div key={label} className="break-row"><span>{label}</span><strong className={['INSS','IRRF','Pensão estimada','ESPP','Previdência individual','Adiantamento'].includes(label)?'muted':''}>{value}</strong></div>)}</div><div className="total-line"><span>Pagamento no fim do mês</span><strong>{brl(payroll.finalPayment)}</strong></div></Panel>
      <Panel title="Horas extras na competência"><div className="hour-mini"><div><strong>{monthHours.h60.toFixed(1)}h</strong><span>Adicional 60%</span></div><div><strong>{monthHours.h80.toFixed(1)}h</strong><span>Adicional 80%</span></div><div><strong>{monthHours.h100.toFixed(1)}h</strong><span>Adicional 100%</span></div></div><div className="detail-hint"><Info size={16}/>São considerados os dias 16 do mês anterior até 15 do mês atual. DSR estimado automaticamente sobre as horas extras: {dsr?brl(dsrPay)+' ('+dsr.restDays+' repousos/feriados ÷ '+dsr.workingDays+' dias úteis)':'aguardando calendário de feriados'}. Sábados contam como dias úteis; confira a regra do seu acordo coletivo.</div><button className="text-button" onClick={()=>setSection('hours')}>Lançar jornada <ChevronRight size={15}/></button></Panel></div>
      {actual&&<Panel title={'Recebimento registrado: '+monthLabel(month)}><div className="stats-grid three"><Stat name="Líquido no fechamento" value={actual.net===null?'A conferir':brl(actual.net)}/><Stat name="Adiantamento salarial" value={actual.salary_advance===null?'A conferir':brl(actual.salary_advance)}/><Stat name="Líquido mensal recebido" value={currentCash?.total===null?'A conferir':brl(currentCash?.total??actual.net_received??0)} note="Fechamento + adiantamento salarial + férias/13º antecipados, sem duplicar" tone="accent"/></div></Panel>}
@@ -332,7 +347,7 @@ export default function App(){
     {section==='admin'&&isAdmin&&<AdminDashboard/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
     {section==='subscription'&&user&&<SubscriptionPage onBack={()=>setSection('overview')}/>}
-    {section==='settings'&&<div className="stack"><Panel title="Configurações da Visão Geral"><p className="subtle">Selecione e ordene os cartões. A lista é lida de cima para baixo na primeira coluna e depois na segunda, seguindo a numeração exibida.</p><div className="overview-config">{[...overviewCards,...overviewCardDefinitions.map(([id])=>id).filter(id=>!overviewCards.includes(id))].map(id=>{const label=overviewCardDefinitions.find(([key])=>key===id)?.[1]||id;const visible=overviewCards.includes(id);const position=overviewCards.indexOf(id);return <div className="overview-config-row" key={id}><label className="checkbox-label"><span className="overview-config-rank">{visible?position+1:'·'}</span><input type="checkbox" checked={visible} onChange={e=>setOverviewCards(v=>changeCardVisibility(v,id,e.target.checked))}/>{label}</label><div className="overview-config-actions"><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para cima'} title="Mover para cima" disabled={!visible||position===0} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,-1))}><ArrowUp size={16}/></button><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para baixo'} title="Mover para baixo" disabled={!visible||position===overviewCards.length-1} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,1))}><ArrowDown size={16}/></button></div></div>})}</div><button className="primary" disabled={busy||!db} onClick={()=>task(async()=>{await saveOverviewCards(overviewCards);await refresh()},'Configurações da Visão Geral salvas')}><Save size={16}/> Salvar seleção e ordem</button></Panel><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
+    {section==='settings'&&<div className="stack"><Panel title="Configurações da Visão Geral"><p className="subtle">Selecione e ordene os cartões. A lista é lida de cima para baixo na primeira coluna e depois na segunda, seguindo a numeração exibida.</p><div className="overview-config">{[...overviewCards,...overviewCardDefinitions.map(([id])=>id).filter(id=>!overviewCards.includes(id))].map(id=>{const label=overviewCardDefinitions.find(([key])=>key===id)?.[1]||id;const visible=overviewCards.includes(id);const position=overviewCards.indexOf(id);return <div className="overview-config-row" key={id}><label className="checkbox-label"><span className="overview-config-rank">{visible?position+1:'·'}</span><input type="checkbox" checked={visible} onChange={e=>setOverviewCards(v=>changeCardVisibility(v,id,e.target.checked))}/>{label}</label><div className="overview-config-actions"><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para cima'} title="Mover para cima" disabled={!visible||position===0} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,-1))}><ArrowUp size={16}/></button><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para baixo'} title="Mover para baixo" disabled={!visible||position===overviewCards.length-1} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,1))}><ArrowDown size={16}/></button></div></div>})}</div><button className="primary" disabled={busy||!db} onClick={()=>task(async()=>{await persistOverviewCards(overviewCards);await refresh()},'Configurações da Visão Geral salvas')}><Save size={16}/> Salvar seleção e ordem</button></Panel><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
       <p className="subtle">Valores efetivos da competência <strong>{monthLabel(month)}</strong>. Para alterar, cadastre um evento em <button type="button" className="text-button" onClick={()=>setSection('events')}>Eventos e vigências</button>.</p>
     </div>
     <div className="form-grid">{(Object.keys(fieldNames) as Array<keyof SalaryParameters>).map(k=>{
