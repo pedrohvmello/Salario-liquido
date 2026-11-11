@@ -31,7 +31,6 @@ import {AdminSettingsPage} from './components/AdminSettingsPage'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
-import {isHomologationHost,readHomologationCards,saveHomologationCards} from './lib/overviewPreview'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'profile'|'subscription'|'account-settings'
 type TimeRecord=DayEntry&{id:string}
@@ -145,9 +144,7 @@ export default function App(){
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
   setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
   setParams({...defaults,...d.settings})
-  setOverviewCards(isHomologationHost(window.location.hostname)
-   ?(readHomologationCards(user.id)??normalizeOverviewCards(d.overviewCards))
-   :normalizeOverviewCards(d.overviewCards))
+  setOverviewCards(normalizeOverviewCards(d.overviewCards))
   setBase(d.base)
  }
  useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
@@ -158,8 +155,7 @@ export default function App(){
  const persistOverviewCards=async(next:OverviewCardId[])=>{
   if(!db||!user)throw Error('Faça login para salvar os cartões.')
   const cards=normalizeOverviewCards(next)
-  if(isHomologationHost(window.location.hostname))saveHomologationCards(user.id,cards)
-  else await saveOverviewCards(cards)
+  await saveOverviewCards(cards)
   setOverviewCards(cards)
  }
  const benefitReferenceMonth=followingMonth(month)
