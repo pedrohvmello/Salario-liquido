@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,Save,MapPin,Phone,UserRound,Info} from 'lucide-react'
+import {ArrowLeft,Save,MapPin,UserRound,Info} from 'lucide-react'
 import {blankProfile,loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 
 const fields:{key:keyof PayrepProfile;label:string;placeholder?:string;max:number}[]=[
