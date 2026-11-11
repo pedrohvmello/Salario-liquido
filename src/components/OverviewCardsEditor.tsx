@@ -57,7 +57,12 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
  useEffect(()=>{
   if(!editing)return
   const outside=(event:PointerEvent)=>{
-   if(root.current&&!root.current.contains(event.target as Node))finishRef.current()
+   const target=event.target
+   if(!(target instanceof Element))return
+   const card=target.closest('[data-overview-card]')
+   const done=target.closest('.overview-edit-done')
+   // A tap in the empty grid space, toolbar, or page exits edit mode.
+   if(!card&&!done)finishRef.current()
   }
   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')finishRef.current()}
   document.addEventListener('pointerdown',outside,true)
