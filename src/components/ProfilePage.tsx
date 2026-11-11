@@ -88,6 +88,20 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
     </div>
     <div className="detail-hint"><Info size={16}/>Informações utilizadas para cadastro e futura cobrança, quando um serviço de pagamentos for habilitado. Nenhum pagamento é realizado nesta tela.</div>
    </section>
+   <section className="panel"><div className="panel-heading"><h2><Info size={17}/> Dados bancários</h2></div>
+    <p className="subtle">Seção em preparação. Para sua segurança, os dados bancários ainda não são solicitados nem armazenados.</p>
+    <fieldset disabled className="bank-details-placeholder" aria-label="Dados bancários indisponíveis nesta versão">
+     <div className="account-form-grid">
+      <label>Banco<input type="text" placeholder="Código e nome do banco"/></label>
+      <label>Tipo de conta<select defaultValue=""><option value="">Selecione</option><option>Corrente</option><option>Poupança</option></select></label>
+      <label>Agência<input type="text" placeholder="Número da agência"/></label>
+      <label>Conta e dígito<input type="text" placeholder="Número da conta"/></label>
+      <label className="account-field-wide">Titular da conta<input type="text" placeholder="Nome do titular"/></label>
+      <label className="account-field-wide">Chave Pix (opcional)<input type="text" placeholder="Chave Pix"/></label>
+     </div>
+    </fieldset>
+    <div className="detail-hint"><Info size={16}/>O armazenamento exigirá tabela específica com acesso restrito por usuário. Não digite dados bancários nesta versão.</div>
+   </section>
    <div className="account-save-action"><button type="submit" className="primary" disabled={busy}><Save size={16}/>{busy?'Salvando...':'Salvar dados cadastrais'}</button>
     <div ref={feedbackRef} className="account-save-feedback" aria-live="polite">
      {message&&<div className="notice success" role="status">{message}</div>}
