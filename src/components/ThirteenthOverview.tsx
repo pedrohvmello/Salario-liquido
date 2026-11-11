@@ -6,7 +6,7 @@ export function ThirteenthOverview({ledger,year}:{ledger:ThirteenthLedger;year:s
  return <section className="panel">
   <div className="panel-heading"><h2>13º salário e conciliação</h2><span className="pill">{rows.length} recibo(s)</span></div>
   <p className="subtle">O holerite específico é a fonte de bruto, INSS, IRRF, pensão e líquido. O adiantamento já registrado nas férias/folhas não é somado novamente.</p>
-  {rows.length?<div className="table-scroll"><table><thead><tr>
+  {rows.length?<div className="table-scroll"><table className="thirteenth-table"><thead><tr>
    <th>Ano</th><th>13º bruto</th><th>Adiantamento descontado</th><th>Já registrado antes</th>
    <th>Fechamento do 13º</th><th>Recebimento adicional*</th><th>IRRF exclusivo</th><th>INSS 13º</th><th>Pensão 13º</th><th>Conciliação</th><th>Comentário</th>
   </tr></thead><tbody>{rows.map(r=><tr key={r.statementId}>

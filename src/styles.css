@@ -329,3 +329,12 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .events-table{min-width:660px}
  .events-filterbar{margin-bottom:18px}
 }
+
+/* 13º: títulos e valores compartilham o mesmo eixo horizontal por coluna. */
+.thirteenth-table th,.thirteenth-table td{vertical-align:middle}
+.thirteenth-table th{white-space:normal;line-height:1.45}
+.thirteenth-table th:nth-child(n+2):nth-child(-n+10),
+.thirteenth-table td:nth-child(n+2):nth-child(-n+10){text-align:center}
+.thirteenth-table td:nth-child(n+2):nth-child(-n+10){white-space:nowrap}
+.thirteenth-table th:first-child,.thirteenth-table td:first-child,
+.thirteenth-table th:last-child,.thirteenth-table td:last-child{text-align:left}
