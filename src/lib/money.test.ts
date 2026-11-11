@@ -14,6 +14,10 @@ describe('2026 official tables',()=>{
 describe('hours and São Paulo holidays',()=>{
  const e={date:'2026-11-05',start:'08:00',lunchStart:'12:00',lunchEnd:'13:00',end:'19:00',holidayOverride:null}
  it('first two extra hours are 60%',()=>expect(classifyHours(e).h60).toBe(2))
+ it('worked hours discount the lunch interval',()=>{
+  const day={...e,start:'09:00',lunchStart:'12:00',lunchEnd:'13:30',end:'18:00'}
+  expect(classifyHours(day).total).toBe(7.5)
+ })
  it('Saturday extras start at 60%',()=>expect(classifyHours({...e,date:'2026-11-07'}).h80).toBe(8))
  it('Sunday 100%',()=>expect(classifyHours({...e,date:'2026-11-08'}).h100).toBe(10))
  it('override replaces holiday calendar',()=>expect(classifyHours({...e,date:'2026-11-20',holidayOverride:false}).h100).toBe(0))
