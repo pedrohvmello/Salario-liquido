@@ -1,7 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,LockKeyhole,Info,Save} from 'lucide-react'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
-import {isHomologationHost} from '../lib/overviewPreview'
 import {passwordPolicyDefaults,validatePasswordPolicy,type PasswordPolicy} from '../lib/passwordPolicy'
 
 const policyLabels:{key:keyof Omit<PasswordPolicy,'minLength'>;label:string}[]=[
@@ -19,7 +18,6 @@ export function AdminSettingsPage(){
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
- const hml=isHomologationHost(window.location.hostname)
  const load=useCallback(async()=>{
   try{const data=await fetchAdminDashboard();setSavedApproval(data.requireApproval);setApproval(data.requireApproval)}
   catch(e){setError(e instanceof Error?e.message:'Não foi possível carregar a política administrativa.')}
@@ -27,7 +25,6 @@ export function AdminSettingsPage(){
  },[])
  useEffect(()=>{void load()},[load])
  const save=async()=>{
-  if(hml){setError('HML e produção compartilham o banco. A mudança fica bloqueada para proteger o ambiente produtivo.');return}
   setBusy(true);setMessage('');setError('')
   try{await changeApprovalRequirement(approval);setSavedApproval(approval);setMessage('Política de aprovação salva.')}
   catch(e){setError(e instanceof Error?e.message:'Erro ao salvar a política.')}
@@ -36,10 +33,9 @@ export function AdminSettingsPage(){
  const policyError=validatePasswordPolicy(policy)
  return <div className="stack">
   <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas globais do Payrep, disponíveis apenas para administradores.</p></div></div>
-  {hml&&<div className="notice warning"><Info size={17}/>Ambiente de homologação com banco compartilhado. Alterações globais que atingem produção estão bloqueadas.</div>}
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={18}/> Política de cadastro</h2></div>
-   <label className="admin-switch"><input type="checkbox" checked={approval} disabled={loading||busy||hml} onChange={e=>setApproval(e.target.checked)}/><span><strong>Exigir aprovação administrativa</strong><small>{approval?'Novos usuários precisam ser aprovados para acessar dados financeiros.':'Novos usuários poderão ser aprovados automaticamente após autenticação.'}</small></span></label>
-   <div className="admin-settings-actions"><button type="button" className="primary" disabled={loading||busy||hml||approval===savedApproval} onClick={()=>void save()}><Save size={16}/> Salvar política</button>
+   <label className="admin-switch"><input type="checkbox" checked={approval} disabled={loading||busy} onChange={e=>setApproval(e.target.checked)}/><span><strong>Exigir aprovação administrativa</strong><small>{approval?'Novos usuários precisam ser aprovados para acessar dados financeiros.':'Novos usuários poderão ser aprovados automaticamente após autenticação.'}</small></span></label>
+   <div className="admin-settings-actions"><button type="button" className="primary" disabled={loading||busy||approval===savedApproval} onClick={()=>void save()}><Save size={16}/> Salvar política</button>
     {message&&<span className="auth-success" role="status">{message}</span>}{error&&<span role="alert" className="error">{error}</span>}
    </div>
    <p className="subtle">A política de aprovação controla o acesso ao Payrep, não a criação de usuários no Supabase Auth.</p>
