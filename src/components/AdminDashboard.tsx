@@ -3,7 +3,7 @@ import {RefreshCw,ShieldCheck,UsersRound,UserCheck,Clock3,ShieldAlert,Activity,I
 import {AdminUserDetailDialog} from './AdminUserDetail'
 import {AdminAvatar} from './AdminAvatar'
 import {localityCounts,planCount,planLabels,type Plan} from '../lib/adminMetrics'
-import {fetchAdminDashboard,fetchAdminUserDetail,changeApprovalRequirement,changeUserStatus,type AdminUserDetail,type AdminDashboardData,type AdminUser,type AccessStatus} from '../lib/admin'
+import {fetchAdminDashboard,fetchAdminUserDetail,changeUserStatus,type AdminUserDetail,type AdminDashboardData,type AdminUser,type AccessStatus} from '../lib/admin'
 
 const statuses:Record<AccessStatus,string>={
  pending:'Aguardando aprovação',approved:'Aprovado',suspended:'Suspenso',rejected:'Rejeitado'
@@ -18,10 +18,8 @@ export function AdminDashboard(){
  const [data,setData]=useState<AdminDashboardData|null>(null)
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
- const [feedbackTarget,setFeedbackTarget]=useState<'policy'|'account'>('policy')
  const [busy,setBusy]=useState(false)
  const [loading,setLoading]=useState(true)
- const [requireApproval,setRequireApproval]=useState(true)
  const [query,setQuery]=useState('')
  const [filter,setFilter]=useState<'all'|AccessStatus>('all')
  const [planFilter,setPlanFilter]=useState<'all'|Plan>('all')
@@ -33,25 +31,13 @@ export function AdminDashboard(){
   setError('')
   try{
    const next=await fetchAdminDashboard()
-   setData(next);setRequireApproval(next.requireApproval)
+   setData(next)
   }catch(e){setError(e instanceof Error?e.message:'Falha ao carregar usuários')}
   finally{setLoading(false)}
  },[])
  useEffect(()=>{void load()},[load])
- const changePolicy=async()=>{
-  if(!data)return
-  setFeedbackTarget('policy')
-  setError('');setMessage('');setBusy(true)
-  try{
-   await changeApprovalRequirement(requireApproval)
-   await load()
-   setMessage('Política de aprovação atualizada.')
-  }catch(e){setError(e instanceof Error?e.message:'Falha ao alterar política')}
-  finally{setBusy(false)}
- }
  const changeStatus=async(user:AdminUser,status:AccessStatus)=>{
   if(['rejected','suspended'].includes(status)&&!window.confirm('Confirma '+(status==='suspended'?'a suspensão':'a rejeição')+' de '+(user.email||'esta conta')+'? O acesso aos dados será bloqueado.'))return
-  setFeedbackTarget('account')
   setBusy(true);setError('');setMessage('')
   try{
    await changeUserStatus(user.id,status)
@@ -85,7 +71,7 @@ export function AdminDashboard(){
    <p>Aprovação de cadastros, controle de acesso e indicadores de utilização. Somente administradores podem consultar esta área.</p>
   </div><button type="button" className="secondary" onClick={()=>{setLoading(true);void load()}} disabled={loading||busy}><RefreshCw size={16}/>Atualizar</button></div>
   {error&&<p className="error" role="alert">{error}</p>}
-  {message&&feedbackTarget==='account'&&<div className="payrep-feedback-toast" role="status">{message}<button type="button" onClick={()=>setMessage('')} aria-label="Fechar mensagem">×</button></div>}
+  {message&&<div className="payrep-feedback-toast" role="status">{message}<button type="button" onClick={()=>setMessage('')} aria-label="Fechar mensagem">×</button></div>}
   {loading&&!data?<div className="panel">Carregando usuários...</div>:null}
   {data&&<>
    <div className="admin-kpis">
@@ -143,17 +129,6 @@ export function AdminDashboard(){
       <span>{loc.location}</span><div className="admin-locality-track"><div style={{width:((loc.count/Math.max(1,locations[0]?.count||1))*100)+'%'}}/></div><strong>{loc.count}</strong>
     </div>)}</div>
     <p className="subtle">Localidade informada no cadastro do usuário. Contas sem endereço aparecem como “Não informado”.</p>
-   </section>
-   <section className="panel">
-    <div className="panel-heading"><h2>Política de cadastro</h2></div>
-    <label className="admin-switch"><input type="checkbox" checked={requireApproval} disabled={busy} onChange={e=>setRequireApproval(e.target.checked)}/>
-     <span><strong>Exigir aprovação administrativa para novos usuários</strong><small>{requireApproval?'Novas contas ficam pendentes até sua aprovação.':'Novas contas serão liberadas automaticamente após o cadastro e autenticação.'}</small></span>
-    </label>
-    <button type="button" className="primary" disabled={busy||requireApproval===data.requireApproval} onClick={()=>void changePolicy()}>
-     Salvar política de aprovação
-    </button>
-    {message&&feedbackTarget==='policy'&&<p className="auth-success" role="status">{message}</p>}
-    <div className="detail-hint"><Info size={16}/>Essa opção controla o acesso ao aplicativo, não a criação de contas no Supabase Authentication. Para permitir cadastro público, a opção de criação de usuários também precisa estar habilitada no provedor. A alteração só afeta novos cadastros; contas já existentes mantêm seu status.</div>
    </section>
    <section className="panel"><div className="panel-heading"><h2>Auditoria recente</h2></div>
     {data.recentActions.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Ação</th><th>Usuário</th><th>Anterior</th><th>Novo</th></tr></thead>

@@ -16,6 +16,7 @@ export function AuthGate(){
   const [mode,setMode]=useState<'login'|'reset'|'signup'>('login')
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
+  const [confirmation,setConfirmation]=useState('')
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
@@ -28,6 +29,8 @@ export function AuthGate(){
         if(error)throw error
         setMessage('Se a conta existir, você receberá instruções para recuperar a senha.')
       }else if(mode==='signup'){
+        if(password.length<8)throw Error('A senha deve ter pelo menos 8 caracteres.')
+        if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
         const {data,error}=await db.auth.signUp({email:email.trim(),password})
         if(error)throw error
         if(!data.session)setMessage('Solicitação recebida. Se o cadastro for permitido, confira o e-mail para confirmar sua conta. O acesso poderá depender de aprovação administrativa.')
@@ -57,14 +60,16 @@ export function AuthGate(){
     <form onSubmit={e=>{e.preventDefault();void act()}}>
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
       {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?8:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 8 caracteres':'Sua senha'}/></label>}
+      {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check" placeholder="Digite a senha novamente"/></label>}
+      {mode==='signup'&&<small id="signup-password-check" className={confirmation.length===0?'password-confirm-hint':password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">{confirmation.length===0?'Repita a mesma senha para confirmar.':password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}</small>}
       <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
     {mode!=='reset'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><GoogleGIcon/> Continuar com Google</button></>}
     <div className="auth-bottom-actions">
-      {mode==='login'&&<button className="text-button" type="button" onClick={()=>{setMode('signup');setError('');setMessage('')}}>Criar conta</button>}
-      <button className="text-button" type="button" onClick={()=>{setMode(mode==='login'?'reset':'login');setError('');setMessage('')}}>
+      {mode==='login'&&<button className="text-button" type="button" onClick={()=>{setMode('signup');setPassword('');setConfirmation('');setError('');setMessage('')}}>Criar conta</button>}
+      <button className="text-button" type="button" onClick={()=>{setMode(mode==='login'?'reset':'login');setPassword('');setConfirmation('');setError('');setMessage('')}}>
         <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
       </button>
     </div>

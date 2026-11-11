@@ -1,15 +1,15 @@
 import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {Camera,Check,LogOut,Trash2,X,UserRound,CreditCard} from 'lucide-react'
+import {Camera,Check,LogOut,X,UserRound,CreditCard,Settings2} from 'lucide-react'
 import {db} from '../lib/data'
-import {accountInitials,canConfirmDeletion} from '../lib/profile'
+import {accountInitials} from '../lib/profile'
 import {PhotoCropDialog} from './PhotoCropDialog'
 
 const BUCKET='profile-avatars'
 const MAX_SOURCE=5*1024*1024
 const accepted=new Set(['image/jpeg','image/png','image/webp'])
 
-export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'profile'|'subscription')=>void}){
+export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'profile'|'subscription'|'account-settings')=>void}){
  const [open,setOpen]=useState(false)
  const [avatar,setAvatar]=useState<string|null>(null)
  const [avatarVersion,setAvatarVersion]=useState(0)
@@ -17,9 +17,6 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
- const [confirmDelete,setConfirmDelete]=useState(false)
- const [deleteText,setDeleteText]=useState('')
- const [acknowledged,setAcknowledged]=useState(false)
  const root=useRef<HTMLDivElement>(null)
  const uploadInput=useRef<HTMLInputElement>(null)
  const initial=accountInitials(user)
@@ -39,7 +36,7 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
  useEffect(()=>{
   if(!open)return
   const closeOutside=(event:PointerEvent)=>{if(root.current&&!root.current.contains(event.target as Node))setOpen(false)}
-  const closeEscape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!cropFile){setConfirmDelete(false);setOpen(false)}}
+  const closeEscape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!cropFile){setOpen(false)}}
   document.addEventListener('pointerdown',closeOutside)
   document.addEventListener('keydown',closeEscape)
   return ()=>{document.removeEventListener('pointerdown',closeOutside);document.removeEventListener('keydown',closeEscape)}
@@ -83,26 +80,10 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
   if(logoutError)throw logoutError
   setOpen(false)
  })
- const deleteAccount=()=>perform(async()=>{
-  if(!db||!user)throw Error('Faça login novamente para excluir a conta.')
-  if(!canConfirmDeletion(deleteText,acknowledged))throw Error('Confirme a exclusão para continuar.')
-  const {data:{session},error:sessionError}=await db.auth.getSession()
-  if(sessionError||!session)throw Error('Sessão inválida. Faça login novamente.')
-  const {error:invokeError}=await db.functions.invoke('delete-my-account',{body:{confirmation:'EXCLUIR'},headers:{Authorization:'Bearer '+session.access_token}})
-  if(invokeError){
-   let detail='Não foi possível excluir a conta.'
-   const response=(invokeError as {context?:Response}).context
-   if(response&&typeof response.json==='function'){
-    try{const json=await response.json() as {error?:string};if(json.error)detail=json.error}catch{}
-   }
-   throw Error(detail)
-  }
-  await db.auth.signOut({scope:'local'})
-  setOpen(false)
- })
+
  if(!user||!db)return <span className="profile-avatar profile-avatar-demo">{initial}</span>
  return <div className="profile-menu-root" ref={root}>
-  <button type="button" className="profile-avatar profile-avatar-trigger" aria-label="Abrir meu perfil" aria-haspopup="dialog" aria-expanded={open} onClick={()=>{setOpen(v=>!v);setConfirmDelete(false);setError('');setMessage('')}}>
+  <button type="button" className="profile-avatar profile-avatar-trigger" aria-label="Abrir meu perfil" aria-haspopup="dialog" aria-expanded={open} onClick={()=>{setOpen(v=>!v);setError('');setMessage('')}}>
    {avatar?<img src={avatar} alt="" className="profile-avatar-image"/>:initial}
   </button>
   {open&&<div className="profile-popover" role="dialog" aria-label="Meu perfil">
@@ -115,15 +96,12 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
 
    {message&&<p className="profile-feedback success"><Check size={14}/>{message}</p>}
    {error&&<p className="profile-feedback danger">{error}</p>}
-   <div className="profile-actions"><button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('profile')}}><UserRound size={17}/> Editar perfil e cadastro</button><button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('subscription')}}><CreditCard size={17}/> Assinatura</button><button type="button" disabled={busy} className="profile-action" onClick={logout}><LogOut size={17}/> Sair da conta</button><button type="button" disabled={busy} className="profile-action profile-destructive" onClick={()=>{setConfirmDelete(v=>!v);setDeleteText('');setAcknowledged(false)}}><Trash2 size={17}/> Excluir minha conta</button></div>
-   {confirmDelete&&<div className="profile-delete-confirm">
-    <strong>Excluir conta permanentemente</strong>
-    <p>Esta ação remove sua conta, eventos, jornadas, holerites e arquivos enviados. Não será possível recuperar os dados.</p>
-    <label htmlFor="profile-delete-phrase">Digite EXCLUIR para confirmar</label>
-    <input id="profile-delete-phrase" autoComplete="off" value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="EXCLUIR"/>
-    <label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}/>Entendo que esta exclusão é permanente.</label>
-    <div className="profile-delete-buttons"><button type="button" className="secondary" onClick={()=>setConfirmDelete(false)} disabled={busy}>Cancelar</button><button type="button" className="profile-delete-submit" disabled={busy||!canConfirmDeletion(deleteText,acknowledged)} onClick={deleteAccount}>{busy?'Processando...':'Excluir permanentemente'}</button></div>
-   </div>}
+   <div className="profile-actions">
+    <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('profile')}}><UserRound size={17}/> Meu cadastro</button>
+    <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('subscription')}}><CreditCard size={17}/> Assinatura</button>
+    <button type="button" disabled={busy} className="profile-action" onClick={()=>{setOpen(false);onNavigate('account-settings')}}><Settings2 size={17}/> Configurações</button>
+    <button type="button" disabled={busy} className="profile-action" onClick={logout}><LogOut size={17}/> Sair da conta</button>
+   </div>
   </div>}
   {cropFile&&<PhotoCropDialog file={cropFile} onCancel={()=>setCropFile(null)} onConfirm={savePhoto}/>}
  </div>
