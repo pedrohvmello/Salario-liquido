@@ -6,7 +6,7 @@ const fullDate=(value:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{dateS
 const orBlank=(s:string|null|undefined)=>s?.trim()||'Não informado'
 const amount=(cents:number,currency:string)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:currency||'BRL'}).format(cents/100)
 function Detail({title,value}:{title:string;value:string|number}){return <div className="admin-detail-field"><span>{title}</span><strong>{value}</strong></div>}
-export function AdminUserDetailDialog({user,loading,error,onClose}:{user:AdminUserDetail|null;loading:boolean;error:string;onClose:()=>void}){
+export function AdminUserDetailDialog({user,totalAccesses,loading,error,onClose}:{user:AdminUserDetail|null;totalAccesses:number|null;loading:boolean;error:string;onClose:()=>void}){
  const p=user?.profile,s=user?.subscription
  return <div className="admin-detail-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
   <section className="admin-detail-dialog" role="dialog" aria-modal="true" aria-label="Detalhes do usuário">
@@ -49,7 +49,9 @@ export function AdminUserDetailDialog({user,loading,error,onClose}:{user:AdminUs
        <Detail title="Holerites registrados" value={user.payslipCount}/>
        <Detail title="Eventos cadastrados" value={user.eventCount}/>
        <Detail title="Pagamentos registrados" value={user.payments.length}/>
+       <Detail title="Total de acessos" value={totalAccesses===null?'Não disponível':totalAccesses}/>
       </div>
+      <p className="subtle">Sessões únicas registradas desde a ativação do controle de acessos. Não inclui histórico anterior nem visualizações de páginas.</p>
       {user.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Provedor</th></tr></thead><tbody>
        {user.payments.map(payment=><tr key={payment.id}><td>{fullDate(payment.paidAt||payment.createdAt)}</td><td>{payment.description||'Cobrança'}</td><td>{amount(payment.amountCents,payment.currency)}</td><td>{payment.status}</td><td>{payment.provider}</td></tr>)}
       </tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}

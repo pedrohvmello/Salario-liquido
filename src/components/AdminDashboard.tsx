@@ -164,6 +164,6 @@ export function AdminDashboard(){
      </tr>)}</tbody></table></div>:<p className="subtle">Nenhuma alteração administrativa registrada desde a ativação.</p>}
    </section>
   </>}
-  {selectedId&&<AdminUserDetailDialog user={selectedDetails} loading={detailsLoading} error={detailsError} onClose={()=>{setSelectedId(null);setSelectedDetails(null)}}/>}
+  {selectedId&&<AdminUserDetailDialog user={selectedDetails} totalAccesses={users.find(u=>u.id===selectedId)?.sessions??null} loading={detailsLoading} error={detailsError} onClose={()=>{setSelectedId(null);setSelectedDetails(null)}}/>}
  </div>
 }
