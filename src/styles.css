@@ -330,41 +330,65 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .events-filterbar{margin-bottom:18px}
 }
 
-/* Tabela do 13º: alinhamento consistente dos valores com o cabeçalho.
-   As larguras controladas evitam que os dados se desloquem entre as linhas. */
-.thirteenth-table{table-layout:fixed;width:100%;min-width:1760px}
-.thirteenth-table .thirteenth-year{width:75px}
-.thirteenth-table .thirteenth-gross{width:133px}
-.thirteenth-table .thirteenth-advance{width:166px}
-.thirteenth-table .thirteenth-matched{width:170px}
-.thirteenth-table .thirteenth-closing{width:158px}
-.thirteenth-table .thirteenth-cash{width:176px}
-.thirteenth-table .thirteenth-irrf{width:139px}
-.thirteenth-table .thirteenth-inss{width:120px}
-.thirteenth-table .thirteenth-pension{width:126px}
-.thirteenth-table .thirteenth-status{width:171px}
-.thirteenth-table .thirteenth-comment{width:326px}
+/* 13º: colunas compactadas, mantendo alinhamento por eixo e comentários completos. */
+.thirteenth-table{table-layout:fixed;width:100%;min-width:1420px}
+.thirteenth-table .thirteenth-year{width:55px}
+.thirteenth-table .thirteenth-gross{width:106px}
+.thirteenth-table .thirteenth-advance{width:122px}
+.thirteenth-table .thirteenth-matched{width:128px}
+.thirteenth-table .thirteenth-closing{width:126px}
+.thirteenth-table .thirteenth-cash{width:140px}
+.thirteenth-table .thirteenth-irrf{width:110px}
+.thirteenth-table .thirteenth-inss{width:96px}
+.thirteenth-table .thirteenth-pension{width:108px}
+.thirteenth-table .thirteenth-status{width:153px}
+.thirteenth-table .thirteenth-comment{width:276px}
 .thirteenth-table th,.thirteenth-table td{
  text-align:center;
  vertical-align:middle;
+ padding:12px 6px;
 }
-.thirteenth-table th{
- white-space:normal;
- line-height:1.45;
- overflow-wrap:normal;
-}
+.thirteenth-table th{white-space:normal;line-height:1.4;overflow-wrap:normal}
 .thirteenth-table td:not(:last-child){white-space:nowrap}
-.thirteenth-table th:last-child,
-.thirteenth-table td:last-child{text-align:left}
+.thirteenth-table th:last-child,.thirteenth-table td:last-child{text-align:left}
 .thirteenth-comment-cell{min-width:0}
 .thirteenth-comment-preview{
+ display:block;
+ white-space:normal;
+ overflow:visible;
+ overflow-wrap:anywhere;
+ line-height:1.5;
+ max-height:none;
+}
+
+/* Férias: todas as sete colunas cabem na largura do painel em desktop.
+   Valores centralizados e comentário com duas linhas e texto integral no tooltip. */
+.vacation-table{width:100%;table-layout:fixed;min-width:0}
+.vacation-table .vacation-month{width:14%}
+.vacation-table .vacation-period{width:14%}
+.vacation-table .vacation-estimated{width:12%}
+.vacation-table .vacation-receipt{width:12%}
+.vacation-table .vacation-booked{width:13%}
+.vacation-table .vacation-status{width:16%}
+.vacation-table .vacation-comment{width:19%}
+.vacation-table th,.vacation-table td{
+ text-align:center;
+ vertical-align:middle;
+ padding:12px 7px;
+}
+.vacation-table th{white-space:normal;line-height:1.45}
+.vacation-table td:not(:last-child){white-space:normal;overflow-wrap:normal}
+.vacation-table th:last-child,.vacation-table td:last-child{text-align:left}
+.vacation-comment-cell{min-width:0}
+.vacation-comment-preview{
  display:-webkit-box;
  -webkit-box-orient:vertical;
  -webkit-line-clamp:2;
  line-clamp:2;
- overflow:hidden;
  white-space:normal;
+ overflow:hidden;
  overflow-wrap:anywhere;
  line-height:1.5;
  max-height:3em;
 }
+@media(max-width:1100px){.vacation-table{min-width:950px}}

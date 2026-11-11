@@ -20,7 +20,7 @@ export function ThirteenthOverview({ledger,year}:{ledger:ThirteenthLedger;year:s
    <td><strong>{brl(r.cashAdditional)}</strong></td><td>{brl(r.irrf)}</td><td>{brl(r.inss)}</td><td>{brl(r.pension)}</td>
    <td><span className={r.state==='reconciled'?'ok':'flag'}>{
     r.state==='reconciled'?'Conciliado':r.state==='estimated'?'Adiantamento estimado':r.state==='partial'?'Parcial':'Diferença'
-   }</span></td><td className="thirteenth-comment-cell"><span className="thirteenth-comment-preview subtle" title={r.note}>{r.note||'—'}</span></td>
+   }</span></td><td className="thirteenth-comment-cell"><span className="thirteenth-comment-preview subtle">{r.note||'—'}</span></td>
   </tr>)}</tbody></table></div>:<p className="subtle">Nenhum recibo anual de 13º identificado no período.</p>}
   <div className="detail-hint"><Info size={16}/> *Recebimento adicional é o líquido do fechamento mais a parte do adiantamento que não foi identificada em registros anteriores. O total do 13º pode incluir pagamentos já contabilizados nas férias. Os valores são distintos da remuneração mensal e do PPR.</div>
  </section>
