@@ -17,6 +17,6 @@ export function AdminAvatar({userId,email,name}:{userId:string;email:string|null
   return ()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl)}
  },[userId])
  return <span className="admin-user-avatar" aria-label={'Foto de '+(name||email||'usuário')}>
-  {src?<img src={src} alt="" loading="lazy" />:accountInitials({email})}
+  {src?<img src={src} alt="" loading="lazy" />:accountInitials({email:email||undefined})}
  </span>
 }
