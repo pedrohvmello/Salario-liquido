@@ -474,3 +474,24 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .subscription-plan strong{font-size:18px;color:#361452}
 .subscription-plan small{font-size:12px;color:#876da1}
 @media(max-width:760px){.account-form-grid{grid-template-columns:1fr}.subscription-plans{grid-template-columns:1fr}}
+
+/* Administração: planos e localidade + ficha detalhada de usuário. */
+.admin-locality-list{display:flex;flex-direction:column;gap:11px;margin-bottom:14px}
+.admin-locality-row{display:grid;grid-template-columns:minmax(115px,210px) 1fr 32px;gap:14px;align-items:center;font-size:12px;color:#4e3567}
+.admin-locality-row strong{font-variant-numeric:tabular-nums;text-align:right}
+.admin-locality-track{height:10px;border-radius:9px;background:#f0e6fa;overflow:hidden}
+.admin-locality-track>div{height:100%;background:linear-gradient(90deg,#5d09b7,#9c29ea);border-radius:9px}
+.admin-detail-backdrop{position:fixed;z-index:400;inset:0;background:#16092eaa;display:grid;place-items:center;padding:16px}
+.admin-detail-dialog{background:#fff;border-radius:18px;width:min(820px,100%);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 80px #16062d66;overflow:hidden}
+.admin-detail-header{padding:21px 25px;border-bottom:1px solid #eadff4;display:flex;align-items:start;justify-content:space-between;gap:18px}
+.admin-detail-header h2{font-size:19px;margin:0 0 6px}
+.admin-detail-header p{margin:0;color:#806899;font-size:12px}
+.admin-detail-body{padding:23px 25px;overflow:auto}
+.admin-detail-section{padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid #efe7f7}
+.admin-detail-section:last-child{border-bottom:0;margin-bottom:0}
+.admin-detail-section h3{display:flex;align-items:center;gap:8px;font-size:14px;color:#3d1f61;margin:0 0 15px}
+.admin-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.admin-detail-field{min-width:0;display:flex;flex-direction:column;gap:5px}
+.admin-detail-field span{font-size:11px;color:#89729b}
+.admin-detail-field strong{font-size:12px;font-weight:650;color:#3b2452;overflow-wrap:anywhere}
+@media(max-width:760px){.admin-detail-grid{grid-template-columns:1fr}.admin-detail-header,.admin-detail-body{padding:17px}.admin-locality-row{grid-template-columns:100px 1fr 28px;gap:7px}}
