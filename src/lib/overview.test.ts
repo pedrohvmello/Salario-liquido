@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes} from './pensionRule'
-import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence} from './overview'
+import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo} from './overview'
 import {effectiveParams} from './data'
 import {calculatePayroll2026,defaults} from './money'
 describe('pension event semantics',()=>{
@@ -53,5 +53,19 @@ describe('overview cards and advance month VR',()=>{
  })
  it('never treats weekends as payable days',()=>{
   expect(workingDays('2026-11',new Set())).toBe(21)
+ })
+})
+
+describe('mobile overview card rearrangement',()=>{
+ it('inserts at a chosen row/column slot, shifting later cards forward',()=>{
+  const original=['gross','deductions','fgts','mealBenefit','espp'] as const
+  expect(reorderOverviewCardTo([...original],'espp',1)).toEqual(['gross','espp','deductions','fgts','mealBenefit'])
+  expect(reorderOverviewCardTo([...original],'gross',4)).toEqual(['deductions','fgts','mealBenefit','espp','gross'])
+ })
+ it('ignores invalid drop locations, preserving hidden cards',()=>{
+  const current=changeCardVisibility(defaultOverviewCards,'fgts',false)
+  expect(reorderOverviewCardTo(current,'fgts',1)).toEqual(current)
+  expect(reorderOverviewCardTo(current,'espp',-1)).toEqual(current)
+  expect(reorderOverviewCardTo(current,'espp',1000)).toEqual(current)
  })
 })

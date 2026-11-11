@@ -31,6 +31,16 @@ export function moveOverviewCard(current:OverviewCardId[],id:OverviewCardId,dire
  const out=[...items];[out[from],out[to]]=[out[to],out[from]]
  return out
 }
+/** Insert a card at a fixed grid slot, shifting subsequent cards one position. */
+export function reorderOverviewCardTo(current:OverviewCardId[],id:OverviewCardId,target:number):OverviewCardId[]{
+ const cards=normalizeOverviewCards(current)
+ const from=cards.indexOf(id)
+ if(from<0||!Number.isInteger(target)||target<0||target>=cards.length||target===from)return cards
+ const next=[...cards]
+ next.splice(from,1)
+ next.splice(target,0,id)
+ return next
+}
 /** The native month picker may emit an empty string when Chrome's "Limpar" is selected.
  * Keep a valid competence in controlled state so projection calculations never crash.
  * An empty or malformed selection returns to the current month.
