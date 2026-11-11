@@ -10,7 +10,10 @@ const url=import.meta.env.VITE_SUPABASE_URL
 // Prefer the independent HML project's modern publishable key when configured.
 // Production remains compatible with its existing legacy anon key.
 const anon=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY
-export const db:SupabaseClient | null=url&&anon?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
+const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
+// Fail closed on HML if its published URL or key is accidentally changed to PRD.
+const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
+export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true}}):null
 export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
