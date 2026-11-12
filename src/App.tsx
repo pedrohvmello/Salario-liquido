@@ -30,8 +30,9 @@ import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
 import {MfaGate} from './components/MfaGate'
+import {TotpSettings} from './components/TotpSettings'
 import {mfaGateForAssurance} from './lib/mfaAssurance'
-import {accessScreenFor,membershipAccessState,type AccessDecision} from './lib/accessGate'
+import {accessScreenFor,adminNeedsTotp,membershipAccessState,type AccessDecision} from './lib/accessGate'
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 
@@ -160,6 +161,21 @@ export default function App(){
    setIsAdmin(false)
    setAccessDecision({userId:checkedUserId,state})
    return
+  }
+  // Admin enrollment is a separate step from membership approval.
+  // Never authorize administrative data from client-controlled metadata.
+  if(mfaEnabled&&membership?.role==='admin'){
+   const {data:factors,error:factorsError}=await db.auth.mfa.listFactors()
+   if(factorsError)throw factorsError
+   if(!isCurrent())return
+   const verifiedCount=factors.totp.filter(f=>f.status==='verified').length
+   if(adminNeedsTotp(membership,verifiedCount,mfaEnabled)){
+    setIsAdmin(false)
+    setAccessDecision({userId:checkedUserId,state:'enroll-mfa'})
+    return
+   }
+   const {data:assurance,error:assuranceError}=await db.auth.mfa.getAuthenticatorAssuranceLevel()
+   if(assuranceError||assurance?.currentLevel!=='aal2')throw Error('Acesso administrativo exige confirmação do aplicativo autenticador.')
   }
   // Only display the approved application once the account and its data are ready.
   const d=await getData()
@@ -332,6 +348,14 @@ export default function App(){
  const accessScreen=db&&user?accessScreenFor(user.id,accessDecision):'checking'
  if(db&&user&&accessScreen==='checking')return <div className="centered"><div className="spinner"/>Verificando permissão de acesso...</div>
  if(db&&user&&accessScreen==='error')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>Não foi possível verificar o acesso</h1><p>Não foi possível consultar sua autorização no momento. Tente novamente. Seus dados financeiros permanecem protegidos.</p>{error&&<p className="error" role="alert">{error}</p>}<button type="button" className="secondary" onClick={()=>setAccessRetry(n=>n+1)}>Tentar novamente</button><button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair</button></div></div>
+ if(db&&user&&accessScreen==='enroll-mfa')return <div className="auth-background"><div className="auth-card">
+  <ShieldCheck size={34}/>
+  <h1>Proteja sua conta de administrador</h1>
+  <p>O acesso administrativo exige autenticação em dois fatores. Cadastre e confirme um aplicativo autenticador para continuar.</p>
+  <TotpSettings onActivated={()=>{setMfaRetry(n=>n+1);setAccessRetry(n=>n+1)}}/>
+  <p className="subtle">Para recuperação, cadastre também um autenticador de reserva em outro dispositivo. O Supabase não fornece códigos de recuperação TOTP.</p>
+  <button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair da conta</button>
+ </div></div>
  if(db&&user&&accessScreen!=='approved')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>{accessScreen==='suspended'?'Acesso suspenso':accessScreen==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1><p>{accessScreen==='suspended'?'O administrador suspendeu o acesso desta conta.':accessScreen==='rejected'?'Seu cadastro não foi aprovado pelo administrador.':'Seu cadastro foi recebido e aguarda aprovação do administrador.'} Seus dados financeiros não estão acessíveis no momento. Entre em contato com o administrador para obter mais informações.</p><button onClick={()=>void db?.auth.signOut({scope:'local'})} className="secondary">Sair</button></div></div>
  const metricRows=[
   ['Salário-base',brl(effective.salary)],['Triênio',brl(effective.trienio)],
