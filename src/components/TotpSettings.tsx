@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react'
-import {ShieldCheck,KeyRound,Info,Trash2,Plus} from 'lucide-react'
+import {ShieldCheck,Info,Trash2,Plus} from 'lucide-react'
 import {db} from '../lib/data'
 
 type TotpFactor={id:string;name:string}
