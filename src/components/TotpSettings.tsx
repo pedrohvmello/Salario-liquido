@@ -132,8 +132,7 @@ export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
  return <div className="totp-settings">
   {loading&&<p className="subtle">Carregando autenticadores...</p>}
   {!loading&&<div className="totp-factors">
-   <p className="subtle">{factors.length===0?'Nenhum autenticador ativo.':'Autenticadores ativos: '+factors.length}</p>
-   {factors.length>0&&<p className="subtle">O nome de uma conta já cadastrada no Microsoft Authenticator não muda ao renomeá-la no Payrep. Para alterar o nome mostrado no aplicativo, edite a entrada diretamente no Authenticator, se a versão permitir. Não exclua o fator existente antes de confirmar outro funcionando.</p>}
+   {factors.length===0&&<p className="subtle">Nenhum autenticador ativo.</p>}
    {factors.map((f,i)=><div key={f.id} className="totp-factor-row">
     <div><ShieldCheck size={17}/><span>{f.name}</span>{i===0&&<small>Principal</small>}</div>
     {renameId===f.id
@@ -174,7 +173,7 @@ export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
     <div className="totp-enrollment-buttons"><button type="submit" className="primary" disabled={busy||code.length!==6}>Confirmar código e ativar</button><button type="button" className="secondary" disabled={busy} onClick={()=>void cancel()}>Cancelar</button></div>
    </form>
   </div>}
-  {factors.length===1&&<div className="detail-hint"><Info size={16}/>Recomendamos cadastrar um segundo autenticador em outro aparelho. O Supabase não oferece códigos de recuperação.</div>}
+  {factors.length===1&&<div className="detail-hint"><Info size={16}/>Recomendamos cadastrar um autenticador de reserva em outro aparelho.</div>}
   {message&&<p className="auth-success" role="status">{message}</p>}
   {error&&<p role="alert" className="error">{error}</p>}
  </div>
