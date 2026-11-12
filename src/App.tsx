@@ -29,6 +29,8 @@ import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
+import {MfaGate} from './components/MfaGate'
+import {mfaGateForAssurance} from './lib/mfaAssurance'
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 
@@ -85,6 +87,9 @@ export default function App(){
  },[menu])
  const [user,setUser]=useState<User|null>(null)
  const [authReady,setAuthReady]=useState(!db)
+ const mfaEnabled=import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
+ const [mfaState,setMfaState]=useState<'checking'|'ready'|'challenge'|'error'>(mfaEnabled?'checking':'ready')
+ const [mfaRetry,setMfaRetry]=useState(0)
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
  const [allowed,setAllowed]=useState(false)
  const [isAdmin,setIsAdmin]=useState(false)
@@ -124,12 +129,26 @@ export default function App(){
   if(!db)return
   db.auth.getSession().then(({data})=>{setUser(data.session?.user||null);setAuthReady(true)})
   const {data:subscription}=db.auth.onAuthStateChange((event,session)=>{
+   if(mfaEnabled&&(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')){
+    setMfaState('checking')
+    setMfaRetry(n=>n+1)
+   }
    setUser(session?.user||null)
    if(event==='PASSWORD_RECOVERY')setPasswordSetup(true)
    if(event==='SIGNED_OUT')setPasswordSetup(false)
   })
   return ()=>subscription.subscription.unsubscribe()
  },[])
+ useEffect(()=>{
+  if(!mfaEnabled){setMfaState('ready');return}
+  if(!db||!user){setMfaState('checking');return}
+  let active=true
+  setMfaState('checking')
+  void db.auth.mfa.getAuthenticatorAssuranceLevel().then(({data,error})=>{
+   if(active)setMfaState(mfaGateForAssurance(data,error))
+  }).catch(()=>{if(active)setMfaState('error')})
+  return ()=>{active=false}
+ },[mfaEnabled,user?.id,mfaRetry])
  const refresh=async()=>{
   if(!db||!user)return
   const membership=await getMembership()
@@ -147,7 +166,10 @@ export default function App(){
   setOverviewCards(normalizeOverviewCards(d.overviewCards))
   setBase(d.base)
  }
- useEffect(()=>{if(user)refresh().catch(e=>setError(e.message));else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}},[user])
+ useEffect(()=>{
+  if(user&&(!mfaEnabled||mfaState==='ready'))refresh().catch(e=>setError(e.message))
+  else{setAllowed(false);setIsAdmin(false);setStatements([]);setAllLines([]);setEvents([]);setRecords([])}
+ },[user,mfaState])
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
@@ -280,6 +302,9 @@ export default function App(){
  const isDemo=!db
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
  if(db&&!user)return <AuthGate/>
+ if(db&&user&&mfaEnabled&&mfaState==='checking')return <div className="centered"><div className="spinner"/>Verificando segurança da sessão...</div>
+ if(db&&user&&mfaEnabled&&mfaState==='error')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={32}/><h1>Verificação de segurança indisponível</h1><p>Não foi possível confirmar a proteção da sessão. Nenhum dado financeiro será carregado até a verificação.</p><button className="secondary" type="button" onClick={()=>setMfaRetry(v=>v+1)}>Tentar novamente</button><button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair</button></div></div>
+ if(db&&user&&mfaEnabled&&mfaState==='challenge')return <MfaGate onVerified={()=>setMfaState('ready')}/>
  if(db&&user&&passwordSetup)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={33}/><h1>Defina sua senha</h1><p>O link autenticou sua conta temporariamente. Antes de acessar o painel, escolha a senha que será usada nos próximos logins.</p><ChangePassword onComplete={()=>{setPasswordSetup(false);setSection('overview');window.history.replaceState(null,'',window.location.pathname)}}/><button type="button" className="text-button" onClick={()=>db?.auth.signOut()}>Sair sem definir a senha</button></div></div>
  if(db&&user&&!allowed)return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>{accessStatus==='suspended'?'Acesso suspenso':accessStatus==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1><p>{accessStatus==='suspended'?'O administrador suspendeu o acesso desta conta.':accessStatus==='rejected'?'Seu cadastro não foi aprovado pelo administrador.':'Seu cadastro foi recebido e aguarda aprovação do administrador.'} Seus dados financeiros não estão acessíveis no momento. Entre em contato com o administrador para obter mais informações.</p><button onClick={()=>db?.auth.signOut()} className="secondary">Sair</button>{error&&<p className="error">{error}</p>}</div></div>
  const metricRows=[
