@@ -19,7 +19,7 @@ export type SalaryEvent={id:string;effective_date:string;kind:string;value:numbe
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
  ['salary','Alteração de salário'],['dependents','Dependentes IRRF'],['mealBenefit','Vale-refeição (R$/dia útil)'],['fixedBenefit','Vale-benefício (R$/mês)'],['childcareBenefit','Auxílio-creche (R$/mês)'],['trienio','Triênio'],
- ['esppPercent','ESPP %'],['privatePensionPercent','Previdência %'],['privatePensionFixed','Previdência R$'],
+ ['esppPercent','ESPP %'],['privatePensionPercent','Previdência %'],
  ['pensionPercent','Pensão % e critérios de incidência'],['fixedPension','Pensão fixa (projeção)'],['advancePercent','Adiantamento %'],
  ['vacation','Férias (ocorrência)'],['bonus','Bônus (ocorrência)'],['ppr','PPR (participação nos resultados)'],['thirteenth','13º salário (recibo anual)'],['absence','Falta (ocorrência)']
 ] as const
@@ -82,6 +82,8 @@ export async function saveSettings(parameters:SalaryParameters){
   if(error)throw new Error(error.message)
 }
 export async function saveEvent(input:Omit<SalaryEvent,'id'> & {id?:string}){
+  // Keep historical records readable but do not create or edit manual pension amounts.
+  if(input.kind==='privatePensionFixed')throw new Error('Previdência em reais é calculada automaticamente a partir do percentual vigente.')
   if(!db)throw new Error('Banco não configurado');const user_id=await identity()
   const payload={...input,user_id}
   const {error}=await db.from('salary_events').upsert(payload)
@@ -163,6 +165,7 @@ export function effectiveParams(base:SalaryParameters,events:SalaryEvent[],month
   // A pension exists only if an active event explicitly configures it.
   // Historical date of first observation is NOT an exact legal start date.
   for(const e of [...events].sort((a,b)=>a.effective_date.localeCompare(b.effective_date))){
+    if(e.kind==='privatePensionFixed')continue // legacy events no longer contribute to payroll
     if(e.effective_date.slice(0,7)>month)continue
     if(e.kind in params && typeof params[e.kind as keyof SalaryParameters]==='number') {
       (params as unknown as Record<string,number>)[e.kind]=e.value
