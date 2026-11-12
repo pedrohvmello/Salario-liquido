@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react'
+import {PayrepSelect} from './PayrepSelect'
 import {LockKeyhole,ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 import {displayMfaLabel} from '../lib/mfaLabels'
@@ -47,7 +48,7 @@ export function MfaGate({onVerified}:{onVerified:()=>void}){
   {loading?<p>Carregando autenticadores...</p>:
    factors.length===0?<p className="error" role="alert">Nenhum fator válido foi encontrado. Entre em contato com o suporte ou utilize outra sessão autenticada para recuperar o acesso.</p>:
    <form onSubmit={e=>{e.preventDefault();void submit()}}>
-    {factors.length>1&&<label>Autenticador<select value={factorId} onChange={e=>setFactorId(e.target.value)}>{factors.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label>}
+    {factors.length>1&&<label>Autenticador<PayrepSelect value={factorId} onChange={setFactorId} title="Autenticador">{factors.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</PayrepSelect></label>}
     <label>Código de 6 dígitos<input type="text" required autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" autoFocus/></label>
     <button type="submit" className="primary" disabled={busy||code.length!==6}><LockKeyhole size={16}/>{busy?'Verificando...':'Validar código'}</button>
    </form>}
