@@ -682,3 +682,23 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .bank-details-placeholder label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:650;color:#6d5b82}
 .bank-details-placeholder input,.bank-details-placeholder select{background:#f8f5fc!important;opacity:.72;cursor:not-allowed}
 @media(max-width:600px){.admin-nav-separator{margin:17px 2px 10px}.password-policy-length{align-items:flex-start}.password-policy-toggle{min-height:56px}}
+
+/* TOTP: verified factors and enrollment, constrained for mobile. */
+.totp-settings{display:flex;flex-direction:column;gap:16px;margin-top:14px;max-width:680px}
+.totp-factors{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.totp-factors>p{margin:0 0 4px}
+.totp-factor-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:1px solid #e9dcf5;border-radius:12px;padding:12px;background:#faf7ff;flex-wrap:wrap}
+.totp-factor-row>div:first-child{display:flex;align-items:center;gap:9px;color:#4d1c73;font-weight:650;font-size:13px}
+.totp-factor-row small{font-size:11px;color:#7d6b8c}
+.totp-factor-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+.totp-enrollment{display:flex;align-items:flex-start;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5d3f3;border-radius:12px;background:#fcfaff}
+.totp-enrollment>p{margin:0}
+.totp-qr{height:205px;width:205px;max-width:100%;border:1px solid #e6d8ef;border-radius:8px;background:#fff;padding:8px;object-fit:contain}
+.totp-enrollment details{max-width:100%}
+.totp-enrollment details summary{cursor:pointer;color:#6d16ad;font-size:12px;font-weight:650}
+.totp-secret{display:block;overflow-wrap:anywhere;padding:9px;background:#f1e6fb;border-radius:8px;font-size:12px;user-select:all}
+.totp-enrollment form{width:100%;max-width:360px}
+.totp-enrollment form label{display:block}
+.totp-enrollment-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.totp-enrollment-buttons button{flex:1;white-space:normal}
+@media(max-width:600px){.totp-factor-row{align-items:flex-start}.totp-factor-actions{width:100%}.totp-enrollment{padding:12px}.totp-enrollment-buttons{flex-direction:column;align-items:stretch}.totp-enrollment-buttons button{width:100%}}
