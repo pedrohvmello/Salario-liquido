@@ -1,6 +1,6 @@
 import {useEffect,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {BookOpen,CheckCircle2,ExternalLink,HelpCircle,LifeBuoy,Mail,Send,Ticket,Info} from 'lucide-react'
+import {BookOpen,CheckCircle2,ExternalLink,LifeBuoy,Mail,Send,Ticket,Info} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 import {db} from '../lib/data'
 
