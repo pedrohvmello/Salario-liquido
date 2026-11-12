@@ -26,7 +26,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
   try{
    const {error}=await db.auth.signOut({scope:'others'})
    if(error)throw error
-   setSessionsMessage('Outras sessões encerradas no servidor. Os tokens de acesso existentes permanecem válidos até expirar.')
+   setSessionsMessage(hml?'Outras sessões encerradas. Em HML, novas consultas financeiras exigem uma sessão ainda registrada no servidor. Outros tokens de acesso podem permanecer válidos até expirar.':'Outras sessões encerradas no servidor. Os tokens de acesso existentes permanecem válidos até expirar.')
   }catch(e){setSessionsError(e instanceof Error?e.message:'Não foi possível encerrar outras sessões.')}
   finally{setSessionsBusy(false)}
  }
@@ -65,7 +65,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    <details className="account-security-details"><summary>Alterar senha diretamente</summary><ChangePassword requireCurrent/></details>
   </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Sessões e dispositivos</h2></div>
-   <p className="subtle">Revogue os tokens de renovação dos demais aparelhos sem desconectar esta sessão. Os tokens de acesso já emitidos permanecem válidos até o vencimento.</p>
+   <p className="subtle">Encerre sessões de outros aparelhos sem desconectar este dispositivo. Tokens de acesso já emitidos podem continuar válidos até expirar. Em HML, o acesso aos dados financeiros também depende de a sessão continuar registrada no servidor.</p>
    <div className="account-security-reset">
     <button type="button" className="secondary" disabled={sessionsBusy} onClick={()=>void endOtherSessions()}><ShieldCheck size={16}/>{sessionsBusy?'Encerrando...':'Encerrar sessões de outros dispositivos'}</button>
     {sessionsMessage&&<div className="notice success" role="status">{sessionsMessage}</div>}
