@@ -18,7 +18,7 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('Login com Google')
   expect(html).toContain('Supabase')
   expect(html).toContain('holerites')
-  expect(html).toContain('Exclusão')
+  expect(html).toContain('exclusão')
   expect(html).toContain('Minuta para revisão em HML')
  })
  it('provides linked terms while awaiting final legal contact',()=>{
