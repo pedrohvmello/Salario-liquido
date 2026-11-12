@@ -8,7 +8,7 @@ function event(kind:string,value:number,effective_date:string):SalaryEvent{
 
 describe('Previdência calculada automaticamente',()=>{
  it('não oferece evento manual de Previdência R$',()=>{
-  expect(eventsKinds.some(([kind])=>kind==='privatePensionFixed')).toBe(false)
+  expect(eventsKinds.map(([kind])=>kind)).not.toContain('privatePensionFixed')
   expect(eventsKinds.some(([kind])=>kind==='privatePensionPercent')).toBe(true)
  })
  it('desconsidera legado de valor fixo sem excluir dados',()=>{
