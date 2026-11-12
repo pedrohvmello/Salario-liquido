@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
-import {BookOpen,ExternalLink,Info} from 'lucide-react'
+import {ExternalLink,Info} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 
 export type LegalDocumentType='privacidade'|'termos'
