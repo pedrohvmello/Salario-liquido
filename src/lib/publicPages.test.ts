@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import {describe,expect,it} from 'vitest'
 
@@ -73,6 +74,34 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('href="/privacidade"')
   expect(html).toContain('Minuta em revisão para HML.')
   expect(html).toContain('mailto:suporte@payrep.com.br')
+ })
+ it('preserves every archived legal revision byte-for-byte and keeps V1.0 before launch',()=>{
+  const history=JSON.parse(readFileSync('public/legal-history/manifest.json','utf8')) as {
+   publicVersion:string;launchState:string
+   documents:Record<'privacidade'|'termos',{currentRevisionId:string;revisions:Array<{
+    id:string;version:string;revision:number;path:string;changedAt:string;blobSha:string;sourceCommit:string
+   }>}>
+  }
+  expect(history.publicVersion).toBe('V1.0')
+  expect(history.launchState).toBe('prelaunch')
+  for(const key of ['privacidade','termos'] as const){
+   const item=history.documents[key]
+   expect(item.revisions.length).toBeGreaterThanOrEqual(4)
+   expect(new Set(item.revisions.map(x=>x.id)).size).toBe(item.revisions.length)
+   for(const revision of item.revisions){
+    expect(revision.version).toBe('V1.0')
+    expect(revision.path).toMatch(/^\\/legal-history\\/[a-z0-9.-]+\\.html$/)
+    const html=readFileSync('public'+revision.path,'utf8')
+    const blobSha=createHash('sha1').update('blob '+Buffer.byteLength(html)+'\\0').update(html).digest('hex')
+    expect(blobSha).toBe(revision.blobSha)
+    expect(Number.isNaN(Date.parse(revision.changedAt))).toBe(false)
+    expect(revision.sourceCommit).toMatch(/^[0-9a-f]{40}$/)
+   }
+   const latest=item.revisions.find(x=>x.id===item.currentRevisionId)
+   expect(latest).toBeDefined()
+   expect(readFileSync('public'+latest!.path,'utf8')).toBe(page(key))
+   expect(page(key)).toContain('<strong>Versão:</strong> V1.0')
+  }
  })
  it('routes all three pages directly without changing the existing root login',()=>{
   const config=JSON.parse(readFileSync('vercel.json','utf8')) as {rewrites:Array<{source:string;destination:string}>}

@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
-import {ShieldCheck,LockKeyhole,Info,Save} from 'lucide-react'
+import {ShieldCheck,LockKeyhole,Info,Save,BookOpen} from 'lucide-react'
+import {LegalHistoryViewer} from './LegalHistoryViewer'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 import {passwordPolicyDefaults,type PasswordPolicy} from '../lib/passwordPolicy'
 
@@ -48,6 +49,11 @@ export function AdminSettingsPage(){
    <div className="detail-hint"><Info size={16}/>O padrão está disponível na interface. Para torná-lo obrigatório também na API, configure os mesmos requisitos no Supabase Auth. Até lá, os controles administrativos ficam bloqueados para não criar divergência entre cliente e servidor.</div>
    <p className="subtle">No Supabase HML, configure mínimo de 12 caracteres e os quatro grupos: minúsculas, maiúsculas, números e símbolos. Habilite a exigência de senha atual na troca de senha, se disponível.</p>
    <a className="secondary" href="https://supabase.com/dashboard/project/nrpqcrhschztdwbfgnyo/auth/providers?provider=Email" target="_blank" rel="noopener noreferrer">Abrir configurações de senha no Supabase HML</a>
+  </section>
+  <section className="panel">
+   <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
+   <p className="subtle">Consulte o texto exato de cada revisão da Política de Privacidade e dos Termos de Uso. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
+   <LegalHistoryViewer/>
   </section>
  </div>
 }
