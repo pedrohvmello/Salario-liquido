@@ -1,7 +1,8 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,Info,Trash2,Plus,Pencil} from 'lucide-react'
 import {db} from '../lib/data'
-import {authenticatorApps,cleanMfaLabel,displayMfaLabel,mfaLabelMetadataKey,readMfaLabels} from '../lib/mfaLabels'
+import {cleanMfaLabel,displayMfaLabel,mfaLabelMetadataKey,readMfaLabels} from '../lib/mfaLabels'
+import {AuthenticatorAppPicker} from './AuthenticatorAppPicker'
 
 type TotpFactor={id:string;name:string}
 type IncompleteFactor={id:string;name:string}
@@ -139,12 +140,7 @@ export function TotpSettings(){
       :<div className="totp-factor-actions"><button type="button" className="secondary" disabled={busy||Boolean(pending)} onClick={()=>{setRenameId(f.id);setRenameValue(f.name);setRemoval(null);setError('')}}><Pencil size={15}/> Renomear</button><button type="button" className="secondary" disabled={busy||Boolean(pending)} onClick={()=>{setRemoval(f.id);setRenameId(null)}}><Trash2 size={15}/> Remover</button></div>}
    </div>)}
    {!pending&&incomplete.length===0&&factors.length<10&&<div className="totp-enrollment">
-    <label>Aplicativo autenticador a cadastrar
-     <select value={newProvider} onChange={e=>{setNewProvider(e.target.value);setOtherName('')}}>
-      <option value="">Selecione o aplicativo</option>
-      {authenticatorApps.map(name=><option key={name} value={name}>{name==='Outro'?'Outro aplicativo':name}</option>)}
-     </select>
-    </label>
+    <AuthenticatorAppPicker value={newProvider} onChange={name=>{setNewProvider(name);setOtherName('')}}/>
     {newProvider==='Outro'&&<label>Nome do aplicativo<input type="text" maxLength={60} value={otherName} onChange={e=>setOtherName(e.target.value)} placeholder="Nome do autenticador"/></label>}
     <button type="button" className="secondary" disabled={busy||!((newProvider==='Outro'?otherName:newProvider).trim())} onClick={()=>void start()}><Plus size={16}/>{factors.length?'Adicionar autenticador de reserva':'Ativar autenticador (TOTP)'}</button>
    </div>}
