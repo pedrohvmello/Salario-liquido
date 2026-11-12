@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
+import {PayrepSelect} from './PayrepSelect'
 import type {User} from '@supabase/supabase-js'
 import {ArrowLeft,Save,MapPin,UserRound,Info,CheckCircle2,AlertTriangle} from 'lucide-react'
 import {blankProfile,loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
@@ -85,7 +86,7 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
     <fieldset disabled className="bank-details-placeholder" aria-label="Dados bancários indisponíveis nesta versão">
      <div className="account-form-grid">
       <label>Banco<input type="text" placeholder="Código e nome do banco"/></label>
-      <label>Tipo de conta<select defaultValue=""><option value="">Selecione</option><option>Corrente</option><option>Poupança</option></select></label>
+      <label>Tipo de conta<PayrepSelect defaultValue="" title="Tipo de conta"><option value="">Selecione</option><option>Corrente</option><option>Poupança</option></PayrepSelect></label>
       <label>Agência<input type="text" placeholder="Número da agência"/></label>
       <label>Conta e dígito<input type="text" placeholder="Número da conta"/></label>
       <label className="account-field-wide">Titular da conta<input type="text" placeholder="Nome do titular"/></label>
