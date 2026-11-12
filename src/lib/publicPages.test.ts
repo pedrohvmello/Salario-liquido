@@ -4,6 +4,17 @@ import {describe,expect,it} from 'vitest'
 function page(name:string){return readFileSync('public/'+name+'.html','utf8')}
 
 describe('Payrep public OAuth pages',()=>{
+ it('reuses the existing horizontal Payrep logo across all public headers',()=>{
+  for(const name of ['sobre','privacidade','termos']){
+   const html=page(name)
+   expect(html).toContain('src="/brand/payrep-logo.svg"')
+   expect(html).not.toContain('<span>Payrep</span>')
+  }
+  const logo=readFileSync('public/brand/payrep-logo.svg','utf8')
+  expect(logo).toContain('aria-label="Payrep"')
+  expect(logo).toContain('<svg')
+ })
+
  it('offers a public homepage that describes the app and links to privacy',()=>{
   const html=page('sobre')
   expect(html).toContain('Seu salário, com todos os detalhes.')
