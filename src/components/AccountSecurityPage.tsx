@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,KeyRound,ShieldCheck,Fingerprint,MessageCircle,Trash2,Info,LockKeyhole} from 'lucide-react'
+import {ArrowLeft,KeyRound,ShieldCheck,Fingerprint,Trash2,Info,LockKeyhole} from 'lucide-react'
 import {ChangePassword} from './AuthGate'
 import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
@@ -73,11 +73,10 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    </div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Autenticação em dois fatores (2FA)</h2></div>
-   <p className="subtle">Proteja o acesso com códigos de um aplicativo autenticador. A configuração pode ser realizada individualmente em HML.</p>
+   <p className="subtle">Proteja o acesso com códigos de um aplicativo autenticador. O 2FA é obrigatório para administradores e opcional para os demais usuários neste ambiente.</p>
    {import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
      ?<TotpSettings/>
      :<div className="detail-hint"><Info size={16}/>O 2FA ainda não foi habilitado neste ambiente.</div>}
-   <div className="account-security-row"><MessageCircle size={19}/><div><strong>WhatsApp como segundo fator</strong><small>Suportado pelo Supabase mediante configuração de um provedor de mensagens. Ainda não configurado neste projeto.</small></div></div>
    {hml&&<div className="detail-hint"><Info size={16}/>HML está isolada. Antes de ativar um fator, prepare um segundo autenticador de reserva. O Supabase não fornece códigos de recuperação TOTP.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Fingerprint size={17}/> Biometria e passkeys</h2></div>
