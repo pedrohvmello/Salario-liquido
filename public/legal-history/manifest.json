@@ -6,7 +6,7 @@
   "documents": {
     "privacidade": {
       "title": "Política de Privacidade",
-      "currentRevisionId": "privacidade-v1.0-r04",
+      "currentRevisionId": "privacidade-v1.0-r05",
       "revisions": [
         {
           "id": "privacidade-v1.0-r01",
@@ -47,6 +47,16 @@
           "path": "/legal-history/privacidade-v1.0-r04.html",
           "sourceCommit": "90b17419a3ddeefcef6c443b374712d961ad8aae",
           "blobSha": "d6422ff734eb9378406ccaa6e90565176f26ab7e"
+        },
+        {
+          "id": "privacidade-v1.0-r05",
+          "version": "V1.0",
+          "revision": 5,
+          "changedAt": "2026-11-12T22:41:02.808Z",
+          "summary": "Tratamento de chamados abertos na Central de Ajuda",
+          "path": "/legal-history/privacidade-v1.0-r05.html",
+          "sourceCommit": "1f1258645a2faa97f58bfc1891ca386d5757e12f",
+          "blobSha": "375f1a8a7f07fa6121a68fad83d8f828b56b983f"
         }
       ]
     },
