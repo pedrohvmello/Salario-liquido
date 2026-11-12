@@ -10,6 +10,7 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('href="/privacidade"')
   expect(html).toContain('href="/"')
   expect(html).toContain('Como funciona o acesso com Google')
+  expect(html).toContain('mailto:suporte@payrep.com.br')
   expect(html).not.toContain('id="root"')
  })
  it('explains Google account details and financial document handling',()=>{
@@ -20,12 +21,17 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('holerites')
   expect(html).toContain('exclusão')
   expect(html).toContain('Minuta para revisão em HML')
+  expect(html).toContain('mailto:suporte@payrep.com.br')
+  expect(html).toContain('Maileroo')
+  expect(html).toContain('Google Gmail')
+  expect(html).toContain('identificação formal do controlador')
  })
  it('provides linked terms while awaiting final legal contact',()=>{
   const html=page('termos')
   expect(html).toContain('Termos de Uso')
   expect(html).toContain('href="/privacidade"')
-  expect(html).toContain('Minuta em revisão.')
+  expect(html).toContain('Minuta em revisão para HML.')
+  expect(html).toContain('mailto:suporte@payrep.com.br')
  })
  it('routes all three pages directly without changing the existing root login',()=>{
   const config=JSON.parse(readFileSync('vercel.json','utf8')) as {rewrites:Array<{source:string;destination:string}>}
