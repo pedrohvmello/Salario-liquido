@@ -850,3 +850,7 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .form label>.payrep-select-trigger,.form-grid label>.payrep-select-trigger{width:100%}
 @media(max-width:760px){.analytics-filter>.payrep-select-trigger{width:100%}}
 @media(max-width:400px){.filterbar>.payrep-select-trigger{width:min(100%,190px)}}
+
+/* Override legacy input defaults inside the custom search modal. */
+.payrep-picker-dialog .payrep-select-search input{border:0!important;background:transparent!important;padding:11px 0!important;box-shadow:none!important}
+.payrep-picker-dialog .payrep-select-search input:focus{border:0!important;box-shadow:none!important}
