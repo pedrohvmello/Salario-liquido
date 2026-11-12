@@ -6,6 +6,8 @@ import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
 import {isHomologationHost} from '../lib/overviewPreview'
 import {TotpSettings} from './TotpSettings'
+import {PasskeySettings} from './PasskeySettings'
+import {passkeyFeatureEnabled} from '../lib/passkey'
 
 export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
  const [resetBusy,setResetBusy]=useState(false)
@@ -80,8 +82,9 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    {hml&&<div className="detail-hint"><Info size={16}/>HML está isolada. Antes de ativar um fator, prepare um segundo autenticador de reserva. O Supabase não fornece códigos de recuperação TOTP.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Fingerprint size={17}/> Biometria e passkeys</h2></div>
-   <label className="security-disabled-switch"><span>Ativar login por biometria</span><input type="checkbox" disabled aria-label="Recurso experimental indisponível"/></label>
-   <p className="subtle">O padrão WebAuthn usa biometria ou PIN do dispositivo. O suporte a passkeys do Supabase é experimental e precisa de configuração específica de domínio e dispositivo. Não está ativado.</p>
+   {passkeyFeatureEnabled
+    ?<PasskeySettings/>
+    :<div className="detail-hint"><Info size={16}/>Login por passkey ainda não está habilitado neste ambiente. O acesso por senha, Google e TOTP permanece disponível.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
    <p className="subtle">Exclusão permanente da conta e dados vinculados. Não é possível desfazer.</p>
