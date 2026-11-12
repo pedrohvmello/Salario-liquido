@@ -52,7 +52,7 @@ export function AdminSettingsPage(){
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
-   <p className="subtle">Consulte o texto exato de cada revisão da Política de Privacidade e dos Termos de Uso. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
+   <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
    <LegalHistoryViewer/>
   </section>
  </div>
