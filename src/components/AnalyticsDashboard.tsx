@@ -1,4 +1,5 @@
 import {useMemo,useState} from 'react'
+import {PayrepSelect} from './PayrepSelect'
 import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
@@ -85,10 +86,10 @@ export function AnalyticsDashboard({
    <div><h2>Análises financeiras</h2>
     <p>Histórico de valores identificados nos holerites. 13º, férias e PPR permanecem separados para evitar dupla contabilização.</p>
    </div>
-   <select value={year} onChange={e=>onYearChange(e.target.value)} aria-label="Filtrar ano">
+   <PayrepSelect value={year} onChange={onYearChange} title="Ano" aria-label="Filtrar ano">
     <option value="all">Todos os anos</option>
     {years.map(y=><option key={y} value={y}>{y}</option>)}
-   </select>
+   </PayrepSelect>
   </div>
 
   <Panel title={year==='all'?"Remuneração anual totalizada (sem PPR e 13º)":"Remuneração mensal e líquido registrado (sem PPR e 13º)"}>
@@ -115,9 +116,9 @@ export function AnalyticsDashboard({
    </div>
    <div className="analytics-filter">
     <label htmlFor="analytics-metric-select">Indicador</label>
-    <select id="analytics-metric-select" value={metric} onChange={e=>setMetric(e.target.value as MetricKey)}>
+    <PayrepSelect id="analytics-metric-select" value={metric} onChange={next=>setMetric(next as MetricKey)} title="Indicador">
      {METRICS.map(x=><option key={x.key} value={x.key}>{x.label}</option>)}
-    </select>
+    </PayrepSelect>
    </div>
    <p className="subtle analytics-description">{metricInfo.note}</p>
    {metricEvidence?
