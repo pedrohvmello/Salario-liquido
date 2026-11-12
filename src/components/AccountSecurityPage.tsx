@@ -75,7 +75,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    </div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Autenticação em dois fatores (2FA)</h2></div>
-   <p className="subtle">Proteja o acesso com códigos de um aplicativo autenticador. O 2FA é obrigatório para administradores e opcional para os demais usuários neste ambiente.</p>
+   <p className="subtle">{import.meta.env.VITE_REQUIRE_ADMIN_TOTP==='true'?'Proteja o acesso com um aplicativo autenticador. O TOTP é obrigatório para administradores e opcional para os demais usuários.':'Proteja o acesso com códigos de um aplicativo autenticador. O TOTP está disponível para cadastro e será obrigatório para administradores após a validação inicial em produção.'}</p>
    {import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
      ?<TotpSettings/>
      :<div className="detail-hint"><Info size={16}/>O 2FA ainda não foi habilitado neste ambiente.</div>}
