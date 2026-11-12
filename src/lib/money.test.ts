@@ -15,6 +15,22 @@ describe('2026 official tables',()=>{
   expect(withDsr.gross-withoutDsr.gross).toBeCloseTo(134.4,2)
   expect(withDsr.pension).toBeGreaterThan(withoutDsr.pension)
  })
+ it('computes 2% private pension from base salary, consistent with Overview',()=>{
+  const value=calculatePayroll2026({...defaults,salary:15340.57,trienio:179,privatePensionPercent:2})
+  expect(value.privatePension).toBe(306.81)
+ })
+ it('never adds a legacy fixed pension amount or applies percentage to trienio',()=>{
+  const normal=calculatePayroll2026({...defaults,salary:15340.57,trienio:179,privatePensionPercent:2})
+  const legacy=calculatePayroll2026({...defaults,salary:15340.57,trienio:179,privatePensionPercent:2,privatePensionFixed:250})
+  expect(legacy.privatePension).toBe(normal.privatePension)
+  expect(legacy.netMonth).toBe(normal.netMonth)
+ })
+ it('updates the pension automatically when salary or rate changes',()=>{
+  expect(calculatePayroll2026({...defaults,salary:12000,privatePensionPercent:2}).privatePension).toBe(240)
+  expect(calculatePayroll2026({...defaults,salary:16000,privatePensionPercent:2}).privatePension).toBe(320)
+  expect(calculatePayroll2026({...defaults,salary:16000,privatePensionPercent:3}).privatePension).toBe(480)
+  expect(calculatePayroll2026({...defaults,salary:16000,privatePensionPercent:0}).privatePension).toBe(0)
+ })
  it('does not subtract FGTS from net',()=>{const r=calculatePayroll2026({...defaults,salary:10000});expect(r.netMonth).toBeCloseTo(r.gross-r.inss-r.irrf-r.pension,2)})
 })
 describe('hours and São Paulo holidays',()=>{
