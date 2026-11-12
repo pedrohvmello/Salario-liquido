@@ -75,6 +75,14 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('Minuta em revisão para HML.')
   expect(html).toContain('mailto:suporte@payrep.com.br')
  })
+ it('opens archived legal revisions without embedding a preview',()=>{
+  const viewer=readFileSync('src/components/LegalHistoryViewer.tsx','utf8')
+  expect(viewer).toContain('Abrir versão arquivada')
+  expect(viewer).toContain('href={active.path}')
+  expect(viewer).toContain('target="_blank"')
+  expect(viewer).not.toContain('<iframe')
+  expect(viewer).not.toContain('legal-history-preview')
+ })
  it('preserves every archived legal revision byte-for-byte and keeps V1.0 before launch',()=>{
   const history=JSON.parse(readFileSync('public/legal-history/manifest.json','utf8')) as {
    publicVersion:string;launchState:string
