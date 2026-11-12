@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,Save,MapPin,UserRound,Info} from 'lucide-react'
+import {ArrowLeft,Save,MapPin,UserRound,Info,CheckCircle2,AlertTriangle} from 'lucide-react'
 import {blankProfile,loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 import {formatCep,formatPhone,onlyDigits,isValidCepResult,type CepResult} from '../lib/profileInput'
 
@@ -26,8 +26,6 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
  const [message,setMessage]=useState('')
  const [cepStatus,setCepStatus]=useState('')
  const lastQueriedCep=useRef('')
- const feedbackRef=useRef<HTMLDivElement>(null)
- const actionFeedbackRef=useRef(false)
  useEffect(()=>{
   let active=true
   void loadMyProfile().then(data=>{if(active){lastQueriedCep.current=onlyDigits(data.postal_code);setValue({...data,phone:formatPhone(data.phone),postal_code:formatCep(data.postal_code)});setError('')}})
@@ -59,14 +57,8 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
   },350)
   return ()=>{window.clearTimeout(timer);controller.abort()}
  },[value.postal_code,loading])
- useEffect(()=>{
-  if(!actionFeedbackRef.current||(!message&&!error))return
-  feedbackRef.current?.scrollIntoView({block:'nearest',behavior:'smooth'})
-  actionFeedbackRef.current=false
- },[message,error])
  const patch=(key:keyof PayrepProfile,v:string)=>setValue(prev=>({...prev,[key]:v}))
  const save=async()=>{
-  actionFeedbackRef.current=true
   setBusy(true);setError('');setMessage('')
   try{const updated=await saveMyProfile(value);setValue(updated);setMessage('Dados cadastrais salvos com sucesso.')}
   catch(e){setError(e instanceof Error?e.message:'Falha ao salvar os dados.')}
@@ -103,9 +95,9 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
     <div className="detail-hint"><Info size={16}/>O armazenamento exigirá tabela específica com acesso restrito por usuário. Não digite dados bancários nesta versão.</div>
    </section>
    <div className="account-save-action"><button type="submit" className="primary" disabled={busy}><Save size={16}/>{busy?'Salvando...':'Salvar dados cadastrais'}</button>
-    <div ref={feedbackRef} className="account-save-feedback" aria-live="polite">
-     {message&&<div className="notice success" role="status">{message}</div>}
-     {error&&<div className="notice danger" role="alert">{error}</div>}
+    <div className="account-save-feedback">
+     {message&&<div className="notice success payrep-feedback-toast" role="status" aria-live="polite"><CheckCircle2 size={18} aria-hidden="true"/><span>{message}</span><button type="button" onClick={()=>setMessage('')} aria-label="Fechar confirmação">Fechar</button></div>}
+     {error&&<div className="notice danger payrep-feedback-toast" role="alert"><AlertTriangle size={18} aria-hidden="true"/><span>{error}</span><button type="button" onClick={()=>setError('')} aria-label="Fechar erro">Fechar</button></div>}
     </div>
    </div>
   </form>}
