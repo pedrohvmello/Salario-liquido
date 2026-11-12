@@ -872,7 +872,7 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
   width:100%;
   min-height:calc(100dvh - 64px);
   overscroll-behavior-x:contain;
-  touch-action:pan-y;
+  touch-action:auto;
  }
  .payrep-primary-route-content{
   min-height:100%;
