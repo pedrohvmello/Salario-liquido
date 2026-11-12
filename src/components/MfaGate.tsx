@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import {LockKeyhole,ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
+import {displayMfaLabel} from '../lib/mfaLabels'
 
 type Factor={id:string;name:string}
 
@@ -16,9 +17,10 @@ export function MfaGate({onVerified}:{onVerified:()=>void}){
   void(async()=>{
    try{
     if(!db)throw Error('Autenticação indisponível.')
-    const {data,error}=await db.auth.mfa.listFactors()
-    if(error)throw error
-    const verified=data.totp.filter(f=>f.status==='verified').map((f,i)=>({id:f.id,name:f.friendly_name||'Autenticador '+(i+1)}))
+    const [factorResult,userResult]=await Promise.all([db.auth.mfa.listFactors(),db.auth.getUser()])
+    if(factorResult.error)throw factorResult.error
+    const metadata=userResult.error?null:userResult.data.user?.user_metadata
+    const verified=factorResult.data.totp.filter(f=>f.status==='verified').map((f,i)=>({id:f.id,name:displayMfaLabel(f.id,f.friendly_name||'Autenticador '+(i+1),metadata)}))
     if(active){setFactors(verified);setFactorId(verified[0]?.id||'')}
    }catch(e){if(active)setError(e instanceof Error?e.message:'Falha ao consultar autenticadores.')}
    finally{if(active)setLoading(false)}
