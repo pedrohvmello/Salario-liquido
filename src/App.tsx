@@ -69,7 +69,7 @@ function eventNotesText(event:SalaryEvent):string {
   .map(([key])=>pensionRuleLabels[key as keyof PensionRule]).join(', ')
  return [note,criteria?'Critérios ativos: '+criteria:''].filter(Boolean).join(' · ')
 }
-const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição (por dia útil)',fixedBenefit:'Vale-benefício',childcareBenefit:'Auxílio-creche',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionFixed:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
+const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição (por dia útil)',fixedBenefit:'Vale-benefício',childcareBenefit:'Auxílio-creche',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionAmount:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
 
 const percentageFields=new Set<keyof SalaryParameters>(['esppPercent','privatePensionPercent','pensionPercent','advancePercent'])
 function displayEffectiveParameter(key:keyof SalaryParameters,value:number):string{
@@ -253,8 +253,9 @@ export default function App(){
  const mealEvent=useMemo(()=>latestEffectiveEvent(events,'mealBenefit',month),[events,month])
  const hasPension=effective.pensionMethod!=='none'
  const benefitEstimate=useMemo(()=>mealEvent&&holidayDates?projectedMealBenefit(effective.mealBenefit,month,holidayDates):null,[mealEvent,effective.mealBenefit,month,holidayDates])
- const eventYears=useMemo(()=>[...new Set(events.map(e=>e.effective_date.slice(0,4)))].sort().reverse(),[events])
- const filteredEvents=useMemo(()=>events.filter(e=>eventsYear==='all'||e.effective_date.startsWith(eventsYear+'-')),[events,eventsYear])
+ const displayEvents=useMemo(()=>events.filter(e=>e.kind!=='privatePensionFixed'),[events])
+ const eventYears=useMemo(()=>[...new Set(displayEvents.map(e=>e.effective_date.slice(0,4)))].sort().reverse(),[displayEvents])
+ const filteredEvents=useMemo(()=>displayEvents.filter(e=>eventsYear==='all'||e.effective_date.startsWith(eventsYear+'-')),[displayEvents,eventsYear])
  const months=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const filtered=useMemo(()=>statements.filter(s=>year==='all'||s.period.startsWith(year)).sort((a,b)=>b.period.localeCompare(a.period)),[statements,year])
  const vacationLedger=useMemo(()=>reconcileVacations(statements,allLines),[statements,allLines])
@@ -381,7 +382,7 @@ export default function App(){
   pensionAmount:{value:hasPension?brl(payroll.pension):'—',note:hasPension?'Estimativa da folha mensal':'Sem evento de pensão'},
   mealBenefit:{value:benefitEstimate?brl(benefitEstimate.total):'—',note:!mealEvent?'Cadastre o valor por dia útil':benefitEstimate?formatEventValue(effective.mealBenefit,'mealBenefit')+' por dia × '+benefitEstimate.days+' dias úteis ('+benefitReferenceMonth+')':base?'Calendário de feriados indisponível':'Configure sua Base'},
   fixedBenefit:{value:activeEvent('fixedBenefit')?brl(effective.fixedBenefit):'—',note:'Valor mensal fixo'},
-  privatePension:{value:activeEvent('privatePensionFixed')||activeEvent('privatePensionPercent')||effective.privatePensionFixed||effective.privatePensionPercent?brl(payroll.privatePension):'—',note:'Contribuição previdenciária'},
+  privatePension:{value:activeEvent('privatePensionPercent')||effective.privatePensionPercent?brl(payroll.privatePension):'—',note:'Percentual sobre o salário-base'},
   childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
@@ -430,13 +431,16 @@ export default function App(){
      {section==='definitions'&&<div className="stack"><Panel title="Configurações da Visão Geral"><p className="subtle">Selecione e ordene os cartões. A lista é lida de cima para baixo na primeira coluna e depois na segunda, seguindo a numeração exibida.</p><div className="overview-config">{[...overviewCards,...overviewCardDefinitions.map(([id])=>id).filter(id=>!overviewCards.includes(id))].map(id=>{const label=overviewCardDefinitions.find(([key])=>key===id)?.[1]||id;const visible=overviewCards.includes(id);const position=overviewCards.indexOf(id);return <div className="overview-config-row" key={id}><label className="checkbox-label"><span className="overview-config-rank">{visible?position+1:'·'}</span><input type="checkbox" checked={visible} onChange={e=>setOverviewCards(v=>changeCardVisibility(v,id,e.target.checked))}/>{label}</label><div className="overview-config-actions"><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para cima'} title="Mover para cima" disabled={!visible||position===0} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,-1))}><ArrowUp size={16}/></button><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para baixo'} title="Mover para baixo" disabled={!visible||position===overviewCards.length-1} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,1))}><ArrowDown size={16}/></button></div></div>})}</div><button className="primary" disabled={busy||!db} onClick={()=>task(async()=>{await persistOverviewCards(overviewCards);await refresh()},'Configurações da Visão Geral salvas')}><Save size={16}/> Salvar seleção e ordem</button></Panel><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
       <p className="subtle">Valores efetivos da competência <strong>{monthLabel(month)}</strong>. Para alterar, cadastre um evento em <button type="button" className="text-button" onClick={()=>setSection('events')}>Eventos e vigências</button>.</p>
     </div>
-    <div className="form-grid">{(Object.keys(fieldNames) as Array<keyof SalaryParameters>).map(k=>{
-      const latest=latestEffectiveEvent(events,k,month)
-      const value=Number(effective[k])
+    <div className="form-grid">{Object.keys(fieldNames).map(k=>{
+      const calculated=k==='privatePensionAmount'
+      const latest=latestEffectiveEvent(events,calculated?'privatePensionPercent':k,month)
+      const value=calculated?payroll.privatePension:Number(effective[k as keyof SalaryParameters])
       return <div key={k} className="settings-readonly-field">
         <span className="settings-readonly-label">{fieldNames[k]}</span>
-        <strong className="settings-readonly-value">{displayEffectiveParameter(k,value)}</strong>
-        <small className="settings-readonly-source">{latest?'Evento vigente desde '+dateBR(latest.effective_date):'Valor-base anterior, sem evento vigente'}</small>
+        <strong className="settings-readonly-value">{calculated?brl(value):displayEffectiveParameter(k as keyof SalaryParameters,value)}</strong>
+        <small className="settings-readonly-source">{calculated
+          ?'Cálculo automático: '+formatEventValue(effective.privatePensionPercent,'privatePensionPercent')+'% do salário-base ('+brl(Math.max(0,effective.salary))+')'
+          :latest?'Evento vigente desde '+dateBR(latest.effective_date):'Valor-base anterior, sem evento vigente'}</small>
       </div>
     })}</div>
     <div className="settings-readonly-field settings-pension-method">
