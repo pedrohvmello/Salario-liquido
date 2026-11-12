@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",
+    "@simplewebauthn/browser": "13.3.0",
     "lucide-react": "^0.468.0",
     "pdfjs-dist": "^4.10.38",
     "recharts": "^2.15.1",
