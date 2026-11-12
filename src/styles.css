@@ -772,3 +772,70 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .passkey-auto-preference{display:flex;align-items:center;gap:10px;margin:10px 0 0;color:#715585;font-size:12px;font-weight:600;line-height:1.45;cursor:pointer}
 .passkey-auto-preference input[type=checkbox]{flex:0 0 16px;width:16px!important;height:16px!important;min-width:16px;min-height:16px;padding:0!important;margin:0;accent-color:#7516b6;cursor:pointer}
 .passkey-auto-preference span{flex:1}
+
+
+/* Uniform Payrep selection controls. These replace browser-native Android sheets. */
+.payrep-select-trigger{appearance:none;-webkit-appearance:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:45px;width:100%;padding:11px 14px;border:1px solid #dfd0ea;border-radius:11px;background:#fbf8fe;color:#38134f;font:inherit;font-size:14px;font-weight:600;text-align:left;line-height:1.4;cursor:pointer;box-shadow:0 1px 2px rgba(50,11,75,.025);transition:border-color .16s,background .16s,box-shadow .16s}
+.payrep-select-trigger>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.payrep-select-trigger svg{flex:none;color:#7525a9}
+.payrep-select-trigger:focus-visible{outline:2px solid #9336cd;outline-offset:2px}
+.payrep-select-trigger:hover:not(:disabled){border-color:#a35dd3;background:#fff}
+.payrep-select-trigger:disabled{opacity:.53;cursor:not-allowed}
+.payrep-select-trigger .payrep-select-placeholder{color:#8b8093;font-weight:500}
+.payrep-picker-backdrop{position:fixed;inset:0;z-index:15000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(30,8,50,.54);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.payrep-picker-dialog{display:flex;flex-direction:column;width:min(440px,100%);max-height:calc(100dvh - 36px);overflow:hidden;border:1px solid #e4d1f0;border-radius:21px;background:#fff;color:#311342;box-shadow:0 22px 60px rgba(32,2,52,.28)}
+.payrep-picker-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:21px 22px 13px}
+.payrep-picker-header h3{font-size:19px;line-height:1.35;letter-spacing:-.3px;font-weight:750;color:#34134c;margin:0}
+.payrep-picker-close{flex:none;display:grid;place-items:center;width:34px;height:34px;padding:0;border-radius:10px;border:1px solid #eadcf3;background:#faf6fd;color:#6b2b99;cursor:pointer}
+.payrep-picker-close:hover{background:#f3e8fa}
+.payrep-picker-description{padding:0 22px;margin:0 0 12px;color:#80708a;font-size:12px;line-height:1.5}
+.payrep-select-search{display:flex;align-items:center;gap:8px;margin:3px 20px 13px;padding:0 11px;border:1px solid #e5d7ed;border-radius:11px;color:#6b2a96;background:#fcfaff}
+.payrep-select-search input{width:100%;border:0;box-shadow:none!important;outline:0!important;padding:11px 0;font:inherit;font-size:14px;background:transparent;color:#321342}
+.payrep-select-options{display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:5px 14px;gap:5px;max-height:min(440px,58dvh)}
+.payrep-select-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:47px;padding:11px 14px;border:1px solid transparent;border-radius:11px;background:#fff;color:#3e2353;text-align:left;font:inherit;font-size:14px;font-weight:550;line-height:1.4;cursor:pointer}
+.payrep-select-option>span{overflow-wrap:anywhere}
+.payrep-select-option>svg{color:#7616b5;flex:none}
+.payrep-select-option.is-selected{background:#f4e8ff;color:#6417a3;border-color:#dec3f2;font-weight:700}
+.payrep-select-option:hover:not(:disabled){background:#f7effd;border-color:#eddcf7}
+.payrep-select-option:focus-visible{outline:2px solid #8d36c6;outline-offset:-2px}
+.payrep-select-option:disabled{opacity:.45;cursor:not-allowed}
+.payrep-select-empty,.payrep-select-hint{padding:12px;color:#86748e;text-align:center;font-size:12px;line-height:1.5}
+.payrep-picker-footer{display:flex;justify-content:flex-end;gap:9px;flex:none;padding:15px 19px 19px;border-top:1px solid #f1e8f7}
+.payrep-picker-footer button{min-height:39px;padding:9px 16px}
+.payrep-date-modal{width:min(412px,100%)}
+.payrep-calendar-controls{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:0 13px 12px}
+.payrep-calendar-controls strong{flex:1;font-size:15px;color:#491d67;text-align:center;text-transform:capitalize;white-space:nowrap}
+.payrep-calendar-controls button{display:grid;place-items:center;flex:none;width:35px;height:35px;border:0;border-radius:10px;background:transparent;color:#7723a9;cursor:pointer}
+.payrep-calendar-controls button:hover{background:#f2e5fb}
+.payrep-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:0 15px 18px}
+.payrep-calendar-weekday{display:grid;place-items:center;height:29px;font-size:12px;font-weight:700;color:#826a8f}
+.payrep-calendar-day{display:grid;place-items:center;min-width:0;height:42px;padding:0;border:1px solid transparent;border-radius:11px;background:transparent;color:#3b2352;font-size:14px;font-weight:600;cursor:pointer}
+.payrep-calendar-day:hover{background:#f5eafb}
+.payrep-calendar-day.today:not(.selected){color:#8e27c7;border-color:#c58ce6}
+.payrep-calendar-day.selected{background:linear-gradient(135deg,#9600ee,#6710b6);color:#fff;box-shadow:0 5px 13px rgba(115,22,178,.2)}
+.payrep-calendar-day:focus-visible{outline:2px solid #8e27c7;outline-offset:2px}
+.payrep-time-modal{width:min(365px,100%)}
+.payrep-time-columns{display:flex;align-items:center;justify-content:center;gap:11px;padding:5px 20px 12px}
+.payrep-time-group{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.payrep-time-group>strong{font-size:13px;color:#705082;text-align:center}
+.payrep-time-colon{padding-top:32px;color:#741ab4;font-size:23px;font-weight:700}
+.payrep-time-options{height:min(225px,32dvh);display:flex;flex-direction:column;gap:3px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #e8d8f0;border-radius:11px;background:#fcf9ff;padding:5px}
+.payrep-time-options button{padding:8px;border:0;border-radius:8px;color:#4e2868;background:transparent;font-size:14px;cursor:pointer}
+.payrep-time-options button:hover{background:#f2e6fa}
+.payrep-time-options button.selected{background:#e9d2fa;color:#6518a2;font-weight:750}
+.payrep-time-exact{display:flex;flex-direction:column;gap:8px;padding:0 20px 13px;font-size:12px;font-weight:700;color:#715087}
+.payrep-time-exact input{max-width:none;padding:10px 12px;font-size:15px}
+.payrep-time-invalid{display:block;color:#ad3153;padding:0 20px 12px;font-size:12px}
+@media(max-width:650px){
+ .payrep-picker-backdrop{padding:14px}
+ .payrep-picker-dialog{border-radius:18px;max-height:calc(100dvh - 28px)}
+ .payrep-picker-header{padding:17px 16px 12px}
+ .payrep-picker-header h3{font-size:18px}
+ .payrep-picker-description{padding:0 16px}
+ .payrep-select-options{padding:4px 11px;max-height:min(440px,56dvh)}
+ .payrep-select-option{min-height:48px}
+ .payrep-picker-footer{padding:13px 15px 16px}
+ .payrep-calendar-grid{padding:0 10px 16px}
+ .payrep-calendar-day{height:39px}
+}
+@media(prefers-reduced-motion:reduce){.payrep-select-trigger{transition:none}}
