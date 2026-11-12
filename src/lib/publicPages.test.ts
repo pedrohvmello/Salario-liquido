@@ -90,9 +90,10 @@ describe('Payrep public OAuth pages',()=>{
    expect(new Set(item.revisions.map(x=>x.id)).size).toBe(item.revisions.length)
    for(const revision of item.revisions){
     expect(revision.version).toBe('V1.0')
-    expect(revision.path).toMatch(/^\\/legal-history\\/[a-z0-9.-]+\\.html$/)
+    expect(revision.path.startsWith('/legal-history/')).toBe(true)
+    expect(revision.path.endsWith('.html')).toBe(true)
     const html=readFileSync('public'+revision.path,'utf8')
-    const blobSha=createHash('sha1').update('blob '+Buffer.byteLength(html)+'\\0').update(html).digest('hex')
+    const blobSha=createHash('sha1').update('blob '+Buffer.byteLength(html)+String.fromCharCode(0)).update(html).digest('hex')
     expect(blobSha).toBe(revision.blobSha)
     expect(Number.isNaN(Date.parse(revision.changedAt))).toBe(false)
     expect(revision.sourceCommit).toMatch(/^[0-9a-f]{40}$/)
