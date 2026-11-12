@@ -767,3 +767,8 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .passkey-item-actions{width:100%}
  .passkey-item-actions button{flex:1}
 }
+
+/* HML passkey auto prompt can be disabled separately on each device. */
+.passkey-auto-preference{display:flex;align-items:center;gap:10px;margin:10px 0 0;color:#715585;font-size:12px;font-weight:600;line-height:1.45;cursor:pointer}
+.passkey-auto-preference input[type=checkbox]{flex:0 0 16px;width:16px!important;height:16px!important;min-width:16px;min-height:16px;padding:0!important;margin:0;accent-color:#7516b6;cursor:pointer}
+.passkey-auto-preference span{flex:1}
