@@ -10,7 +10,7 @@ export const brl = (value: number) => new Intl.NumberFormat('pt-BR',{style:'curr
 export type PensionMethod = 'old26' | 'fixed' | 'none'
 export type SalaryParameters = {
   salary: number; trienio: number; dependents: number; mealBenefit: number; fixedBenefit:number; childcareBenefit:number;
-  esppPercent: number; privatePensionPercent: number; privatePensionFixed: number;
+  esppPercent: number; privatePensionPercent: number; /** @deprecated Retained only for historical settings compatibility; no longer affects payroll. */ privatePensionFixed: number;
   pensionPercent: number; pensionMethod: PensionMethod; fixedPension: number;
   advancePercent: number; overtimePay: number; dsrPay: number;
 }
@@ -59,7 +59,9 @@ export function calculatePayroll2026(p: SalaryParameters & {pensionRule?: {exclu
     }
   }
   const espp = roundMoney(Math.max(0,p.salary)*Math.max(0,p.esppPercent)/100)
-  const privatePension = roundMoney(Math.max(0,p.privatePensionFixed + (p.salary*p.privatePensionPercent/100)))
+  // Contribuição de previdência: somente percentual sobre salário-base.
+  // Valores fixos históricos são preservados nos dados, mas não entram na projeção.
+  const privatePension = roundMoney(Math.max(0,p.salary)*Math.max(0,p.privatePensionPercent)/100)
   const advance = roundMoney(Math.max(0,p.salary+p.trienio)*Math.max(0,p.advancePercent)/100)
   const fgts = roundMoney(gross*.08) // informative: employer contribution, not withheld
   const netMonth = roundMoney(gross-inss-ir.tax-pension-espp-privatePension)
