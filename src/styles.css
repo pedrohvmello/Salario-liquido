@@ -854,3 +854,69 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 /* Override legacy input defaults inside the custom search modal. */
 .payrep-picker-dialog .payrep-select-search input{border:0!important;background:transparent!important;padding:11px 0!important;box-shadow:none!important}
 .payrep-picker-dialog .payrep-select-search input:focus{border:0!important;box-shadow:none!important}
+
+
+/* LRP-style gesture-driven route transition for Payrep smartphone navigation.
+   Page data remains in React state; only the presentation is animated. */
+@keyframes payrep-route-enter-forward{
+ from{opacity:.86;transform:translate3d(18px,0,0)}
+ to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes payrep-route-enter-backward{
+ from{opacity:.86;transform:translate3d(-18px,0,0)}
+ to{opacity:1;transform:translate3d(0,0,0)}
+}
+@media(max-width:760px){
+ .payrep-swipe-surface{
+  position:relative;
+  width:100%;
+  min-height:calc(100dvh - 64px);
+  overscroll-behavior-x:contain;
+  touch-action:pan-y;
+ }
+ .payrep-primary-route-content{
+  min-height:100%;
+  position:relative;
+  transform-origin:center;
+  backface-visibility:hidden;
+ }
+ .payrep-primary-route-preview{
+  position:absolute;
+  inset:0;
+  z-index:60;
+  overflow:hidden;
+  overscroll-behavior:contain;
+  background:linear-gradient(165deg,#f9f6ff 0%,#f3edff 100%);
+  backface-visibility:hidden;
+  pointer-events:none;
+  transform:translate3d(var(--mobile-swipe-incoming-x,0px),0,0);
+  opacity:var(--mobile-swipe-incoming-opacity,.08);
+ }
+ .payrep-swipe-surface.mobile-swipe-active{overflow:hidden}
+ .mobile-swipe-active .payrep-primary-route-content{
+  transform:translate3d(var(--mobile-swipe-outgoing-x,0px),0,0);
+  opacity:var(--mobile-swipe-outgoing-opacity,1);
+  will-change:transform,opacity;
+ }
+ .mobile-swipe-active .payrep-primary-route-preview{will-change:transform,opacity}
+ .mobile-swipe-completing .payrep-primary-route-content,
+ .mobile-swipe-completing .payrep-primary-route-preview,
+ .mobile-swipe-cancelling .payrep-primary-route-content,
+ .mobile-swipe-cancelling .payrep-primary-route-preview{
+  transition-property:transform,opacity;
+  transition-duration:var(--mobile-swipe-release-duration,160ms);
+  transition-timing-function:cubic-bezier(.2,.8,.2,1);
+ }
+ .payrep-primary-route-content.mobile-route-enter-forward{
+  animation:payrep-route-enter-forward 200ms cubic-bezier(.2,.8,.2,1) both;
+ }
+ .payrep-primary-route-content.mobile-route-enter-backward{
+  animation:payrep-route-enter-backward 200ms cubic-bezier(.2,.8,.2,1) both;
+ }
+}
+@media(max-width:760px) and (prefers-reduced-motion:reduce){
+ .payrep-primary-route-preview{display:none}
+ .mobile-swipe-active .payrep-primary-route-content{transform:none;opacity:1}
+ .payrep-primary-route-content.mobile-route-enter-forward,
+ .payrep-primary-route-content.mobile-route-enter-backward{animation:none}
+}
