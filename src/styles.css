@@ -930,5 +930,4 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .legal-history-meta strong{display:block;color:#30124f;font-size:13px}
 .legal-history-meta small{display:block;color:#776783;font-size:12px;margin-top:4px;line-height:1.5}
 .legal-history-meta .secondary{flex-shrink:0}
-.legal-history-preview{width:100%;height:min(72vh,720px);min-height:370px;border:1px solid #e9dcf2;background:white;border-radius:12px}
-@media(max-width:680px){.legal-history-fields{grid-template-columns:1fr}.legal-history-meta .secondary{width:100%}.legal-history-preview{height:60vh;min-height:350px}}
+@media(max-width:680px){.legal-history-fields{grid-template-columns:1fr}.legal-history-meta .secondary{width:100%}}
