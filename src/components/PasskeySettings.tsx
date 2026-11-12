@@ -2,6 +2,7 @@ import {useCallback,useEffect,useState} from 'react'
 import {Fingerprint,KeyRound,Plus,Pencil,Trash2,RefreshCw,ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 import {passkeyErrorMessage,supportsWebAuthn} from '../lib/passkey'
+import {forgetRememberedCredential,registerDevicePasskey} from '../lib/devicePasskeys'
 
 type RegisteredPasskey={
  id:string
@@ -53,8 +54,7 @@ export function PasskeySettings(){
   if(!db||!browserSupported||busy||unavailable)return
   setBusy(true);setError('');setMessage('')
   try{
-   const {error}=await db.auth.registerPasskey()
-   if(error)throw error
+   await registerDevicePasskey()
    await load()
    setMessage('Chave de acesso cadastrada. Agora você pode usá-la para entrar no Payrep HML.')
   }catch(e){
@@ -84,6 +84,7 @@ export function PasskeySettings(){
   try{
    const {error}=await db.auth.passkey.delete({passkeyId:id})
    if(error)throw error
+   forgetRememberedCredential()
    await load();setConfirmDelete(null)
    setMessage('Chave de acesso removida. As demais opções de login permanecem disponíveis.')
   }catch(e){setError(passkeyErrorMessage(e))}
