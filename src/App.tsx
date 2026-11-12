@@ -361,7 +361,7 @@ export default function App(){
   <h1>Proteja sua conta de administrador</h1>
   <p>O acesso administrativo exige autenticação em dois fatores. Cadastre e confirme um aplicativo autenticador para continuar.</p>
   <TotpSettings onActivated={()=>{setMfaRetry(n=>n+1);setAccessRetry(n=>n+1)}}/>
-  <p className="subtle">Para recuperação, cadastre também um autenticador de reserva em outro dispositivo. O Supabase não fornece códigos de recuperação TOTP.</p>
+  <p className="subtle">Cadastre também um autenticador de reserva em outro dispositivo.</p>
   <button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair da conta</button>
  </div></div>
  if(db&&user&&accessScreen!=='approved')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>{accessScreen==='suspended'?'Acesso suspenso':accessScreen==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1><p>{accessScreen==='suspended'?'O administrador suspendeu o acesso desta conta.':accessScreen==='rejected'?'Seu cadastro não foi aprovado pelo administrador.':'Seu cadastro foi recebido e aguarda aprovação do administrador.'} Seus dados financeiros não estão acessíveis no momento. Entre em contato com o administrador para obter mais informações.</p><button onClick={()=>void db?.auth.signOut({scope:'local'})} className="secondary">Sair</button></div></div>
