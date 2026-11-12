@@ -102,9 +102,6 @@ export function LegalHistoryViewer(){
       <ExternalLink size={15}/> Abrir versão arquivada
      </a>
     </div>
-    <iframe className="legal-history-preview" key={active.path} src={active.path}
-     title={`Texto integral: ${document.title}, ${active.version}, revisão ${active.revision}`}
-     sandbox="" loading="lazy" referrerPolicy="no-referrer"/>
    </>}
    <div className="detail-hint"><Info size={16}/>
     <span>O rótulo público permanece em <strong>{manifest.publicVersion}</strong> até o lançamento.
