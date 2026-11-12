@@ -1,5 +1,17 @@
 /** Passkeys are experimental in Supabase and must be enabled per environment. */
 export const passkeyFeatureEnabled=import.meta.env.VITE_ENABLE_PASSKEYS==='true'
+/** Automatically offer the native passkey picker on first unauthenticated view in HML. */
+export const passkeyAutoPromptEnabled=passkeyFeatureEnabled&&import.meta.env.VITE_AUTO_PASSKEY_PROMPT==='true'
+export const passkeyAutoPreferenceKey='payrep:passkey-auto-prompt-v1'
+
+export function autoPromptPreferred():boolean{
+ try{return window.localStorage.getItem(passkeyAutoPreferenceKey)!=='off'}
+ catch{return true}
+}
+export function setAutoPromptPreference(value:boolean):void{
+ try{window.localStorage.setItem(passkeyAutoPreferenceKey,value?'on':'off')}catch{/* Private mode may deny storage. */}
+}
+
 
 export function supportsWebAuthn():boolean{
  return typeof window!=='undefined'
