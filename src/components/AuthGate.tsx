@@ -1,9 +1,9 @@
 import {useEffect,useRef,useState} from 'react'
-import {ChevronRight, Fingerprint, LockKeyhole, ShieldCheck} from 'lucide-react'
+import {ChevronRight, LockKeyhole} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
-import {autoPromptPreferred,passkeyAutoPromptEnabled,passkeyErrorMessage,passkeyFeatureEnabled,setAutoPromptPreference,supportsWebAuthn} from '../lib/passkey'
+import {autoPromptPreferred,passkeyAutoPromptEnabled,supportsWebAuthn} from '../lib/passkey'
 import {cancelPasskeyCeremony,rememberedCredentialId,signInWithDevicePasskey} from '../lib/devicePasskeys'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
@@ -24,7 +24,6 @@ export function AuthGate(){
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
-  const [passkeyBusy,setPasskeyBusy]=useState(false)
   const [autoPasskey,setAutoPasskey]=useState(()=>autoPromptPreferred())
   const automaticStarted=useRef(false)
   const passkeyRequest=useRef<AbortController|null>(null)
@@ -33,25 +32,18 @@ export function AuthGate(){
     passkeyRequest.current?.abort()
     cancelPasskeyCeremony()
     passkeyRequest.current=null
-    setPasskeyBusy(false)
   }
   const passkeySignIn=async(automatic=false)=>{
     if(!db||passkeyRequest.current)return
     const controller=new AbortController()
     passkeyRequest.current=controller
-    setPasskeyBusy(true);setError('');setMessage('')
     try{
       await signInWithDevicePasskey({signal:controller.signal,useRemembered:automatic})
       // The existing auth state listener handles AAL1 to AAL2 TOTP escalation.
-    }catch(e){
-      // A dismissed or browser-blocked automatic prompt must leave password
-      // and Google sign-in usable without showing a misleading login error.
-      if(!automatic&&!controller.signal.aborted)setError(passkeyErrorMessage(e))
+    }catch{
+      // Automatic passkey prompts are optional; fallback to password or Google.
     }finally{
-      if(passkeyRequest.current===controller){
-        passkeyRequest.current=null
-        setPasskeyBusy(false)
-      }
+      if(passkeyRequest.current===controller)passkeyRequest.current=null
     }
   }
   useEffect(()=>{
@@ -113,10 +105,6 @@ export function AuthGate(){
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
-    {mode==='login'&&passkeyFeatureEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary passkey-sign-in" disabled={busy||passkeyBusy||!passkeySupported} onClick={()=>void passkeySignIn()}><Fingerprint size={19}/>{passkeyBusy?'Aguardando confirmação do dispositivo...':'Entrar com biometria ou chave de acesso'}</button>
-      {passkeyAutoPromptEnabled&&passkeySupported&&<label className="passkey-auto-preference"><input type="checkbox" checked={autoPasskey} onChange={e=>{setAutoPasskey(e.target.checked);setAutoPromptPreference(e.target.checked);if(!e.target.checked)stopPasskeyAttempt()}}/><span>Abrir biometria automaticamente neste dispositivo</span></label>}
-      {!passkeySupported&&<p className="subtle">Este navegador precisa oferecer WebAuthn em HTTPS para usar biometria.</p>}
-     </>}
     {mode!=='reset'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><GoogleGIcon/> Continuar com Google</button></>}
     <div className="auth-bottom-actions">
       {mode==='login'&&<button className="text-button" type="button" onClick={()=>{stopPasskeyAttempt();setMode('signup');setPassword('');setConfirmation('');setError('');setMessage('')}}>Criar conta</button>}
@@ -124,7 +112,6 @@ export function AuthGate(){
         <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
       </button>
     </div>
-    <div className="secure"><ShieldCheck size={16}/> Acesso individual com autenticação</div>
   </div></div>
 }
 
