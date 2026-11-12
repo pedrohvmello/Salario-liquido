@@ -5,6 +5,7 @@ import {ChangePassword} from './AuthGate'
 import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
 import {isHomologationHost} from '../lib/overviewPreview'
+import {TotpSettings} from './TotpSettings'
 
 export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
  const [resetBusy,setResetBusy]=useState(false)
@@ -72,11 +73,12 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    </div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Autenticação em dois fatores (2FA)</h2></div>
-   <p className="subtle">O Supabase suporta códigos TOTP de aplicativos autenticadores, como Google Authenticator ou Microsoft Authenticator.</p>
-   <label className="security-disabled-switch"><span>Ativar autenticador (TOTP)</span><input type="checkbox" disabled aria-label="Aguardando integração completa de 2FA"/></label>
-   <p className="subtle">A ativação depende da verificação de segundo fator no login e de regras de acesso no servidor. Ainda não está habilitada no Payrep.</p>
+   <p className="subtle">Proteja o acesso com códigos de um aplicativo autenticador. A configuração pode ser realizada individualmente em HML.</p>
+   {import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
+     ?<TotpSettings/>
+     :<div className="detail-hint"><Info size={16}/>O 2FA ainda não foi habilitado neste ambiente.</div>}
    <div className="account-security-row"><MessageCircle size={19}/><div><strong>WhatsApp como segundo fator</strong><small>Suportado pelo Supabase mediante configuração de um provedor de mensagens. Ainda não configurado neste projeto.</small></div></div>
-   {hml&&<div className="detail-hint"><Info size={16}/>A autenticação de HML já está separada. A ativação de 2FA continua pendente de implementação e testes completos.</div>}
+   {hml&&<div className="detail-hint"><Info size={16}/>HML está isolada. Antes de ativar um fator, prepare um segundo autenticador de reserva. O Supabase não fornece códigos de recuperação TOTP.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Fingerprint size={17}/> Biometria e passkeys</h2></div>
    <label className="security-disabled-switch"><span>Ativar login por biometria</span><input type="checkbox" disabled aria-label="Recurso experimental indisponível"/></label>
