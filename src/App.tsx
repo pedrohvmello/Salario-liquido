@@ -27,6 +27,7 @@ import {parsePdf,type ParsedStatement} from './lib/parse'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveOverviewCards,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {requiresPasswordSetup} from './lib/authRedirect'
+import {pathnameWithoutEmptyFragment} from './lib/urlFragment'
 import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
@@ -94,6 +95,11 @@ export default function App(){
  },[menu])
  const [user,setUser]=useState<User|null>(null)
  const [authReady,setAuthReady]=useState(!db)
+ useEffect(()=>{
+  if(!authReady)return
+  const path=pathnameWithoutEmptyFragment(window.location.href)
+  if(path!==null)window.history.replaceState(window.history.state,'',path)
+ },[authReady,user?.id])
  const mfaEnabled=import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
  // Admin enforcement is a separate rollout switch: enroll verified factors first.
  const requireAdminTotp=mfaEnabled&&import.meta.env.VITE_REQUIRE_ADMIN_TOTP==='true'
