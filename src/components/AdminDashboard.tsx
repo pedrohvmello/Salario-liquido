@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
+import {PayrepSelect} from './PayrepSelect'
 import {RefreshCw,ShieldCheck,UsersRound,UserCheck,Clock3,ShieldAlert,Activity,Info,CreditCard,MapPin} from 'lucide-react'
 import {AdminUserDetailDialog} from './AdminUserDetail'
 import {AdminAvatar} from './AdminAvatar'
@@ -90,14 +91,14 @@ export function AdminDashboard(){
     <div className="panel-heading"><h2>Usuários cadastrados</h2><span className="pill">{filtered.length} usuário(s)</span></div>
     <div className="admin-filters">
      <label>Pesquisar<input type="search" placeholder="E-mail ou identificador" value={query} onChange={e=>setQuery(e.target.value)}/></label>
-     <label>Situação<select value={filter} onChange={e=>setFilter(e.target.value as 'all'|AccessStatus)}>
+     <label>Situação<PayrepSelect value={filter} onChange={next=>setFilter(next as 'all'|AccessStatus)} title="Situação">
       <option value="all">Todos</option>
       {Object.entries(statuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
-     </select></label>
-     <label>Plano<select value={planFilter} onChange={e=>setPlanFilter(e.target.value as 'all'|Plan)}>
+     </PayrepSelect></label>
+     <label>Plano<PayrepSelect value={planFilter} onChange={next=>setPlanFilter(next as 'all'|Plan)} title="Plano">
       <option value="all">Todos os planos</option>
       {Object.entries(planLabels).map(([code,label])=><option key={code} value={code}>{label}</option>)}
-     </select></label>
+     </PayrepSelect></label>
     </div>
     <div className="table-scroll"><table><thead><tr>
      <th>Usuário</th><th>Criado em</th><th>Último login</th><th>Último acesso ao app</th>
