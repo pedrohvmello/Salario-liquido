@@ -92,7 +92,7 @@ export function PasskeySettings(){
  }
 
  return <div className="passkey-settings">
-  <p className="subtle">Use a impressão digital, reconhecimento facial ou PIN do aparelho para entrar sem digitar a senha. A chave privada permanece protegida pelo dispositivo ou gerenciador de senhas.</p>
+  <p className="subtle">Use impressão digital, reconhecimento facial ou PIN do aparelho para acessar sua conta.</p>
   {!browserSupported&&<div className="notice warning" role="status">Este navegador não oferece WebAuthn em uma conexão segura. Abra o Payrep em um navegador compatível usando HTTPS.</div>}
   <div className="passkey-actions">
    <button type="button" className="secondary" disabled={busy||loading||unavailable||!browserSupported} onClick={()=>void add()}><Plus size={16}/>{busy?'Aguarde...':'Cadastrar chave de acesso'}</button>
