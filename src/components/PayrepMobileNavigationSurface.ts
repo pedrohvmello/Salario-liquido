@@ -224,6 +224,7 @@ export function PayrepMobileNavigationSurface({
       const touch=event.touches.item(0);
       edge=null;
       if(!touch||event.touches.length!==1||!shouldHandle()||touch.clientX>32)return;
+      if(!(event.target instanceof Element)||!event.target.closest('.main'))return;
       edge={identifier:touch.identifier,startX:touch.clientX,startY:touch.clientY,eligible:true};
     };
     const touchMove=(event:TouchEvent)=>{
@@ -249,16 +250,16 @@ export function PayrepMobileNavigationSurface({
       if(event.detail===0||window.performance.now()>suppressClickUntil)return;
       suppressClickUntil=0;event.preventDefault();event.stopImmediatePropagation();
     };
-    surface.addEventListener('touchstart',touchStart,{passive:true,capture:true});
-    surface.addEventListener('touchmove',touchMove,{passive:false,capture:true});
-    surface.addEventListener('touchend',touchEnd,{passive:false,capture:true});
-    surface.addEventListener('touchcancel',clear,{passive:true,capture:true});
+    document.addEventListener('touchstart',touchStart,{passive:true,capture:true});
+    document.addEventListener('touchmove',touchMove,{passive:false,capture:true});
+    document.addEventListener('touchend',touchEnd,{passive:false,capture:true});
+    document.addEventListener('touchcancel',clear,{passive:true,capture:true});
     document.addEventListener('click',clickGuard,true);
     return ()=>{
-      surface.removeEventListener('touchstart',touchStart,true);
-      surface.removeEventListener('touchmove',touchMove,true);
-      surface.removeEventListener('touchend',touchEnd,true);
-      surface.removeEventListener('touchcancel',clear,true);
+      document.removeEventListener('touchstart',touchStart,true);
+      document.removeEventListener('touchmove',touchMove,true);
+      document.removeEventListener('touchend',touchEnd,true);
+      document.removeEventListener('touchcancel',clear,true);
       document.removeEventListener('click',clickGuard,true);
     };
   }, []);
