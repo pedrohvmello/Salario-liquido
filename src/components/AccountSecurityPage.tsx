@@ -28,7 +28,7 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
   try{
    const {error}=await db.auth.signOut({scope:'others'})
    if(error)throw error
-   setSessionsMessage('Outras sessões encerradas. Novas consultas financeiras exigem uma sessão ativa no servidor. Outros tokens de acesso podem permanecer válidos até expirar.')
+   setSessionsMessage('Outras sessões encerradas.')
   }catch(e){setSessionsError(e instanceof Error?e.message:'Não foi possível encerrar outras sessões.')}
   finally{setSessionsBusy(false)}
  }
@@ -66,25 +66,24 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    </div>
    <details className="account-security-details"><summary>Alterar senha diretamente</summary><ChangePassword requireCurrent/></details>
   </section>
-  <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Sessões e dispositivos</h2></div>
-   <p className="subtle">Encerre sessões de outros aparelhos sem desconectar este dispositivo. O acesso aos dados financeiros também depende de a sessão continuar ativa no servidor. Outros tokens de acesso podem permanecer válidos até expirar.</p>
-   <div className="account-security-reset">
-    <button type="button" className="secondary" disabled={sessionsBusy} onClick={()=>void endOtherSessions()}><ShieldCheck size={16}/>{sessionsBusy?'Encerrando...':'Encerrar sessões de outros dispositivos'}</button>
-    {sessionsMessage&&<div className="notice success" role="status">{sessionsMessage}</div>}
-    {sessionsError&&<div className="notice danger" role="alert">{sessionsError}</div>}
-   </div>
-  </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Autenticação em dois fatores (2FA)</h2></div>
-   <p className="subtle">{import.meta.env.VITE_REQUIRE_ADMIN_TOTP==='true'?'Proteja o acesso com um aplicativo autenticador. O TOTP é obrigatório para administradores e opcional para os demais usuários.':'Proteja o acesso com códigos de um aplicativo autenticador. O TOTP está disponível para cadastro e será obrigatório para administradores após a validação inicial em produção.'}</p>
+   <p className="subtle">Proteja sua conta usando códigos gerados por um aplicativo autenticador.</p>
    {import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
      ?<TotpSettings/>
      :<div className="detail-hint"><Info size={16}/>O 2FA ainda não foi habilitado neste ambiente.</div>}
-   {hml&&<div className="detail-hint"><Info size={16}/>HML está isolada. Antes de ativar um fator, prepare um segundo autenticador de reserva. O Supabase não fornece códigos de recuperação TOTP.</div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Fingerprint size={17}/> Biometria e passkeys</h2></div>
    {passkeyFeatureEnabled
     ?<PasskeySettings/>
     :<div className="detail-hint"><Info size={16}/>Login por passkey ainda não está habilitado neste ambiente. O acesso por senha, Google e TOTP permanece disponível.</div>}
+  </section>
+  <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Sessões e dispositivos</h2></div>
+   <p className="subtle">Encerre as sessões de outros dispositivos sem desconectar este aparelho.</p>
+   <div className="account-security-reset">
+    <button type="button" className="secondary" disabled={sessionsBusy} onClick={()=>void endOtherSessions()}><ShieldCheck size={16}/>{sessionsBusy?'Encerrando...':'Encerrar sessões de outros dispositivos'}</button>
+    {sessionsMessage&&<div className="notice success" role="status">{sessionsMessage}</div>}
+    {sessionsError&&<div className="notice danger" role="alert">{sessionsError}</div>}
+   </div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
    <p className="subtle">Exclusão permanente da conta e dados vinculados. Não é possível desfazer.</p>
