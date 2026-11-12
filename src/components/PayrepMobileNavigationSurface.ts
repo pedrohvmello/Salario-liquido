@@ -217,7 +217,7 @@ export function PayrepMobileNavigationSurface({
     type EdgeGesture={identifier:number;startX:number;startY:number;eligible:boolean};
     let edge:EdgeGesture|null=null;
     let suppressClickUntil=0;
-    const shouldHandle=()=>window.matchMedia("(max-width: 820px)").matches
+    const shouldHandle=()=>window.matchMedia("(max-width: 760px)").matches
       &&!stateRef.current.disabled&&!stateRef.current.menuOpen
       &&!document.querySelector('[aria-modal="true"],.profile-popover,.sidebar.open,.payrep-picker-backdrop');
     const touchStart=(event:TouchEvent)=>{
@@ -311,7 +311,7 @@ export function PayrepMobileNavigationSurface({
       stateRef.current.currentView,
       stateRef.current.accessibleViews,
     );
-    const mobile = window.matchMedia("(max-width: 820px)").matches;
+    const mobile = window.matchMedia("(max-width: 760px)").matches;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
