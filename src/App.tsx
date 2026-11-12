@@ -38,6 +38,8 @@ import {mfaGateForAssurance} from './lib/mfaAssurance'
 import {accessScreenFor,adminNeedsTotp,membershipAccessState,type AccessDecision} from './lib/accessGate'
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
+import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
+import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'profile'|'subscription'|'account-settings'
 type TimeRecord=DayEntry&{id:string}
@@ -383,21 +385,9 @@ export default function App(){
   childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
- return <div className="app">
-  <aside id="payrep-sidebar" className={menu?'sidebar open':'sidebar'}>
-   <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
-   <div className="nav-label">MENU PRINCIPAL</div>
-   <nav>
-     {nav.filter(n=>n.id!=='admin'&&n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
-     {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
-     {isAdmin&&nav.filter(n=>n.id==='admin'||n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
-    </nav>
-   
-  </aside>
-  {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
-  <main className="main">
-   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
-   <div className="page-body">
+ const accessiblePrimaryViews=nav.filter(item=>isAdmin||!(item.id==='admin'||item.id==='admin-settings')).map(item=>item.id) as MobilePrimaryView[]
+ const renderPageBody=(section:Section)=> (
+  <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
     {error&&<div className="notice danger payrep-feedback-toast" role="alert"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}
     {notice&&<div className="notice success payrep-feedback-toast" role="status"><CheckCircle2 size={18}/>{notice}<button onClick={()=>setNotice('')}>Fechar</button></div>}
@@ -457,6 +447,31 @@ export default function App(){
     <div className="detail-hint"><Info size={16}/>Os valores são carregados automaticamente do evento mais recente vigente até a competência selecionada. Quando não existe evento para um campo, permanece o valor-base previamente cadastrado. Para modificá-los, utilize Eventos e vigências.</div>
   </div></Panel></div>}
    </div>
+ )
+ return <div className="app">
+  <aside id="payrep-sidebar" className={menu?'sidebar open':'sidebar'}>
+   <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
+   <div className="nav-label">MENU PRINCIPAL</div>
+   <nav>
+     {nav.filter(n=>n.id!=='admin'&&n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
+     {isAdmin&&nav.filter(n=>n.id==='admin'||n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+    </nav>
+   
+  </aside>
+  {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
+  <main className="main">
+   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <PayrepMobileNavigationSurface
+    accessibleViews={accessiblePrimaryViews}
+    currentView={section as MobilePrimaryView}
+    disabled={menu || !accessiblePrimaryViews.includes(section as MobilePrimaryView)}
+    menuOpen={menu}
+    navigationKey={section}
+    onOpenMenu={()=>setMenu(true)}
+    onNavigate={view=>{setSection(view);setMenu(false);setNotice('');setError('')}}
+    renderView={view=>renderPageBody(view)}
+   >{renderPageBody(section)}</PayrepMobileNavigationSurface>
   </main>
  </div>
 }
