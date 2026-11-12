@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "publicVersion": "V1.0",
+  "launchState": "prelaunch",
+  "notes": "As revisões históricas anteriores à numeração formal são identificadas como V1.0 apenas no controle administrativo. Cada arquivo é uma cópia integral do HTML daquele commit, sem alterar o conteúdo original.",
+  "documents": {
+    "privacidade": {
+      "title": "Política de Privacidade",
+      "currentRevisionId": "privacidade-v1.0-r05",
+      "revisions": [
+        {
+          "id": "privacidade-v1.0-r01",
+          "version": "V1.0",
+          "revision": 1,
+          "changedAt": "2026-11-12T16:40:10Z",
+          "summary": "Minuta inicial",
+          "path": "/legal-history/privacidade-v1.0-r01.html",
+          "sourceCommit": "29cdbdb7f6b85c446bd2fc23dab3d86a558637b8",
+          "blobSha": "f7e65a4612f48522124902cdaa08253b0118b488"
+        },
+        {
+          "id": "privacidade-v1.0-r02",
+          "version": "V1.0",
+          "revision": 2,
+          "changedAt": "2026-11-12T20:16:59Z",
+          "summary": "Inclusão do contato institucional e tratamento de suporte",
+          "path": "/legal-history/privacidade-v1.0-r02.html",
+          "sourceCommit": "ef8f842466bf22eb697239c182bcd72b023c81ea",
+          "blobSha": "dc2d3a00d1604ffb24350dd406db0679c94fe8bc"
+        },
+        {
+          "id": "privacidade-v1.0-r03",
+          "version": "V1.0",
+          "revision": 3,
+          "changedAt": "2026-11-12T20:45:24Z",
+          "summary": "Adequação ao logo oficial",
+          "path": "/legal-history/privacidade-v1.0-r03.html",
+          "sourceCommit": "231ec1ef4df3b67968a8c2c73a5473ef51c7d684",
+          "blobSha": "089b939147b29c26ce8a4d2b765e73bd69661b0e"
+        },
+        {
+          "id": "privacidade-v1.0-r04",
+          "version": "V1.0",
+          "revision": 4,
+          "changedAt": "2026-11-12T21:17:20Z",
+          "summary": "Identificação V1.0 e metadados legais",
+          "path": "/legal-history/privacidade-v1.0-r04.html",
+          "sourceCommit": "90b17419a3ddeefcef6c443b374712d961ad8aae",
+          "blobSha": "d6422ff734eb9378406ccaa6e90565176f26ab7e"
+        },
+        {
+          "id": "privacidade-v1.0-r05",
+          "version": "V1.0",
+          "revision": 5,
+          "changedAt": "2026-11-12T22:41:02.808Z",
+          "summary": "Tratamento de chamados abertos na Central de Ajuda",
+          "path": "/legal-history/privacidade-v1.0-r05.html",
+          "sourceCommit": "1f1258645a2faa97f58bfc1891ca386d5757e12f",
+          "blobSha": "375f1a8a7f07fa6121a68fad83d8f828b56b983f"
+        }
+      ]
+    },
+    "termos": {
+      "title": "Termos de Uso",
+      "currentRevisionId": "termos-v1.0-r04",
+      "revisions": [
+        {
+          "id": "termos-v1.0-r01",
+          "version": "V1.0",
+          "revision": 1,
+          "changedAt": "2026-11-12T16:40:40Z",
+          "summary": "Minuta inicial",
+          "path": "/legal-history/termos-v1.0-r01.html",
+          "sourceCommit": "2e92d7fe7b458afa2d60872ab9646272521217ee",
+          "blobSha": "7efe629fb657f624e5c654cafff652533553e0d9"
+        },
+        {
+          "id": "termos-v1.0-r02",
+          "version": "V1.0",
+          "revision": 2,
+          "changedAt": "2026-11-12T20:17:02Z",
+          "summary": "Inclusão do contato institucional",
+          "path": "/legal-history/termos-v1.0-r02.html",
+          "sourceCommit": "ebb9743e65d2da01fc4d5d45119da395c9d7c736",
+          "blobSha": "c0d388d9a8ed77ce699f9cb1ebd97cecd4d16ab7"
+        },
+        {
+          "id": "termos-v1.0-r03",
+          "version": "V1.0",
+          "revision": 3,
+          "changedAt": "2026-11-12T20:45:27Z",
+          "summary": "Adequação ao logo oficial",
+          "path": "/legal-history/termos-v1.0-r03.html",
+          "sourceCommit": "9d0b7e6500e7dcf3aff74452683bdf26bba535c1",
+          "blobSha": "f90165d0967e734345e53e7e7e6a9b7291d52350"
+        },
+        {
+          "id": "termos-v1.0-r04",
+          "version": "V1.0",
+          "revision": 4,
+          "changedAt": "2026-11-12T21:17:23Z",
+          "summary": "Identificação V1.0 e metadados legais",
+          "path": "/legal-history/termos-v1.0-r04.html",
+          "sourceCommit": "e4356ccec0f40ba0c54d1cbbdfd2914e4b1656fd",
+          "blobSha": "37f11915ad9b7841c68e7ecfd6ff1234df5a0b13"
+        }
+      ]
+    }
+  }
+}

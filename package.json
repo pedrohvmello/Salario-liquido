@@ -1,0 +1,35 @@
+{
+  "name": "salario-liquido",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "predev": "node scripts/generate-icons.cjs",
+    "prebuild": "node scripts/generate-icons.cjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.0",
+    "@simplewebauthn/browser": "13.3.0",
+    "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^4.10.38",
+    "recharts": "^2.15.1",
+    "qrcode.react": "4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "date-holidays": "^3.36.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.9",
+    "sharp": "^0.34.1"
+  }
+}

@@ -1,0 +1,10 @@
+# Histórico de documentos legais do Payrep
+
+- A identificação pública de Política de Privacidade e Termos de Uso permanece **V1.0** enquanto o produto estiver na fase pré-lançamento. Nenhuma revisão pré-lançamento incrementa essa identificação sem autorização explícita.
+- O histórico foi iniciado com **quatro revisões reais** de cada documento, recuperadas de commits GitHub de 12/11/2026. A identificação administrativa V1.0 das primeiras revisões é retrospectiva; o HTML arquivado é preservado exatamente como era.
+- Para cada alteração em `public/privacidade.html` ou `public/termos.html`, ANTES de publicar HML ou PRD, criar um arquivo novo e imutável em `public/legal-history/<documento>-v1.0-rNN.html`, com os bytes integrais do HTML atualizado. Nunca sobrescrever arquivo de revisão anterior.
+- Acrescentar a revisão no fim de `public/legal-history/manifest.json` com `id`, `version`, `revision`, `changedAt` em ISO 8601 UTC, `summary`, `path`, `sourceCommit` e `blobSha` Git blob SHA-1 calculado sobre `blob <tamanho_em_bytes>\\0<conteúdo>`. Atualizar `currentRevisionId`.
+- O teste `publicPages.test.ts` impede que uma mudança no HTML atual seja implantada sem o snapshot correspondente; ele valida os hashes das revisões e compara os bytes do arquivo atual com o último snapshot.
+- Em `Administração > Configurações > Histórico dos documentos legais`, o administrador seleciona documento e revisão. A consulta exibe os metadados e fornece um link para abrir a cópia integral arquivada em nova aba, sem pré-visualização incorporada.
+- As páginas legais são documentos públicos, de modo que URLs dos arquivos arquivados também são acessíveis publicamente mesmo que a interface de pesquisa seja exibida apenas a administradores. Para restringir integralmente os arquivos históricos, será necessária entrega autenticada no servidor.
+- Depois da abertura pública, não alterar as versões divulgadas retroativamente. Registrar uma nova versão, preservando os snapshots da V1.0; alterar `launchState` apenas mediante autorização explícita de lançamento.
