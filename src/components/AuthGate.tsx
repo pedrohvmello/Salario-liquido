@@ -24,7 +24,7 @@ export function AuthGate(){
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
-  const [autoPasskey,setAutoPasskey]=useState(()=>autoPromptPreferred())
+  const autoPasskey=autoPromptPreferred()
   const automaticStarted=useRef(false)
   const passkeyRequest=useRef<AbortController|null>(null)
   const passkeySupported=supportsWebAuthn()
