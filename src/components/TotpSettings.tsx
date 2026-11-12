@@ -9,7 +9,7 @@ type IncompleteFactor={id:string;name:string}
 type Enrollment={id:string;qr:string;secret:string}
 const digits=(value:string)=>value.replace(/\D/g,'').slice(0,6)
 
-export function TotpSettings(){
+export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
  const [factors,setFactors]=useState<TotpFactor[]>([])
  const [pending,setPending]=useState<Enrollment|null>(null)
  const [incomplete,setIncomplete]=useState<IncompleteFactor[]>([])
@@ -67,6 +67,7 @@ export function TotpSettings(){
    setPending(null);setResumingId(null);setCode('')
    await load()
    setMessage('Autenticador ativado e sessão verificada em dois fatores.')
+   onActivated?.()
   }catch(e){setError(e instanceof Error?e.message:'Código inválido ou expirado. Tente novamente.')}
   finally{setBusy(false)}
  }
