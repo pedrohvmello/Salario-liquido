@@ -284,7 +284,7 @@ export function installMobileSwipeNavigation(
       return;
     }
     const mobile =
-      view.matchMedia?.("(max-width: 820px)").matches ?? view.innerWidth <= 820;
+      view.matchMedia?.("(max-width: 760px)").matches ?? view.innerWidth <= 760;
     const edge =
       touch.clientX <= MOBILE_SWIPE_EDGE_GUARD_PX ||
       touch.clientX >= view.innerWidth - MOBILE_SWIPE_EDGE_GUARD_PX;
