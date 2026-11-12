@@ -56,7 +56,7 @@ export function PasskeySettings(){
   try{
    await registerDevicePasskey()
    await load()
-   setMessage('Chave de acesso cadastrada. Agora você pode usá-la para entrar no Payrep HML.')
+   setMessage('Chave de acesso cadastrada. Agora você pode usá-la para entrar no Payrep.')
   }catch(e){
    const text=passkeyErrorMessage(e)
    if(text.includes('Supabase ainda não habilitou passkeys'))setUnavailable(true)
