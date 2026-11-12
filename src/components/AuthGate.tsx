@@ -4,7 +4,7 @@ import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 import {autoPromptPreferred,passkeyAutoPromptEnabled,passkeyErrorMessage,passkeyFeatureEnabled,setAutoPromptPreference,supportsWebAuthn} from '../lib/passkey'
-import {cancelPasskeyCeremony,signInWithDevicePasskey} from '../lib/devicePasskeys'
+import {cancelPasskeyCeremony,rememberedCredentialId,signInWithDevicePasskey} from '../lib/devicePasskeys'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -57,7 +57,8 @@ export function AuthGate(){
   useEffect(()=>{
     // Supabase session recovery happens in App before AuthGate mounts.
     // Request the device's native passkey UI at most once per login screen.
-    if(!passkeyAutoPromptEnabled||!passkeySupported||!autoPasskey||automaticStarted.current)return
+    // Do not interrupt users who have not registered a passkey on this device.
+    if(!passkeyAutoPromptEnabled||!passkeySupported||!autoPasskey||!rememberedCredentialId()||automaticStarted.current)return
     automaticStarted.current=true
     void passkeySignIn(true)
   },[])
