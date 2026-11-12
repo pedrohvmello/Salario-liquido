@@ -22,7 +22,7 @@ function normalize(value:string){
 }
 
 type Props={
- children:ReactNode
+ children?:ReactNode
  value?:string|number
  defaultValue?:string|number
  onChange?:(value:string)=>void
