@@ -190,7 +190,9 @@ export default function App(){
    setStatements([]);setAllLines([]);setEvents([]);setRecords([])
   }
   return ()=>{current=false}
- },[user,mfaState,accessRetry])
+ // User metadata updates (e.g. saving a profile) must not unmount the active screen.
+ // Only changes of account identity or MFA assurance require rechecking access.
+ },[user?.id,mfaState,accessRetry])
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
