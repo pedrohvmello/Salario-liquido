@@ -839,3 +839,14 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .payrep-calendar-day{height:39px}
 }
 @media(prefers-reduced-motion:reduce){.payrep-select-trigger{transition:none}}
+
+
+/* Restore form-specific widths after replacing native select elements. */
+.filterbar>.payrep-select-trigger{width:160px;max-width:100%;flex:none}
+.hours-filterbar>.payrep-select-trigger{width:165px}
+.events-filterbar>.payrep-select-trigger{width:190px}
+.analytics-filter>.payrep-select-trigger{width:min(300px,100%);max-width:100%;flex-shrink:1}
+.year-filter>.payrep-select-trigger{min-width:150px}
+.form label>.payrep-select-trigger,.form-grid label>.payrep-select-trigger{width:100%}
+@media(max-width:760px){.analytics-filter>.payrep-select-trigger{width:100%}}
+@media(max-width:400px){.filterbar>.payrep-select-trigger{width:min(100%,190px)}}
