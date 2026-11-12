@@ -3,10 +3,12 @@ import {ShieldCheck,Info,Trash2,Plus,Pencil} from 'lucide-react'
 import {db} from '../lib/data'
 import {cleanMfaLabel,displayMfaLabel,mfaLabelMetadataKey,readMfaLabels} from '../lib/mfaLabels'
 import {AuthenticatorAppPicker} from './AuthenticatorAppPicker'
+import {QRCodeSVG} from 'qrcode.react'
+import {buildPayrepTotpUri,PAYREP_TOTP_ISSUER} from '../lib/totpIssuer'
 
 type TotpFactor={id:string;name:string}
 type IncompleteFactor={id:string;name:string}
-type Enrollment={id:string;qr:string;secret:string}
+type Enrollment={id:string;uri:string;secret:string}
 const digits=(value:string)=>value.replace(/\D/g,'').slice(0,6)
 
 export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
@@ -46,10 +48,13 @@ export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
   setBusy(true);setError('');setMessage('')
   try{
    const label=cleanMfaLabel(newProvider==='Outro'?otherName:newProvider)
+   const {data:accountResult,error:accountError}=await db.auth.getUser()
+   if(accountError||!accountResult.user?.email)throw accountError||Error('Não foi possível consultar a conta para configurar o autenticador.')
+   const account=accountResult.user.email
    const {data,error}=await db.auth.mfa.enroll({factorType:'totp',friendlyName:label})
    if(error)throw error
-   if(!data.totp?.qr_code||!data.totp?.secret)throw Error('O Supabase não retornou o QR Code.')
-   setPending({id:data.id,qr:data.totp.qr_code,secret:data.totp.secret})
+   if(!data.totp?.secret)throw Error('O Supabase não retornou a chave TOTP.')
+   setPending({id:data.id,uri:buildPayrepTotpUri(data.totp.secret,account),secret:data.totp.secret})
    setResumingId(null)
    setCode('')
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível iniciar a configuração.')}
@@ -124,11 +129,11 @@ export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível remover o autenticador.')}
   finally{setBusy(false)}
  }
- const qrData=pending?.qr.startsWith('data:image/')?pending.qr:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(pending?.qr||'')
  return <div className="totp-settings">
   {loading&&<p className="subtle">Carregando autenticadores...</p>}
   {!loading&&<div className="totp-factors">
    <p className="subtle">{factors.length===0?'Nenhum autenticador ativo.':'Autenticadores ativos: '+factors.length}</p>
+   {factors.length>0&&<p className="subtle">O nome de uma conta já cadastrada no Microsoft Authenticator não muda ao renomeá-la no Payrep. Para alterar o nome mostrado no aplicativo, edite a entrada diretamente no Authenticator, se a versão permitir. Não exclua o fator existente antes de confirmar outro funcionando.</p>}
    {factors.map((f,i)=><div key={f.id} className="totp-factor-row">
     <div><ShieldCheck size={17}/><span>{f.name}</span>{i===0&&<small>Principal</small>}</div>
     {renameId===f.id
@@ -161,9 +166,9 @@ export function TotpSettings({onActivated}:{onActivated?:()=>void}={}){
   </div>}
   {pending&&<div className="totp-enrollment">
    <strong>Configurar autenticador</strong>
-   <p className="subtle">1. Abra seu aplicativo autenticador e escaneie o QR Code abaixo. Não compartilhe o QR Code nem a chave.</p>
-   <img className="totp-qr" src={qrData} alt="QR Code privado para configurar seu autenticador" width={205} height={205}/>
-   <details><summary>Não consigo escanear o QR Code</summary><p className="subtle">Digite a chave manualmente no autenticador:</p><code className="totp-secret">{pending.secret}</code></details>
+   <p className="subtle">1. Abra seu aplicativo autenticador e escaneie o QR Code abaixo. Ele identifica o serviço como <strong>{PAYREP_TOTP_ISSUER}</strong>. Não compartilhe o QR Code nem a chave.</p>
+   <QRCodeSVG className="totp-qr" value={pending.uri} size={205} level="M" marginSize={2} title="QR Code Payrep para configurar autenticador"/>
+   <details><summary>Não consigo escanear o QR Code</summary><p className="subtle">Para cadastrar manualmente no aplicativo, informe o nome da conta <strong>{PAYREP_TOTP_ISSUER}</strong>, selecione chave baseada em tempo (TOTP) e use o código abaixo:</p><code className="totp-secret">{pending.secret}</code></details>
    <form onSubmit={e=>{e.preventDefault();void verify()}}>
     <label>2. Informe o código de 6 dígitos<input type="text" required autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(digits(e.target.value))} placeholder="000000"/></label>
     <div className="totp-enrollment-buttons"><button type="submit" className="primary" disabled={busy||code.length!==6}>Confirmar código e ativar</button><button type="button" className="secondary" disabled={busy} onClick={()=>void cancel()}>Cancelar</button></div>
