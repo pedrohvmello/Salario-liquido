@@ -693,6 +693,11 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .totp-factor-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
 .totp-enrollment{display:flex;align-items:flex-start;flex-direction:column;gap:12px;padding:16px;border:1px solid #e5d3f3;border-radius:12px;background:#fcfaff}
 .totp-enrollment>p{margin:0}
+.totp-factors>.totp-enrollment{width:100%}
+.totp-factor-row>form.totp-enrollment{width:100%;max-width:100%;padding:0;margin:0;border:0;background:transparent}
+.totp-factor-row>form.totp-enrollment label{width:100%}
+.totp-factor-row>form.totp-enrollment input{width:100%;max-width:440px}
+.totp-factors>.totp-enrollment label{width:100%;max-width:440px}
 .totp-qr{height:205px;width:205px;max-width:100%;border:1px solid #e6d8ef;border-radius:8px;background:#fff;padding:8px;object-fit:contain}
 .totp-enrollment details{max-width:100%}
 .totp-enrollment details summary{cursor:pointer;color:#6d16ad;font-size:12px;font-weight:650}
