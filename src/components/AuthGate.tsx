@@ -1,8 +1,9 @@
 import {useState} from 'react'
-import {ChevronRight, LockKeyhole, ShieldCheck} from 'lucide-react'
+import {ChevronRight, Fingerprint, LockKeyhole, ShieldCheck} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
+import {passkeyErrorMessage,passkeyFeatureEnabled,supportsWebAuthn} from '../lib/passkey'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -22,6 +23,18 @@ export function AuthGate(){
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
+  const [passkeyBusy,setPasskeyBusy]=useState(false)
+  const passkeySupported=supportsWebAuthn()
+  const passkeySignIn=async()=>{
+    if(!db||passkeyBusy)return
+    setPasskeyBusy(true);setError('');setMessage('')
+    try{
+      const {error}=await db.auth.signInWithPasskey()
+      if(error)throw error
+      // The existing auth state listener handles AAL1 to AAL2 TOTP escalation.
+    }catch(e){setError(passkeyErrorMessage(e))}
+    finally{setPasskeyBusy(false)}
+  }
   const act=async()=>{
     if(!db)return
     setBusy(true);setError('');setMessage('')
@@ -71,6 +84,7 @@ export function AuthGate(){
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
+    {mode==='login'&&passkeyFeatureEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary passkey-sign-in" disabled={busy||passkeyBusy||!passkeySupported} onClick={()=>void passkeySignIn()}><Fingerprint size={19}/>{passkeyBusy?'Verificando dispositivo...':'Entrar com biometria ou chave de acesso'}</button>{!passkeySupported&&<p className="subtle">Este navegador precisa oferecer WebAuthn em HTTPS para usar biometria.</p>}</>}
     {mode!=='reset'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><GoogleGIcon/> Continuar com Google</button></>}
     <div className="auth-bottom-actions">
       {mode==='login'&&<button className="text-button" type="button" onClick={()=>{setMode('signup');setPassword('');setConfirmation('');setError('');setMessage('')}}>Criar conta</button>}
