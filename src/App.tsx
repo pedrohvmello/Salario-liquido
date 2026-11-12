@@ -33,6 +33,7 @@ import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
+import {SupportPage} from './components/SupportPage'
 import {MfaGate} from './components/MfaGate'
 import {TotpSettings} from './components/TotpSettings'
 import {mfaGateForAssurance} from './lib/mfaAssurance'
@@ -42,7 +43,7 @@ import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
 import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
-type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'profile'|'subscription'|'account-settings'
+type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'profile'|'subscription'|'account-settings'|'help'
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
@@ -436,6 +437,7 @@ export default function App(){
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
     {section==='subscription'&&user&&<SubscriptionPage onBack={()=>setSection('overview')}/>}
     {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')}/>}
+    {section==='help'&&user&&<SupportPage user={user}/>}
      {section==='definitions'&&<div className="stack"><Panel title="Configurações da Visão Geral"><p className="subtle">Selecione e ordene os cartões. A lista é lida de cima para baixo na primeira coluna e depois na segunda, seguindo a numeração exibida.</p><div className="overview-config">{[...overviewCards,...overviewCardDefinitions.map(([id])=>id).filter(id=>!overviewCards.includes(id))].map(id=>{const label=overviewCardDefinitions.find(([key])=>key===id)?.[1]||id;const visible=overviewCards.includes(id);const position=overviewCards.indexOf(id);return <div className="overview-config-row" key={id}><label className="checkbox-label"><span className="overview-config-rank">{visible?position+1:'·'}</span><input type="checkbox" checked={visible} onChange={e=>setOverviewCards(v=>changeCardVisibility(v,id,e.target.checked))}/>{label}</label><div className="overview-config-actions"><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para cima'} title="Mover para cima" disabled={!visible||position===0} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,-1))}><ArrowUp size={16}/></button><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para baixo'} title="Mover para baixo" disabled={!visible||position===overviewCards.length-1} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,1))}><ArrowDown size={16}/></button></div></div>})}</div><button className="primary" disabled={busy||!db} onClick={()=>task(async()=>{await persistOverviewCards(overviewCards);await refresh()},'Configurações da Visão Geral salvas')}><Save size={16}/> Salvar seleção e ordem</button></Panel><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel><Panel title="Remuneração e descontos"><div className="form"><div className="settings-readonly-heading">
       <p className="subtle">Valores efetivos da competência <strong>{monthLabel(month)}</strong>. Para alterar, cadastre um evento em <button type="button" className="text-button" onClick={()=>setSection('events')}>Eventos e vigências</button>.</p>
     </div>
@@ -469,11 +471,14 @@ export default function App(){
      {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
      {isAdmin&&nav.filter(n=>n.id==='admin'||n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
     </nav>
-   
+   <footer className="sidebar-footer" aria-label="Links institucionais">
+    <span>© 2026 Payrep</span>
+    <div className="sidebar-footer-links"><a href="/sobre" target="_blank" rel="noopener noreferrer">Sobre</a><a href="/privacidade" target="_blank" rel="noopener noreferrer">Privacidade</a><a href="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</a></div>
+   </footer>
   </aside>
   {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
-   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='help'?'Ajuda':section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
    <PayrepMobileNavigationSurface
     accessibleViews={accessiblePrimaryViews}
     currentView={section as MobilePrimaryView}

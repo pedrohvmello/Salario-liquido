@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,LockKeyhole,Info,Save,BookOpen} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
+import {AdminSupportTickets} from './AdminSupportTickets'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 import {passwordPolicyDefaults,type PasswordPolicy} from '../lib/passwordPolicy'
 
@@ -55,5 +56,6 @@ export function AdminSettingsPage(){
    <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
    <LegalHistoryViewer/>
   </section>
+  <AdminSupportTickets/>
  </div>
 }
