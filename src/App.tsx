@@ -116,7 +116,7 @@ export default function App(){
  const [base,setBase]=useState<BaseLocation|null>(null)
  const [holidayCalendar,setHolidayCalendar]=useState<HolidayCatalog|null>(null)
  const [holidayStatus,setHolidayStatus]=useState<'unconfigured'|'loading'|'ready'|'failed'>('unconfigured')
- const [params,setParams]=useState<SalaryParameters>(!db?{...defaults,salary:9500,trienio:100,dependents:1,esppPercent:5,privatePensionFixed:190,pensionMethod:'none'}:defaults)
+ const [params,setParams]=useState<SalaryParameters>(!db?{...defaults,salary:9500,trienio:100,dependents:1,esppPercent:5,privatePensionPercent:2,pensionMethod:'none'}:defaults)
  const [selectedStmt,setSelectedStmt]=useState<SavedStatement|null>(null)
  const [statementLines,setStatementLines]=useState<Array<{code:string;description:string;amount:number;side:string}>>([])
  const [importFiles,setImportFiles]=useState<File[]>([])
@@ -448,7 +448,7 @@ export default function App(){
       <strong className="settings-readonly-value">{pensionMethods[effective.pensionMethod]}</strong>
       <small className="settings-readonly-source">{hasPension?'Definida pelos eventos vigentes':'Nenhum evento de pensão vigente'}</small>
     </div>
-    <div className="detail-hint"><Info size={16}/>Os valores são carregados automaticamente do evento mais recente vigente até a competência selecionada. Quando não existe evento para um campo, permanece o valor-base previamente cadastrado. Para modificá-los, utilize Eventos e vigências.</div>
+    <div className="detail-hint"><Info size={16}/>Os valores são carregados automaticamente do evento mais recente vigente até a competência selecionada. Quando não existe evento para um campo, permanece o valor-base previamente cadastrado. O valor da previdência em reais é calculado automaticamente pela alíquota vigente sobre o salário-base, sem evento próprio. Para alterar os percentuais, utilize Eventos e vigências.</div>
   </div></Panel></div>}
    </div>
  )
