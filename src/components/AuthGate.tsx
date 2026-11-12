@@ -4,6 +4,7 @@ import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 import {autoPromptPreferred,passkeyAutoPromptEnabled,passkeyErrorMessage,passkeyFeatureEnabled,setAutoPromptPreference,supportsWebAuthn} from '../lib/passkey'
+import {cancelPasskeyCeremony,signInWithDevicePasskey} from '../lib/devicePasskeys'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -30,6 +31,7 @@ export function AuthGate(){
   const passkeySupported=supportsWebAuthn()
   const stopPasskeyAttempt=()=>{
     passkeyRequest.current?.abort()
+    cancelPasskeyCeremony()
     passkeyRequest.current=null
     setPasskeyBusy(false)
   }
@@ -39,8 +41,7 @@ export function AuthGate(){
     passkeyRequest.current=controller
     setPasskeyBusy(true);setError('');setMessage('')
     try{
-      const {error}=await db.auth.signInWithPasskey({options:{signal:controller.signal}})
-      if(error)throw error
+      await signInWithDevicePasskey({signal:controller.signal,useRemembered:automatic})
       // The existing auth state listener handles AAL1 to AAL2 TOTP escalation.
     }catch(e){
       // A dismissed or browser-blocked automatic prompt must leave password
