@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
+import {PayrepSelect} from './PayrepSelect'
 import {AlertTriangle,CheckCircle2,FileCheck2,Info,Save} from 'lucide-react'
 import {brl} from '../lib/money'
 import {
@@ -61,9 +62,9 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
     <p>Ano-calendário {year}, exercício {year+1}. Conferência assistida de holerites, não é informe oficial nem declaração pronta.</p>
    </div>
    <label className="year-filter">Ano-calendário
-    <select value={year} onChange={e=>setYear(Number(e.target.value))}>
+    <PayrepSelect value={year} onChange={next=>setYear(Number(next))} title="Ano-calendário">
      {years.map(x=><option key={x} value={x}>{x}</option>)}
-    </select>
+    </PayrepSelect>
    </label>
   </div>
   <div className="notice subtle-notice"><Info size={18}/>
