@@ -95,6 +95,8 @@ export default function App(){
  const [user,setUser]=useState<User|null>(null)
  const [authReady,setAuthReady]=useState(!db)
  const mfaEnabled=import.meta.env.VITE_ENABLE_TOTP_MFA==='true'
+ // Admin enforcement is a separate rollout switch: enroll verified factors first.
+ const requireAdminTotp=mfaEnabled&&import.meta.env.VITE_REQUIRE_ADMIN_TOTP==='true'
  const [mfaState,setMfaState]=useState<'checking'|'ready'|'challenge'|'error'>(mfaEnabled?'checking':'ready')
  const [mfaRetry,setMfaRetry]=useState(0)
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
@@ -169,12 +171,12 @@ export default function App(){
   }
   // Admin enrollment is a separate step from membership approval.
   // Never authorize administrative data from client-controlled metadata.
-  if(mfaEnabled&&membership?.role==='admin'){
+  if(requireAdminTotp&&membership?.role==='admin'){
    const {data:factors,error:factorsError}=await db.auth.mfa.listFactors()
    if(factorsError)throw factorsError
    if(!isCurrent())return
    const verifiedCount=factors.totp.filter(f=>f.status==='verified').length
-   if(adminNeedsTotp(membership,verifiedCount,mfaEnabled)){
+   if(adminNeedsTotp(membership,verifiedCount,requireAdminTotp)){
     setIsAdmin(false)
     setAccessDecision({userId:checkedUserId,state:'enroll-mfa'})
     return
