@@ -1,7 +1,18 @@
-import {describe,expect,it} from 'vitest'
-import {passkeyErrorMessage,supportsWebAuthn} from './passkey'
+import {afterEach,describe,expect,it,vi} from 'vitest'
+import {autoPromptPreferred,passkeyAutoPreferenceKey,passkeyErrorMessage,setAutoPromptPreference,supportsWebAuthn} from './passkey'
 
 describe('passkey support',()=>{
+ afterEach(()=>vi.unstubAllGlobals())
+ it('stores per-device automatic prompt opt out without affecting passkeys',()=>{
+  const values=new Map<string,string>()
+  vi.stubGlobal('window',{localStorage:{getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{values.set(k,v)}}})
+  expect(autoPromptPreferred()).toBe(true)
+  setAutoPromptPreference(false)
+  expect(values.get(passkeyAutoPreferenceKey)).toBe('off')
+  expect(autoPromptPreferred()).toBe(false)
+  setAutoPromptPreference(true)
+  expect(autoPromptPreferred()).toBe(true)
+ })
  it('does not assume browser WebAuthn exists in non-browser environments',()=>{
   expect(supportsWebAuthn()).toBe(false)
  })
