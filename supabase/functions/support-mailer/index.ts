@@ -2,13 +2,14 @@
 // isolated Supabase project. No credentials are ever sent to the browser.
 // Invoke from a trusted scheduler with X-Payrep-Worker-Token. Never expose that token.
 import {createClient} from 'npm:@supabase/supabase-js@2.105.0'
+import {renderSupportEmail,type TicketMailKind,type TicketMailStatus} from './template.ts'
 
 type EmailEvent={
  id:string;ticket_id:string;message_id:string|null;kind:string;attempts:number
 }
 type Ticket={
  id:string;user_id:string;ticket_year:number;ticket_sequence:number
- category:string;subject:string;description:string
+ category:string;subject:string;description:string;status:TicketMailStatus
 }
 type Message={body:string}
 const textMax=(v:string,max=4000)=>v.slice(0,max)
@@ -43,7 +44,7 @@ Deno.serve(async req=>{
   if(claimError||!claimed)continue
   try{
    const {data:ticket,error:ticketError}=await db.from('support_tickets')
-    .select('id,user_id,ticket_year,ticket_sequence,category,subject,description')
+    .select('id,user_id,ticket_year,ticket_sequence,category,subject,description,status')
     .eq('id',item.ticket_id).single()
    if(ticketError||!ticket)throw Error('Ticket not available')
    const t=ticket as Ticket
@@ -77,18 +78,18 @@ Deno.serve(async req=>{
    if(!prefix)throw Error('Unexpected mail event')
    const notice=item.kind==='ticket_closed'?'O atendimento foi finalizado pelo suporte.':textMax(messageBody)
    const subject='[Payrep #'+ticketCode+'] '+prefix+': '+textMax(t.subject,115).replace(/[\r\n]+/g,' ')
-   const plain=[
-    prefix+' · Protocolo '+ticketCode,
-    'Assunto: '+t.subject,
-    'Categoria: '+t.category,
-    'Solicitante: '+senderName,
-    'Contato: '+userLookup.user.email,
-    '',
-    notice,
-    '',
-    'Acompanhe o chamado no Payrep: '+app,
-    'Não inclua senhas, códigos de autenticação ou documentos financeiros completos por e-mail.'
-   ].join('\n')
+   const {html,plain}=renderSupportEmail({
+    kind:item.kind as TicketMailKind,
+    status:t.status,
+    ticketCode,
+    subject:t.subject,
+    category:t.category,
+    requesterName:senderName,
+    requesterEmail:userLookup.user.email,
+    message:notice,
+    appUrl:app,
+    allowEmailReply:item.kind==='admin_message'&&env('SUPPORT_EMAIL_REPLIES_ENABLED')==='true'
+   })
    const response=await fetch('https://smtp.maileroo.com/api/v2/emails',{
     method:'POST',
     headers:{'Authorization':'Bearer '+mailKey,'Content-Type':'application/json'},
@@ -96,7 +97,7 @@ Deno.serve(async req=>{
      from:{address:from,display_name:'Suporte Payrep'},
      to:{address:recipient},
      reply_to:{address:replyTo},
-     subject,plain,tracking:false,
+     subject,plain,html,tracking:false,
      tags:{purpose:'payrep-support',event:item.kind},
      headers:{'X-Payrep-Ticket':ticketCode}
     })
