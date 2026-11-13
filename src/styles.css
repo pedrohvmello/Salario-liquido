@@ -970,3 +970,128 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .help-admin-ticket-status{min-width:175px}
 .help-admin-ticket-status label{font-size:12px;color:#684c7f}
 @media(max-width:640px){.help-ticket-item,.help-admin-ticket{flex-direction:column}.help-admin-ticket-status{width:100%}.help-contact-link{width:100%;justify-content:center}}
+
+
+/* Identidade do usuário abaixo do avatar. */
+.profile-display-name{display:block;max-width:100%;font-size:15px;font-weight:750;line-height:1.35;color:#32124e;text-align:center;overflow-wrap:anywhere}
+.profile-photo-section{gap:11px;margin-bottom:20px}
+
+/* Área dedicada de chamados, separada do FAQ. */
+.help-ticket-button{width:100%;text-align:left;font:inherit;cursor:pointer}
+.help-ticket-button:hover,.help-ticket-button:focus-visible{border-color:#b376e8;outline:2px solid transparent;background:#f4eaff}
+.help-ticket-button.is-selected{border-color:#a654dd;box-shadow:0 0 0 1px #a654dd55;background:#f8f0ff}
+.help-ticket-button>span:first-child{min-width:0}
+.help-conversation{display:flex;flex-direction:column;gap:17px}
+.help-conversation-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.help-conversation-heading strong{display:block;font-size:15px;color:#32124e}
+.help-conversation-heading small{display:block;color:#806896;margin-top:5px;font-size:12px}
+.help-conversation-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.help-message-list{list-style:none;padding:16px;margin:0;border:1px solid #eadcf4;border-radius:14px;background:#fcfaff;display:flex;flex-direction:column;gap:12px;max-height:430px;overflow-y:auto}
+.help-message{width:fit-content;max-width:min(85%,660px);padding:12px 14px;border-radius:14px;border:1px solid #e2d2ef;background:white;overflow-wrap:anywhere}
+.help-message-user{align-self:flex-start}
+.help-message-admin{align-self:flex-end;background:#f0e1ff;border-color:#d7baf0}
+.help-message-meta{font-size:11px;font-weight:700;color:#73598b}
+.help-message p{font-size:13px;line-height:1.65;margin:7px 0 0;white-space:pre-wrap;color:#35194d}
+.help-message-form{display:flex;flex-direction:column;gap:10px}
+.help-message-form label{font-size:12px;font-weight:750;color:#4b3064}
+.help-message-form textarea{min-height:85px;resize:vertical}
+.help-message-form button{align-self:flex-start}
+.help-ticket-closed{display:flex;align-items:flex-start;gap:9px;color:#5c456e;font-size:12px;line-height:1.6;background:#f5f0f9;padding:13px;border-radius:10px}
+.help-admin-ticket-main{flex:1;min-width:0}
+.help-admin-ticket-main>.secondary{margin-top:12px}
+.help-admin-conversation{margin-top:20px;border-top:1px solid #eadcf4;padding-top:22px}
+@media(max-width:640px){
+ .help-conversation-heading-actions{width:100%}
+ .help-message{max-width:96%}
+ .help-ticket-button{align-items:flex-start}
+}
+
+
+/* Administração de suporte: filtros independentes para status e competência anual. */
+.payrep-admin-support-page{max-width:1180px;margin:0 auto}
+.payrep-admin-support-page .panel-heading h2{display:flex;align-items:center;gap:10px}
+.help-admin-filters{display:grid;grid-template-columns:repeat(2,minmax(180px,300px));gap:14px;margin:17px 0}
+.help-admin-filters label{display:flex;flex-direction:column;gap:7px;color:#4b3064;font-size:12px;font-weight:750}
+@media(max-width:640px){.help-admin-filters{grid-template-columns:1fr}}
+
+
+/* Chamados administrativos compactos: expandir em linha e diferenciar o status sem saturação. */
+.help-admin-filters{grid-template-columns:repeat(3,minmax(0,1fr));max-width:920px}
+.help-admin-ticket-list{gap:10px}
+.help-admin-ticket.support-compact-ticket{
+ display:block;padding:0;overflow:visible;border:1px solid #e5d9ee;background:#faf8fd;
+ transition:background-color .15s,border-color .15s
+}
+.support-compact-ticket:hover{border-color:#d8c2eb}
+.support-compact-ticket.is-expanded{border-color:#c5a0e3}
+.support-compact-row{display:flex;align-items:center;gap:15px;padding:4px 14px 4px 0}
+.support-compact-toggle{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ min-width:0;flex:1;background:transparent;border:0;border-radius:11px;
+ padding:15px 14px 15px 19px;text-align:left;color:#32154c
+}
+.support-compact-toggle:hover,.support-compact-toggle:focus-visible{background:#f2ebfa}
+.support-compact-toggle:focus-visible{outline:2px solid #8b45be;outline-offset:-2px}
+.support-compact-details{display:flex;flex-direction:column;gap:5px;min-width:0}
+.support-compact-details strong{font-size:13px;line-height:1.45;color:#341752}
+.support-compact-details small{font-size:11px;line-height:1.5;margin:0;color:#816b92;overflow-wrap:anywhere}
+.support-compact-chevron{flex-shrink:0;color:#815b9f;transition:transform .16s}
+.support-compact-chevron.is-expanded{transform:rotate(180deg)}
+.support-compact-status{flex:0 0 178px;min-width:0}
+.support-compact-status label{display:flex;flex-direction:column;gap:5px;font-weight:650}
+.support-compact-status .payrep-select-trigger{padding:9px 12px;min-height:39px;min-width:0;width:100%;font-size:12px;border-radius:10px;box-shadow:none}
+.support-status-select-open{background:#fff6d8!important;color:#805900!important;border-color:#edd9a0!important}
+.support-status-select-in_progress{background:#fff0de!important;color:#a45413!important;border-color:#f0d0ad!important}
+.support-status-select-resolved{background:#e9f7eb!important;color:#28764a!important;border-color:#bfe1c9!important}
+.support-compact-status .payrep-select-trigger:disabled{opacity:.85}
+.support-compact-conversation{padding:18px 19px 21px;border-top:1px solid #e7d9f0}
+.support-compact-conversation .help-conversation{gap:15px}
+@media(max-width:900px){.help-admin-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+ .help-admin-filters{grid-template-columns:1fr;max-width:100%}
+ .support-compact-row{align-items:stretch;flex-direction:column;gap:0;padding:0 12px 12px}
+ .support-compact-toggle{width:100%;padding:14px 4px}
+ .support-compact-status{flex:auto;width:100%}
+ .support-compact-conversation{padding:15px 12px 19px}
+}
+
+
+/* Compact support threads: no repeated subject, protocol, status or refresh controls. */
+.help-user-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.help-user-filters label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750;color:#4b3064}
+.help-user-ticket{border:1px solid #e8dcf3;border-radius:13px;background:#faf7ff;overflow:hidden}
+.help-user-ticket.is-expanded{border-color:#b679e7}
+.help-user-ticket-toggle.help-ticket-item{width:100%;border:0;border-radius:0;background:transparent;align-items:center;text-align:left;gap:12px;min-height:74px}
+.help-user-ticket-toggle:hover,.help-user-ticket-toggle:focus-visible{background:#f4ecfd}
+.help-user-ticket-toggle:focus-visible{outline:2px solid #a14edb;outline-offset:-2px}
+.help-user-ticket-details{flex:1;min-width:0}
+.help-user-ticket-action{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.help-user-ticket-conversation{padding:18px 18px 20px;border-top:1px solid #e7d9f0}
+.help-ticket-status-open{background:#fff6d8;color:#805900;border:1px solid #edd9a0}
+.help-ticket-status-in_progress{background:#fff0de;color:#a45413;border:1px solid #f0d0ad}
+.help-ticket-status-resolved{background:#e9f7eb;color:#28764a;border:1px solid #bfe1c9}
+@media(max-width:640px){
+ .help-user-filters{grid-template-columns:1fr}
+ .help-user-ticket-toggle.help-ticket-item{flex-direction:row;align-items:center}
+ .help-user-ticket-action{gap:6px}
+ .help-user-ticket-conversation{padding:14px 11px 18px}
+}
+
+/* Confirmação de encerramento integrada à identidade do Payrep. */
+.support-close-dialog{width:min(460px,100%)}
+.support-close-content{padding:3px 22px 22px;display:flex;flex-direction:column;gap:15px}
+.support-close-icon{width:46px;height:46px;border-radius:14px;background:#f0e2ff;color:#7700c5;display:grid;place-items:center}
+.support-close-intro{margin:0;font-size:13px;line-height:1.6;color:#635076}
+.support-close-summary{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #e7d9f1;border-radius:12px;background:#fbf8ff}
+.support-close-summary>span{font-size:11px;color:#776287}
+.support-close-summary>span strong{font-size:12px;color:#593279}
+.support-close-subject{font-size:14px;color:#34164d;overflow-wrap:anywhere}
+.support-close-warning{margin:0;font-size:12px;line-height:1.65;color:#785287}
+.support-close-error{margin:0;padding:10px 12px;border:1px solid #efc8c8;border-radius:10px;color:#9a2b2b;background:#fff7f7;font-size:12px;line-height:1.5}
+.support-close-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:5px}
+.support-close-actions button{min-width:125px;min-height:43px}
+@media(max-width:540px){
+ .support-close-content{padding:3px 16px 18px}
+ .support-close-actions{flex-direction:column-reverse}
+ .support-close-actions button{width:100%;min-height:46px}
+}

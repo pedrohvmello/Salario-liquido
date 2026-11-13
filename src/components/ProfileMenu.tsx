@@ -2,7 +2,8 @@ import {useEffect,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
 import {Camera,Check,LogOut,X,UserRound,CreditCard,ShieldCheck,HelpCircle,Trash2} from 'lucide-react'
 import {db} from '../lib/data'
-import {accountInitials} from '../lib/profile'
+import {accountInitials,profileDisplayName} from '../lib/profile'
+import {loadMyProfile} from '../lib/account'
 import {PhotoCropDialog} from './PhotoCropDialog'
 
 const BUCKET='profile-avatars'
@@ -11,6 +12,7 @@ const accepted=new Set(['image/jpeg','image/png','image/webp'])
 
 export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'profile'|'subscription'|'account-settings'|'help')=>void}){
  const [open,setOpen]=useState(false)
+ const [displayName,setDisplayName]=useState(profileDisplayName(user))
  const [avatar,setAvatar]=useState<string|null>(null)
  const [avatarVersion,setAvatarVersion]=useState(0)
  const [cropFile,setCropFile]=useState<File|null>(null)
@@ -42,6 +44,14 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
   document.addEventListener('keydown',closeEscape)
   return ()=>{document.removeEventListener('pointerdown',closeOutside);document.removeEventListener('keydown',closeEscape)}
  },[open,cropFile,photoDialogOpen])
+ useEffect(()=>{
+  if(!open||!user)return
+  let active=true
+  void loadMyProfile().then(profile=>{if(active)setDisplayName(profile.display_name)})
+   .catch(()=>{if(active)setDisplayName(profileDisplayName(user))})
+  return ()=>{active=false}
+ },[open,user?.id])
+ const preferredName=(displayName.trim()||profileDisplayName(user).trim()||user?.email?.split('@')[0]||'Usuário').replace(/\.\s*$/,'').trim()
  const perform=async(action:()=>Promise<void>,success?:string)=>{
   setBusy(true);setError('');setMessage('')
   try{await action();if(success)setMessage(success)}
@@ -93,6 +103,7 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
    <div className="profile-popover-header"><div><strong>Meu perfil</strong><small>{user.email}</small></div><button className="profile-icon-button" type="button" onClick={()=>setOpen(false)} aria-label="Fechar perfil"><X size={18}/></button></div>
    <div className="profile-photo-section">
     <button type="button" className="profile-avatar profile-avatar-large profile-photo-open" disabled={busy} onClick={()=>setPhotoDialogOpen(true)} aria-haspopup="dialog" aria-label="Ampliar e gerenciar foto do perfil" title="Ver e gerenciar foto">{avatar?<img src={avatar} alt="" className="profile-avatar-image"/>:initial}</button>
+    <strong className="profile-display-name">{preferredName}</strong>
     <input ref={uploadInput} className="profile-hidden-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{choosePhoto(e.target.files?.[0]);e.currentTarget.value=''}} aria-label="Escolher foto de perfil"/>
    </div>
 

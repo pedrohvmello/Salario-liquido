@@ -1,7 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
-import {ShieldCheck,LockKeyhole,Info,Save,BookOpen} from 'lucide-react'
+import {ShieldCheck,LockKeyhole,Info,Save,BookOpen,UsersRound,LifeBuoy} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
-import {AdminSupportTickets} from './AdminSupportTickets'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 import {passwordPolicyDefaults,type PasswordPolicy} from '../lib/passwordPolicy'
 
@@ -12,7 +11,7 @@ const policyLabels:{key:keyof Omit<PasswordPolicy,'minLength'>;label:string}[]=[
  {key:'requireSymbols',label:'Exigir caracteres especiais'}
 ]
 
-export function AdminSettingsPage(){
+export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-support')=>void}){
  const [approval,setApproval]=useState(true)
  const [savedApproval,setSavedApproval]=useState(true)
  const policy=passwordPolicyDefaults
@@ -34,6 +33,16 @@ export function AdminSettingsPage(){
  }
  return <div className="stack">
   <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas globais do Payrep, disponíveis apenas para administradores.</p></div></div>
+  <section className="panel">
+   <div className="panel-heading"><h2><UsersRound size={18}/> Gestão de usuários</h2></div>
+   <p>Consulte contas cadastradas, aprove novos acessos, gerencie situações dos usuários e acompanhe indicadores de utilização.</p>
+   <button type="button" className="primary" onClick={()=>onNavigate('admin')}><UsersRound size={17}/> Acessar gestão de usuários</button>
+  </section>
+  <section className="panel">
+   <div className="panel-heading"><h2><LifeBuoy size={18}/> Chamados de suporte</h2></div>
+   <p>Consulte solicitações, responda às mensagens, filtre chamados por status e ano e finalize os atendimentos.</p>
+   <button type="button" className="primary" onClick={()=>onNavigate('admin-support')}><LifeBuoy size={17}/> Gerenciar chamados</button>
+  </section>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={18}/> Política de cadastro</h2></div>
    <label className="admin-switch"><input type="checkbox" checked={approval} disabled={loading||busy} onChange={e=>setApproval(e.target.checked)}/><span><strong>Exigir aprovação administrativa</strong><small>{approval?'Novos usuários precisam ser aprovados para acessar dados financeiros.':'Novos usuários poderão ser aprovados automaticamente após autenticação.'}</small></span></label>
    <div className="admin-settings-actions"><button type="button" className="primary" disabled={loading||busy||approval===savedApproval} onClick={()=>void save()}><Save size={16}/> Salvar política</button>
@@ -56,6 +65,5 @@ export function AdminSettingsPage(){
    <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
    <LegalHistoryViewer/>
   </section>
-  <AdminSupportTickets/>
  </div>
 }
