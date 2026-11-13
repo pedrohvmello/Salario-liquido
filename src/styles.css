@@ -1142,3 +1142,16 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .payrep-ai-consent>p{margin:9px 0 0 29px;color:#806a90;font-size:11px;line-height:1.6}
 .payrep-ai-sources{display:block;margin-top:9px;color:#806c91;font-size:11px;line-height:1.5;border-top:1px solid #eee4f4;padding-top:8px}
 @media(max-width:640px){.payrep-ai-consent{padding:13px 15px}.payrep-ai-consent>p{margin-left:0}}
+
+/* Cloudflare account-wide Workers AI Neurons, administrator dashboard. */
+.payrep-neurons-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:16px 0}
+.payrep-neurons-kpis>div{border:1px solid #e5d8f0;border-radius:11px;background:#fbf8fe;padding:15px;min-width:0}
+.payrep-neurons-kpis small{display:block;color:#7d6990;line-height:1.5;font-size:11px}
+.payrep-neurons-kpis strong{display:block;margin-top:7px;font-size:22px;color:#351651;font-weight:750}
+.payrep-neurons-progress{display:block;width:100%;height:10px;accent-color:#7a00d8;border-radius:10px}
+.payrep-neurons-models{margin:18px 0;max-width:680px}
+.payrep-neurons-models>strong{display:block;margin-bottom:9px;color:#4f3166;font-size:13px}
+.payrep-neurons-model{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #eadff1;font-size:12px;overflow-wrap:anywhere}
+.payrep-neurons-model span{color:#78648c;min-width:0}
+.payrep-neurons-model strong{color:#3f205c;white-space:nowrap}
+@media(max-width:640px){.payrep-neurons-kpis{grid-template-columns:1fr}.payrep-neurons-model{flex-wrap:wrap}}

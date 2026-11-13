@@ -39,7 +39,7 @@ Deno.serve(async req=>{
  const {data:{user},error:userError}=await db.auth.getUser(match[1])
  if(userError||!user)return reply({error:'authentication_required'},401)
  const {data:membership,error:memberError}=await db.from('app_members')
-  .select('active,status').eq('user_id',user.id).maybeSingle()
+  .select('active,status,role').eq('user_id',user.id).maybeSingle()
  if(memberError||!membership?.active||membership.status!=='approved')
   return reply({error:'account_not_authorized'},403)
 
@@ -56,17 +56,23 @@ Deno.serve(async req=>{
  if(!token||token.trim().length<20||!account||!/^[a-f0-9]{32}$/i.test(account))
   return reply({error:'ai_not_configured'},503)
 
+ // Administrative exemption follows the active/approved role recorded in
+ // app_members for the user independently verified by auth.getUser(JWT).
+ // Administrative SETTINGS still require their own MFA authorization.
+ // No browser-supplied role or user ID is trusted.
+ const verifiedAdmin=membership.role==='admin'
+ const anonKey=Deno.env.get('SUPABASE_ANON_KEY')
+ if(!anonKey)return reply({error:'authorization_unavailable'},503)
+ const scoped=createClient(apiUrl,anonKey,{
+  global:{headers:{Authorization:authHeader}},
+  auth:{persistSession:false,autoRefreshToken:false}
+ })
+
  // Only a deliberate opt-in may trigger a user-scoped financial read.
  // Revalidate ownership with the signed-in JWT and RLS; never use service_role
  // for payroll or payslip data. Do not send names, files, IDs or arbitrary notes.
  let context:{facts:string;sourceLabels:string[]}|null=null
  if(input.value.useFinancialData&&financialTopic(input.value.question,input.value.history)){
-  const anonKey=Deno.env.get('SUPABASE_ANON_KEY')
-  if(!anonKey)return reply({error:'financial_data_unavailable'},503)
-  const scoped=createClient(apiUrl,anonKey,{
-   global:{headers:{Authorization:authHeader}},
-   auth:{persistSession:false,autoRefreshToken:false}
-  })
   const [docs,events,settings]=await Promise.all([
    scoped.from('statements').select(
     'id,period,document_type,credits,debits,net,net_received,salary_advance,ir_base,fgts,salary_contract,trienio,gross_ppr,ppr_income_tax,thirteenth_gross,thirteenth_irrf,thirteenth_inss,thirteenth_pension,thirteenth_advance,payment_date')
@@ -93,9 +99,14 @@ Deno.serve(async req=>{
   })
  }
 
- const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
- if(quotaError)return reply({error:'quota_unavailable'},503)
- if(quota!=='ok')return reply({error:quota==='cooldown'?'cooldown':'daily_limit'},429)
+ // Active, approved administrators do not consume user quotas or cooldown.
+ // Administrative settings continue to require MFA separately.
+ // The Cloudflare Free-plan capacity remains a separate external limit.
+ if(!verifiedAdmin){
+  const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
+  if(quotaError)return reply({error:'quota_unavailable'},503)
+  if(quota!=='ok')return reply({error:'daily_limit'},429)
+ }
 
  const messages=[
   {role:'system',content:SYSTEM},
