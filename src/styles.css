@@ -1213,3 +1213,20 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .payrep-ai-identity{gap:8px}
  .payrep-ai-toolbar{min-height:0}
 }
+
+/* Permanent Pep media management appears only to a verified HML admin. */
+.pep-admin-media{margin-top:14px;max-width:560px;font-size:11px;color:#806394}
+.pep-admin-media summary{cursor:pointer;font-weight:650;font-size:11px;list-style-position:inside}
+.pep-admin-media[open]{padding:10px 12px;background:#faf7ff;border:1px solid #eadbfa;border-radius:10px}
+.pep-admin-media p{margin:10px 0}
+.pep-admin-media .secondary{font-size:11px;padding:8px 11px;margin-top:4px}
+.pep-admin-media .error{color:#b42342}
+/* Clear, more legible reply avatar, with no CSS motion. */
+.pep-chat-reply-avatar{width:54px;height:54px;flex:0 0 54px;border-radius:13px}
+.pep-chat-reply-avatar .pep-mascot-avatar{width:54px;height:54px}
+.pep-chat-reply-avatar .pep-mascot-avatar img{width:81px;height:81px;max-width:none;top:0;left:50%;transform:translateX(-50%);animation:none!important}
+@media(max-width:480px){
+ .pep-chat-reply-avatar{width:48px;height:48px;flex:0 0 48px}
+ .pep-chat-reply-avatar .pep-mascot-avatar{width:48px;height:48px}
+ .pep-chat-reply-avatar .pep-mascot-avatar img{width:72px;height:72px}
+}
