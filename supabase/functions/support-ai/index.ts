@@ -39,7 +39,7 @@ Deno.serve(async req=>{
  const {data:{user},error:userError}=await db.auth.getUser(match[1])
  if(userError||!user)return reply({error:'authentication_required'},401)
  const {data:membership,error:memberError}=await db.from('app_members')
-  .select('active,status').eq('user_id',user.id).maybeSingle()
+  .select('active,status,role').eq('user_id',user.id).maybeSingle()
  if(memberError||!membership?.active||membership.status!=='approved')
   return reply({error:'account_not_authorized'},403)
 
@@ -56,18 +56,17 @@ Deno.serve(async req=>{
  if(!token||token.trim().length<20||!account||!/^[a-f0-9]{32}$/i.test(account))
   return reply({error:'ai_not_configured'},503)
 
- // The exemption is verified using the caller's JWT, not metadata, an
- // admin flag from the browser, or the elevated service-role client.
- // is_app_admin() enforces current-session, active membership and TOTP MFA.
+ // Administrative exemption follows the active/approved role recorded in
+ // app_members for the user independently verified by auth.getUser(JWT).
+ // Administrative SETTINGS still require their own MFA authorization.
+ // No browser-supplied role or user ID is trusted.
+ const verifiedAdmin=membership.role==='admin'
  const anonKey=Deno.env.get('SUPABASE_ANON_KEY')
  if(!anonKey)return reply({error:'authorization_unavailable'},503)
  const scoped=createClient(apiUrl,anonKey,{
   global:{headers:{Authorization:authHeader}},
   auth:{persistSession:false,autoRefreshToken:false}
  })
- const {data:verifiedAdmin,error:adminError}=await scoped.rpc('is_app_admin')
- if(adminError||typeof verifiedAdmin!=='boolean')
-  return reply({error:'authorization_unavailable'},503)
 
  // Only a deliberate opt-in may trigger a user-scoped financial read.
  // Revalidate ownership with the signed-in JWT and RLS; never use service_role
@@ -100,8 +99,8 @@ Deno.serve(async req=>{
   })
  }
 
- // Administrators with VERIFIED MFA are exempt from both daily caps and
- // cooldown, and are never added to the regular-user usage counters.
+ // Active, approved administrators do not consume user quotas or cooldown.
+ // Administrative settings continue to require MFA separately.
  // The Cloudflare Free-plan capacity remains a separate external limit.
  if(!verifiedAdmin){
   const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})

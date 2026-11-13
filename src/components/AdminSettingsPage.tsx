@@ -2,6 +2,7 @@ import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,LockKeyhole,Info,Save,BookOpen,UsersRound,LifeBuoy} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
 import {AdminSupportAiLimits} from './AdminSupportAiLimits'
+import {AdminAiNeurons} from './AdminAiNeurons'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 import {passwordPolicyDefaults,type PasswordPolicy} from '../lib/passwordPolicy'
 
@@ -45,6 +46,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    <button type="button" className="primary" onClick={()=>onNavigate('admin-support')}><LifeBuoy size={17}/> Gerenciar chamados</button>
   </section>
   <AdminSupportAiLimits/>
+  <AdminAiNeurons/>
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={18}/> Política de cadastro</h2></div>
    <label className="admin-switch"><input type="checkbox" checked={approval} disabled={loading||busy} onChange={e=>setApproval(e.target.checked)}/><span><strong>Exigir aprovação administrativa</strong><small>{approval?'Novos usuários precisam ser aprovados para acessar dados financeiros.':'Novos usuários poderão ser aprovados automaticamente após autenticação.'}</small></span></label>
    <div className="admin-settings-actions"><button type="button" className="primary" disabled={loading||busy||approval===savedApproval} onClick={()=>void save()}><Save size={16}/> Salvar política</button>

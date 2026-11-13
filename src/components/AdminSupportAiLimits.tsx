@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {Save,Sparkles} from 'lucide-react'
 import {
- AI_LIMITS,fetchSupportAiLimits,saveSupportAiLimits,validSupportAiLimits,
+ fetchSupportAiLimits,saveSupportAiLimits,validSupportAiLimits,
  type SupportAiLimits
 } from '../lib/supportAiLimits'
 
@@ -41,15 +41,15 @@ export function AdminSupportAiLimits(){
  }
  return <section className="panel">
   <div className="panel-heading"><h2><Sparkles size={18}/> Assistente Payrep: limites de mensagens</h2></div>
-  <p>Configure os limites diários de perguntas para usuários comuns. Administradores com autenticação MFA validada não têm limite de perguntas no Payrep e não consomem a cota dos demais usuários.</p>
+  <p>Configure os limites diários de perguntas para usuários comuns. Administradores não têm limite interno de perguntas no Payrep e não consomem a cota dos demais usuários.</p>
   <div className="password-policy-layout">
    <label className="password-policy-length">Mensagens por usuário comum / dia
-    <input type="number" min={1} max={AI_LIMITS.perUserMax} step={1}
+    <input type="number" min={1} step={1}
      value={userInput} disabled={loading||saving} onChange={e=>{setUserInput(e.target.value);setMessage('')}}
      aria-label="Limite diário de mensagens por usuário"/>
    </label>
    <label className="password-policy-length">Mensagens totais de usuários comuns / dia
-    <input type="number" min={1} max={AI_LIMITS.globalMax} step={1}
+    <input type="number" min={1} step={1}
      value={globalInput} disabled={loading||saving} onChange={e=>{setGlobalInput(e.target.value);setMessage('')}}
      aria-label="Limite diário total de mensagens da IA"/>
    </label>
@@ -58,9 +58,9 @@ export function AdminSupportAiLimits(){
    Uso dos usuários comuns hoje: <strong>{limits.usedToday} de {limits.globalDailyLimit}</strong> perguntas, por <strong>{limits.usersToday}</strong> usuário(s).
    A contagem reinicia à meia-noite UTC.
   </p>}
-  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. O intervalo mínimo de 20 segundos vale para usuários comuns. Administradores estão isentos dos limites internos, mas continuam sujeitos à franquia gratuita da Cloudflare.</p>
+  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. O intervalo mínimo de 20 segundos vale para usuários comuns. Administradores não consomem a cota de usuários comuns e não têm limite interno. A franquia externa da Cloudflare continua válida.</p>
   {!valid&&!loading&&<p role="alert" className="error">
-   Use números inteiros: 1 a {AI_LIMITS.perUserMax} por usuário; limite total entre o valor por usuário e {AI_LIMITS.globalMax}.
+   Informe números inteiros positivos. Os limites são independentes e não têm tetos adicionais definidos pelo Payrep.
   </p>}
   <div className="admin-settings-actions">
    <button type="button" className="primary" disabled={loading||saving||!valid||!changed}

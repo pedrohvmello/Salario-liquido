@@ -7,12 +7,9 @@ export type SupportAiLimits={
  usersToday:number
  timezone:string
 }
-export const AI_LIMITS={perUserMax:100,globalMax:300} as const
-
 export function validSupportAiLimits(userLimit:number,globalLimit:number):boolean{
  return Number.isSafeInteger(userLimit)&&Number.isSafeInteger(globalLimit)
-  &&userLimit>=1&&userLimit<=AI_LIMITS.perUserMax
-  &&globalLimit>=userLimit&&globalLimit<=AI_LIMITS.globalMax
+  &&userLimit>=1&&globalLimit>=1
 }
 function client(){if(!db)throw Error('Supabase não configurado');return db}
 export async function fetchSupportAiLimits():Promise<SupportAiLimits>{
@@ -25,7 +22,7 @@ export async function fetchSupportAiLimits():Promise<SupportAiLimits>{
 }
 export async function saveSupportAiLimits(userDailyLimit:number,globalDailyLimit:number):Promise<void>{
  if(!validSupportAiLimits(userDailyLimit,globalDailyLimit))
-  throw Error('Informe limites inteiros válidos. O limite global deve ser igual ou superior ao limite por usuário.')
+  throw Error('Informe limites inteiros válidos. ')
  const {error}=await client().rpc('set_support_ai_limits',{
   p_user_limit:userDailyLimit,p_global_limit:globalDailyLimit
  })
