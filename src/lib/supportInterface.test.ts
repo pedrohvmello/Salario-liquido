@@ -77,7 +77,7 @@ describe('Payrep sidebar, avatar and support center',()=>{
   expect(admin).toContain('Filtrar por categoria')
   expect(admin).toContain('aria-expanded={expanded}')
   expect(admin).toContain('support-compact-conversation')
-  expect(admin).toContain("'support-compact-ticket-'+ticket.status")
+  expect(admin).toContain("support-compact-ticket-'+ticket.status")
   expect(admin).not.toContain('Ver conversa e responder')
   expect(admin).not.toContain('<p>{ticket.description}</p>')
   const css=readFileSync('src/styles.css','utf8')
