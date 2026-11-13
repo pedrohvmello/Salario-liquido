@@ -94,7 +94,7 @@ export function PepMascot({variant='header',videoUrl}:{variant?:PepMascotVariant
    style={videoPreview&&ready?{opacity:0}:undefined}
   />
   {videoPreview&&<>
-   <video ref={videoRef} src={videoUrl||undefined} autoPlay loop muted playsInline preload="auto" aria-hidden="true"
+   <video crossOrigin="anonymous" ref={videoRef} src={videoUrl||undefined} autoPlay loop muted playsInline preload="auto" aria-hidden="true"
     onError={()=>setFailed(true)}
     style={{position:'absolute',width:1,height:1,opacity:0,pointerEvents:'none'}}/>
    <canvas ref={canvasRef} role="img" aria-label="Pep animado"
