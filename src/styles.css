@@ -1076,3 +1076,22 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .help-user-ticket-action{gap:6px}
  .help-user-ticket-conversation{padding:14px 11px 18px}
 }
+
+/* Confirmação de encerramento integrada à identidade do Payrep. */
+.support-close-dialog{width:min(460px,100%)}
+.support-close-content{padding:3px 22px 22px;display:flex;flex-direction:column;gap:15px}
+.support-close-icon{width:46px;height:46px;border-radius:14px;background:#f0e2ff;color:#7700c5;display:grid;place-items:center}
+.support-close-intro{margin:0;font-size:13px;line-height:1.6;color:#635076}
+.support-close-summary{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid #e7d9f1;border-radius:12px;background:#fbf8ff}
+.support-close-summary>span{font-size:11px;color:#776287}
+.support-close-summary>span strong{font-size:12px;color:#593279}
+.support-close-subject{font-size:14px;color:#34164d;overflow-wrap:anywhere}
+.support-close-warning{margin:0;font-size:12px;line-height:1.65;color:#785287}
+.support-close-error{margin:0;padding:10px 12px;border:1px solid #efc8c8;border-radius:10px;color:#9a2b2b;background:#fff7f7;font-size:12px;line-height:1.5}
+.support-close-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:5px}
+.support-close-actions button{min-width:125px;min-height:43px}
+@media(max-width:540px){
+ .support-close-content{padding:3px 16px 18px}
+ .support-close-actions{flex-direction:column-reverse}
+ .support-close-actions button{width:100%;min-height:46px}
+}

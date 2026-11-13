@@ -1,8 +1,9 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
-import {ArrowLeft,ChevronDown,LifeBuoy,RefreshCw} from 'lucide-react'
+import {ArrowLeft,CheckCircle2,ChevronDown,LifeBuoy,RefreshCw} from 'lucide-react'
 import {db} from '../lib/data'
 import {fetchAdminDashboard} from '../lib/admin'
 import {PayrepSelect} from './PayrepSelect'
+import {PayrepPickerDialog} from './PayrepPickerDialog'
 import {TicketConversation} from './TicketConversation'
 import {
  filterSupportTickets,supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,
@@ -20,6 +21,7 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
  const [busy,setBusy]=useState('')
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
+ const [ticketToClose,setTicketToClose]=useState<SupportTicket|null>(null)
  const load=useCallback(async()=>{
   if(!db){setLoading(false);return}
   setLoading(true)
@@ -44,9 +46,8 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
   finally{setLoading(false)}
  },[])
  useEffect(()=>{void load()},[load])
- const change=async(id:string,status:SupportStatus)=>{
-  if(!db)return
-  if(status==='resolved'&&!window.confirm('Finalizar este chamado? Depois disso, não será possível enviar novas mensagens ou reabrir a conversa.'))return
+ const change=async(id:string,status:SupportStatus):Promise<boolean>=>{
+  if(!db)return false
   setBusy(id);setError('');setMessage('')
   try{
    const {data,error:updateError}=await db.from('support_tickets')
@@ -54,8 +55,29 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
    if(updateError||!data)throw Error(supportError(updateError?.message||'Não foi possível atualizar o chamado.'))
    setTickets(old=>old.map(item=>item.id===id?{...item,status:data.status as SupportStatus,updated_at:data.updated_at}:item))
    setMessage(status==='resolved'?'Chamado finalizado. A conversa agora é somente leitura.':'Status atualizado.')
-  }catch(err){setError(err instanceof Error?err.message:'Não foi possível atualizar o chamado.')}
-  finally{setBusy('')}
+   return true
+  }catch(err){
+   setError(err instanceof Error?err.message:'Não foi possível atualizar o chamado.')
+   return false
+  }finally{setBusy('')}
+ }
+ const requestStatusChange=(ticket:SupportTicket,status:SupportStatus)=>{
+  if(ticket.status===status||busy)return
+  if(status==='resolved'){
+   setError('')
+   setTicketToClose(ticket)
+   return
+  }
+  void change(ticket.id,status)
+ }
+ const closeConfirmation=()=>{
+  if(busy)return
+  setTicketToClose(null)
+ }
+ const confirmClosure=async()=>{
+  if(!ticketToClose||busy)return
+  const saved=await change(ticketToClose.id,'resolved')
+  if(saved)setTicketToClose(null)
  }
  const availableYears=useMemo(()=>[...new Set(tickets.map(ticket=>ticket.ticket_year))].sort((a,b)=>b-a),[tickets])
  const visible=useMemo(()=>filterSupportTickets(tickets,statusFilter,yearFilter,categoryFilter),[tickets,statusFilter,yearFilter,categoryFilter])
@@ -107,7 +129,7 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
       <div className="help-admin-ticket-status support-compact-status">
        <label>Status<PayrepSelect title="Status do chamado" className={'support-status-select support-status-select-'+ticket.status}
         value={ticket.status} disabled={busy===ticket.id||ticket.status==='resolved'}
-        onChange={value=>void change(ticket.id,value as SupportStatus)}>
+        onChange={value=>requestStatusChange(ticket,value as SupportStatus)}>
         {Object.entries(supportStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
        </PayrepSelect></label>
       </div>
@@ -118,5 +140,23 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
     </article>
    })}</div>}
   </section>
+  {ticketToClose&&<PayrepPickerDialog title="Finalizar chamado?" className="support-close-dialog" onClose={closeConfirmation}>
+   <div className="support-close-content">
+    <div className="support-close-icon" aria-hidden="true"><CheckCircle2 size={23}/></div>
+    <p className="support-close-intro">Confirme o encerramento deste atendimento.</p>
+    <div className="support-close-summary">
+     <span>Chamado <strong>#{supportTicketCode(ticketToClose)}</strong></span>
+     <strong className="support-close-subject">{ticketToClose.subject}</strong>
+    </div>
+    <p className="support-close-warning">Após finalizar, não será possível enviar ou receber novas mensagens neste chamado, inclusive por e-mail, nem reabrir a conversa.</p>
+    {error&&<p className="support-close-error" role="alert">{error}</p>}
+    <div className="support-close-actions">
+     <button type="button" className="secondary" data-picker-focus disabled={Boolean(busy)} onClick={closeConfirmation}>Cancelar</button>
+     <button type="button" className="primary" disabled={Boolean(busy)} onClick={()=>void confirmClosure()}>
+      <CheckCircle2 size={16}/>{busy?'Finalizando...':'Finalizar chamado'}
+     </button>
+    </div>
+   </div>
+  </PayrepPickerDialog>}
  </div>
 }
