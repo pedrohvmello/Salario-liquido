@@ -1,6 +1,5 @@
 -- Ticket-specific, unguessable inbound addresses and idempotent email ingestion.
--- PRD-specific adaptation; user explicitly approved promotion from HML.
--- Never accept hml-chamado addresses in production.
+-- PRD-only variant explicitly authorized on 2026-11-13; do not allow HML recipients.
 begin;
 
 create table if not exists public.support_ticket_reply_routes (
@@ -85,46 +84,7 @@ begin
  end if;
  if p_source_message_id is null or char_length(p_source_message_id) not between 5 and 255
    or char_length(v_body) not between 1 and 4000
-   or v_sender !~ '^[a-z0-9.!#$%&''*+/=?^`{|}~_-]+@[a-z0-9.-]+[.][a-z]{2,}
- then
-  raise exception 'Invalid email payload';
- end if;
- select t.id,t.user_id,t.status,t.ticket_year,t.ticket_sequence,r.token
- into v_ticket
- from public.support_ticket_reply_routes r
- join public.support_tickets t on t.id=r.ticket_id
- join auth.users u on u.id=t.user_id
- join public.app_members m on m.user_id=t.user_id and m.active and m.status='approved'
- where r.revoked_at is null
-  and u.email is not null and lower(btrim(u.email))=v_sender
-  and v_recipient=(
-   'chamado-'||t.ticket_year||'-'||lpad(t.ticket_sequence::text,4,'0')||'-'||r.token||'@payrep.com.br'
-  )
- for update of t;
- if not found then raise exception 'Unknown recipient or sender'; end if;
- if v_ticket.status='resolved' then
-  return jsonb_build_object('result','closed');
- end if;
- insert into public.support_inbound_receipts(source_message_id,ticket_id)
- values(p_source_message_id,v_ticket.id)
- on conflict(source_message_id) do nothing
- returning source_message_id into v_receipt_id;
- if v_receipt_id is null then
-  return jsonb_build_object('result','duplicate');
- end if;
- insert into public.support_ticket_messages(ticket_id,sender_id,sender_role,body,channel)
- values(v_ticket.id,v_ticket.user_id,'user',v_body,'email')
- returning id into v_message_id;
- update public.support_inbound_receipts
- set message_id=v_message_id where source_message_id=p_source_message_id;
- return jsonb_build_object('result','inserted');
-end;
-$$;
-revoke all on function public.ingest_support_inbound_email(text,text,text,text) from public,anon,authenticated;
-grant execute on function public.ingest_support_inbound_email(text,text,text,text) to service_role;
-
-commit;
-
+   or v_sender !~ '^[a-z0-9.!#$%&''*+/=?^`{|}~_-]+@[a-z0-9.-]+[.][a-z]{2,}$'
  then
   raise exception 'Invalid email payload';
  end if;
