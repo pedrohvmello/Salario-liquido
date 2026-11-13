@@ -57,3 +57,9 @@ export function filterSupportTickets(tickets:SupportTicket[],status:SupportStatu
   &&(category==='all'||ticket.category===category)
   &&(status==='all'||(status==='pending'?supportPendingReply(ticket):ticket.status===status)))
 }
+
+export type MySupportStatusFilter='all'|'open'|'resolved'
+export function filterMySupportTickets(tickets:SupportTicket[],status:MySupportStatusFilter,year:string):SupportTicket[]{
+ return tickets.filter(ticket=>(year==='all'||String(ticket.ticket_year)===year)
+  &&(status==='all'||(status==='open'?ticket.status!=='resolved':ticket.status==='resolved')))
+}

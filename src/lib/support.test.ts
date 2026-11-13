@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {supportCategories,supportCategoryLabel,supportStatuses,supportTicketCode,filterSupportTickets,supportPendingReply,type SupportTicket} from './support'
+import {supportCategories,supportCategoryLabel,supportStatuses,supportTicketCode,filterSupportTickets,filterMySupportTickets,supportPendingReply,type SupportTicket} from './support'
 
 describe('support ticket presentation',()=>{
  it('uses readable year and sequence identifiers',()=>{
@@ -39,5 +39,17 @@ describe('support ticket presentation',()=>{
   expect(filterSupportTickets(tickets,'all','all','acesso')).toHaveLength(4)
   expect(filterSupportTickets(tickets,'all','all','holerites')).toHaveLength(0)
   expect(filterSupportTickets([{...tickets[0],category:'holerites'},...tickets.slice(1)],'pending','2026','holerites')).toHaveLength(1)
+ })
+ it('groups Aberto and Em atendimento as open tickets for the user while combining year',()=>{
+  const data=[
+   {status:'open',ticket_year:2026},
+   {status:'in_progress',ticket_year:2026},
+   {status:'resolved',ticket_year:2026},
+   {status:'open',ticket_year:2025}
+  ] as SupportTicket[]
+  expect(filterMySupportTickets(data,'open','2026')).toHaveLength(2)
+  expect(filterMySupportTickets(data,'resolved','2026')).toHaveLength(1)
+  expect(filterMySupportTickets(data,'open','2025')).toHaveLength(1)
+  expect(filterMySupportTickets(data,'all','all')).toHaveLength(4)
  })
 })

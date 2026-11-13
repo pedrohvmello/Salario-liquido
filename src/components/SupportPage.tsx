@@ -1,12 +1,12 @@
-import {useCallback,useEffect,useState,type FormEvent} from 'react'
+import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,BookOpen,CheckCircle2,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Ticket} from 'lucide-react'
+import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Ticket} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
-import {supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type SupportTicket} from '../lib/support'
+import {filterMySupportTickets,supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type MySupportStatusFilter,type SupportTicket} from '../lib/support'
 
 export const SUPPORT_EMAIL='suporte@payrep.com.br'
 export const helpFaq=[
@@ -26,6 +26,8 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
  const [description,setDescription]=useState('')
  const [tickets,setTickets]=useState<SupportTicket[]>([])
  const [selectedId,setSelectedId]=useState<string|null>(null)
+ const [statusFilter,setStatusFilter]=useState<MySupportStatusFilter>('all')
+ const [yearFilter,setYearFilter]=useState('all')
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
@@ -38,7 +40,7 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
    if(readError)throw Error(supportError(readError.message))
    const next=(data||[]) as SupportTicket[]
    setTickets(next)
-   setSelectedId(old=>next.some(item=>item.id===old)?old:next[0]?.id||null)
+   setSelectedId(old=>next.some(item=>item.id===old)?old:null)
    setError('')
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível carregar seus chamados.')}
   finally{setLoading(false)}
@@ -60,12 +62,14 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
    const next=data as SupportTicket
    setTickets(old=>[next,...old])
    setSelectedId(next.id)
+   setStatusFilter('all');setYearFilter('all')
    setSubject('');setDescription('');setCategory('acesso')
    setMessage('Chamado '+supportTicketCode(next)+' registrado. Você já pode adicionar mensagens.')
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível registrar o chamado.')}
   finally{setBusy(false)}
  }
- const selected=tickets.find(ticket=>ticket.id===selectedId)
+ const years=useMemo(()=>[...new Set(tickets.map(ticket=>ticket.ticket_year))].sort((a,b)=>b-a),[tickets])
+ const visibleTickets=useMemo(()=>filterMySupportTickets(tickets,statusFilter,yearFilter),[tickets,statusFilter,yearFilter])
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Chamados de suporte</h2><p>Abra uma solicitação e converse com o suporte até a finalização.</p></div>
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button></div>
@@ -86,15 +90,35 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
   <section className="panel">
    <div className="panel-heading"><h2><Ticket size={18}/> Meus chamados</h2>
     <button type="button" className="secondary" disabled={loading} onClick={()=>void loadTickets()}><RefreshCw size={15}/> Atualizar</button></div>
-   {loading?<p className="subtle">Consultando chamados...</p>:tickets.length===0?<p className="subtle">Nenhum chamado cadastrado.</p>:
-    <div className="help-ticket-list">{tickets.map(ticket=><button type="button"
-     className={'help-ticket-item help-ticket-button'+(selectedId===ticket.id?' is-selected':'')}
-     key={ticket.id} onClick={()=>setSelectedId(ticket.id)} aria-pressed={selectedId===ticket.id}>
-     <span><strong>{ticket.subject}</strong><small>#{supportTicketCode(ticket)} · {supportCategoryLabel(ticket.category)} · {supportDate(ticket.created_at)}</small></span>
-     <span className="help-ticket-status">{supportStatuses[ticket.status]}</span>
-    </button>)}</div>}
+   <div className="help-user-filters">
+    <label>Status<PayrepSelect title="Filtrar meus chamados por status" value={statusFilter} onChange={value=>setStatusFilter(value as MySupportStatusFilter)}>
+     <option value="all">Todos os status</option>
+     <option value="open">Aberto</option>
+     <option value="resolved">Finalizado</option>
+    </PayrepSelect></label>
+    <label>Ano<PayrepSelect title="Filtrar meus chamados por ano" value={yearFilter} onChange={setYearFilter}>
+     <option value="all">Todos os anos</option>
+     {years.map(year=><option key={year} value={String(year)}>{year}</option>)}
+    </PayrepSelect></label>
+   </div>
+   {loading?<p className="subtle">Consultando chamados...</p>:tickets.length===0?<p className="subtle">Nenhum chamado cadastrado.</p>:visibleTickets.length===0?<p className="subtle">Nenhum chamado corresponde aos filtros selecionados.</p>:
+    <div className="help-ticket-list">{visibleTickets.map(ticket=>{
+     const expanded=selectedId===ticket.id
+     return <article key={ticket.id} className={'help-user-ticket'+(expanded?' is-expanded':'')}>
+      <button type="button" className="help-ticket-item help-ticket-button help-user-ticket-toggle"
+       onClick={()=>setSelectedId(old=>old===ticket.id?null:ticket.id)}
+       aria-expanded={expanded} aria-controls={'user-ticket-conversation-'+ticket.id}
+       aria-label={(expanded?'Recolher':'Expandir')+' chamado '+supportTicketCode(ticket)+': '+ticket.subject}>
+       <span className="help-user-ticket-details"><strong>{ticket.subject}</strong><small>#{supportTicketCode(ticket)} · {supportCategoryLabel(ticket.category)} · {supportDate(ticket.created_at)}</small></span>
+       <span className="help-user-ticket-action"><span className={'help-ticket-status help-ticket-status-'+ticket.status}>{supportStatuses[ticket.status]}</span>
+        <ChevronDown size={17} className={'support-compact-chevron'+(expanded?' is-expanded':'')} aria-hidden="true"/></span>
+      </button>
+      {expanded&&<div id={'user-ticket-conversation-'+ticket.id} className="help-user-ticket-conversation">
+       <TicketConversation key={ticket.id} ticket={ticket} requesterName={requesterName} onMessageSent={()=>void loadTickets()}/>
+      </div>}
+     </article>
+    })}</div>}
   </section>
-  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected} requesterName={requesterName} onMessageSent={()=>void loadTickets()}/></section>}
  </div>
 }
 

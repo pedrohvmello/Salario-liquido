@@ -1054,3 +1054,25 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .support-compact-status{flex:auto;width:100%}
  .support-compact-conversation{padding:15px 12px 19px}
 }
+
+
+/* Compact support threads: no repeated subject, protocol, status or refresh controls. */
+.help-user-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.help-user-filters label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750;color:#4b3064}
+.help-user-ticket{border:1px solid #e8dcf3;border-radius:13px;background:#faf7ff;overflow:hidden}
+.help-user-ticket.is-expanded{border-color:#b679e7}
+.help-user-ticket-toggle.help-ticket-item{width:100%;border:0;border-radius:0;background:transparent;align-items:center;text-align:left;gap:12px;min-height:74px}
+.help-user-ticket-toggle:hover,.help-user-ticket-toggle:focus-visible{background:#f4ecfd}
+.help-user-ticket-toggle:focus-visible{outline:2px solid #a14edb;outline-offset:-2px}
+.help-user-ticket-details{flex:1;min-width:0}
+.help-user-ticket-action{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.help-user-ticket-conversation{padding:18px 18px 20px;border-top:1px solid #e7d9f0}
+.help-ticket-status-open{background:#fff6d8;color:#805900;border:1px solid #edd9a0}
+.help-ticket-status-in_progress{background:#fff0de;color:#a45413;border:1px solid #f0d0ad}
+.help-ticket-status-resolved{background:#e9f7eb;color:#28764a;border:1px solid #bfe1c9}
+@media(max-width:640px){
+ .help-user-filters{grid-template-columns:1fr}
+ .help-user-ticket-toggle.help-ticket-item{flex-direction:row;align-items:center}
+ .help-user-ticket-action{gap:6px}
+ .help-user-ticket-conversation{padding:14px 11px 18px}
+}

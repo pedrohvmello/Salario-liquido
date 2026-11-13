@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useState,type FormEvent} from 'react'
-import {CheckCircle2,RefreshCw,Send} from 'lucide-react'
+import {CheckCircle2,Send} from 'lucide-react'
 import {db} from '../lib/data'
-import {supportDate,supportError,supportStatuses,supportTicketCode,type SupportTicket,type SupportTicketMessage} from '../lib/support'
+import {supportDate,supportError,supportTicketCode,type SupportTicket,type SupportTicketMessage} from '../lib/support'
 
 export function TicketConversation({ticket,admin=false,requesterName,onMessageSent}:{
  ticket:SupportTicket;admin?:boolean;requesterName?:string;onMessageSent?:()=>void
@@ -66,12 +66,6 @@ export function TicketConversation({ticket,admin=false,requesterName,onMessageSe
   finally{setBusy(false)}
  }
  return <section className="help-conversation" aria-label={'Conversa do chamado '+supportTicketCode(current)}>
-  <div className="help-conversation-heading">
-   <div><strong>Conversa do chamado {supportTicketCode(current)}</strong><small>{current.subject}</small></div>
-   <div className="help-conversation-heading-actions"><span className="help-ticket-status">{supportStatuses[current.status]}</span>
-    <button type="button" className="secondary" onClick={()=>void refresh()} aria-label="Atualizar conversa"><RefreshCw size={15}/> Atualizar</button>
-   </div>
-  </div>
   <ol className="help-message-list" aria-live="polite">
    <li className="help-message help-message-user">
     <span className="help-message-meta">{displayRequester} · Solicitação inicial · {supportDate(current.created_at)}</span>
