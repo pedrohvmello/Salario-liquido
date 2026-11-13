@@ -42,6 +42,6 @@ describe('Maileroo inbound Payrep webhook',()=>{
   expect(parseMailerooEmail({...valid,headers:{From:['User <owner@example.org>'], 'Auto-Submitted':['auto-replied']}})).toBeNull()
   expect(parseMailerooEmail({...valid,body:{stripped_plaintext:''}})).toBeNull()
   expect(parseMailerooEmail({...valid,body:{stripped_plaintext:'x'.repeat(4001)}})).toBeNull()
-  expect(parseMailerooEmail({...valid,validation_url:'https://127.0.0.1'}})).toBeNull()
+  expect(parseMailerooEmail({...valid,validation_url:'https://127.0.0.1'})).toBeNull()
  })
 })
