@@ -128,21 +128,48 @@ export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
  const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
+ const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'ready'>('checking')
  const pepPreviewUrlRef=useRef<string|null>(null)
- useEffect(()=>()=>{if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)},[])
- const handlePepVideo=(event:ChangeEvent<HTMLInputElement>)=>{
-  const file=event.currentTarget.files?.[0]
-  event.currentTarget.value=''
-  if(!file||!['video/mp4','video/webm'].includes(file.type))return
+ const setLocalVideo=(file:Blob)=>{
   if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)
   const url=URL.createObjectURL(file)
   pepPreviewUrlRef.current=url
   setPepPreviewUrl(url)
+  setPepVideoStatus('ready')
  }
- const clearPepVideo=()=>{
-  if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)
-  pepPreviewUrlRef.current=null
-  setPepPreviewUrl(null)
+ useEffect(()=>{
+  let cancelled=false
+  // A permanent deployed asset is preferred when present.
+  void fetch('/brand/pep-chat-loop.mp4',{method:'HEAD'}).then(res=>{
+   if(!res.ok)throw Error('Asset ainda não está publicado')
+   if(!cancelled){setPepPreviewUrl('/brand/pep-chat-loop.mp4');setPepVideoStatus('ready')}
+  }).catch(()=>{
+   const req=indexedDB.open('payrep-pep-media',1)
+   req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('media'))req.result.createObjectStore('media')}
+   req.onsuccess=()=>{
+    const db=req.result
+    const read=db.transaction('media','readonly').objectStore('media').get('video')
+    read.onsuccess=()=>{if(!cancelled){if(read.result instanceof Blob)setLocalVideo(read.result);else setPepVideoStatus('missing')}db.close()}
+    read.onerror=()=>{if(!cancelled)setPepVideoStatus('missing');db.close()}
+   }
+   req.onerror=()=>{if(!cancelled)setPepVideoStatus('missing')}
+  })
+  return ()=>{cancelled=true;if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)}
+ },[])
+ const handlePepVideo=(event:ChangeEvent<HTMLInputElement>)=>{
+  const file=event.currentTarget.files?.[0]
+  event.currentTarget.value=''
+  if(!file||!['video/mp4','video/webm'].includes(file.type)||file.size>35_000_000)return
+  setLocalVideo(file)
+  const req=indexedDB.open('payrep-pep-media',1)
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('media'))req.result.createObjectStore('media')}
+  req.onsuccess=()=>{
+   const db=req.result
+   const txn=db.transaction('media','readwrite')
+   txn.objectStore('media').put(file,'video')
+   txn.oncomplete=()=>db.close()
+   txn.onerror=()=>db.close()
+  }
  }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
  const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
@@ -156,13 +183,10 @@ export function SupportPage({user}:{user:User}){
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
     <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
     <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
-    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:12}}>
-     <label className="secondary" style={{cursor:"pointer",position:"relative"}}>Testar vídeo do Pep
-      <input type="file" accept="video/mp4,video/webm" onChange={handlePepVideo} style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",width:"100%",height:"100%"}} aria-label="Selecionar vídeo do Pep para visualização local"/>
-     </label>
-     {pepPreviewUrl&&<button type="button" className="secondary" onClick={clearPepVideo}>Voltar à imagem</button>}
-     <small className="subtle">Prévia local. O arquivo não é enviado ao Payrep.</small>
-    </div>
+    {pepVideoStatus==='missing'&&<label className="secondary" style={{position:'relative',display:'inline-flex',marginTop:12,cursor:'pointer'}}>
+     Ativar animação do Pep
+     <input type="file" accept="video/mp4,video/webm" onChange={handlePepVideo} aria-label="Adicionar animação do Pep neste navegador" style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:'pointer'}}/>
+    </label>}
    </div>
    <PepMascot variant="help" videoUrl={pepPreviewUrl}/>
   </section>}
