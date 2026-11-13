@@ -35,7 +35,11 @@ describe('Maileroo inbound Payrep webhook',()=>{
  it('rejects unsafe or irrelevant inbound messages',()=>{
   expect(parseMailerooEmail({...valid,is_spam:true})).toBeNull()
   expect(parseMailerooEmail({...valid,is_dmarc_aligned:false})).toBeNull()
-  expect(parseMailerooEmail({...valid,domain:'other.com'})).toBeNull()
+  // Maileroo's domain field may not equal the routed recipient domain.
+  // Only the full recipient address and the backend ticket lookup authorize delivery.
+  expect(parseMailerooEmail({...valid,domain:'other.com'})).not.toBeNull()
+  expect(parseMailerooEmail({...valid,domain:'gmail.com'})).not.toBeNull()
+  expect(parseMailerooEmail({...valid,domain:undefined})).not.toBeNull()
   expect(parseMailerooEmail({...valid,recipients:['suporte@payrep.com.br']})).toBeNull()
   // Attachments are deliberately ignored, not downloaded into ticket messages.
   expect(parseMailerooEmail({...valid,attachments:[{filename:'image-signature.png'}]})).not.toBeNull()

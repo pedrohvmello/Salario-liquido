@@ -33,7 +33,7 @@ function senderFromHeader(raw:string):string|null{
 }
 
 export type InboundParseReason =
- |'invalid_structure'|'wrong_domain'|'spam'|'unaligned_dmarc'|'invalid_event_id'
+ |'invalid_structure'|'spam'|'unaligned_dmarc'|'invalid_event_id'
  |'invalid_message_id'|'invalid_recipients'|'missing_sender'|'auto_response'
  |'missing_reply_text'|'reply_too_long'|'invalid_validation_url'
 export type InboundParseResult=
@@ -62,7 +62,9 @@ function latestText(body:Bag):string|null{
 
 export function inspectMailerooEmail(raw:unknown):InboundParseResult{
  if(!RECORD(raw)||!RECORD(raw.headers)||!RECORD(raw.body))return fail('invalid_structure')
- if(typeof raw.domain!=='string'||raw.domain.toLowerCase()!=='payrep.com.br')return fail('wrong_domain')
+ // The provider's domain field is not authoritative for ticket ownership.
+ // Require an exact Payrep HML recipient, random route token, authenticated
+ // Maileroo validation URL and account-owner email at DB ingestion instead.
  if(raw.is_spam!==false)return fail('spam')
  if(raw.is_dmarc_aligned!==true)return fail('unaligned_dmarc')
  // Attachment metadata can include signatures or inline images. We never
