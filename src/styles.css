@@ -1155,3 +1155,42 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .payrep-neurons-model span{color:#78648c;min-width:0}
 .payrep-neurons-model strong{color:#3f205c;white-space:nowrap}
 @media(max-width:640px){.payrep-neurons-kpis{grid-template-columns:1fr}.payrep-neurons-model{flex-wrap:wrap}}
+
+/* Pep mascot (Payrep): HML-only illustration with motion reduced by default. */
+.help-ai-entry{display:grid;grid-template-columns:minmax(0,1fr) 170px;align-items:center;gap:20px}
+.help-ai-entry-content{min-width:0}
+.help-ai-entry-content>p{max-width:640px}
+.help-ai-entry-content>.subtle{margin-top:13px;font-size:11px}
+.pep-mascot{position:relative;display:block;flex:0 0 auto;pointer-events:none;user-select:none}
+.pep-mascot img{display:block;width:100%;height:100%;object-fit:contain}
+.pep-mascot-help{width:158px;height:180px;justify-self:center}
+.pep-mascot-header{width:90px;height:88px}
+.pep-mascot-help img,.pep-mascot-header img{animation:pep-float 6s ease-in-out infinite;transform-origin:50% 78%}
+@keyframes pep-float{
+ 0%,100%{transform:translateY(0) rotate(0deg)}
+ 40%{transform:translateY(-3px) rotate(-1.2deg)}
+ 70%{transform:translateY(1px) rotate(.8deg)}
+}
+.payrep-ai-header-actions{display:flex;gap:15px;align-items:center;flex:0 0 auto}
+.payrep-ai-toolbar{min-height:108px}
+.payrep-ai-avatar{overflow:hidden}
+.pep-mascot-avatar{width:100%;height:100%;border-radius:inherit;overflow:hidden;background:#f2e5ff}
+.pep-mascot-avatar img{position:absolute;max-width:none;width:108px;height:108px;left:50%;top:-6px;transform:translateX(-50%);object-fit:contain}
+.payrep-ai-bubble-assistant{display:flex;align-items:flex-start;gap:10px}
+.payrep-ai-bubble-content{min-width:0;flex:1}
+.pep-chat-reply-avatar{display:grid;place-items:center;flex:0 0 29px;width:29px;height:29px;overflow:hidden;border-radius:9px;background:#f3e7ff}
+.pep-chat-reply-avatar .pep-mascot-avatar{width:29px;height:29px}
+.pep-chat-reply-avatar .pep-mascot-avatar img{width:75px;height:75px;top:-4px}
+.pep-mascot-thinking{width:34px;height:34px}
+.pep-mascot-thinking img{animation:pep-think 1.8s ease-in-out infinite}
+@keyframes pep-think{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(4deg) translateY(-2px)}}
+@media(max-width:700px){
+ .help-ai-entry{grid-template-columns:minmax(0,1fr)}
+ .pep-mascot-help{display:none}
+ .pep-mascot-header{display:none}
+ .payrep-ai-toolbar{min-height:0}
+ .payrep-ai-header-actions{margin-left:auto;gap:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .pep-mascot img{animation:none!important;transition:none!important}
+}
