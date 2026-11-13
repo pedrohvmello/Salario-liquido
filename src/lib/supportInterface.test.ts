@@ -18,7 +18,7 @@ describe('Payrep sidebar, avatar and support center',()=>{
   expect(profile).toContain('Ampliar e gerenciar foto do perfil')
   expect(profile).toContain('profile-display-name')
   expect(profile).toContain('loadMyProfile')
-  expect(profile).toContain(String.raw`replace(/\\.\\s*$/,'')`)
+  expect(profile).toContain(String.raw`replace(/\.\s*$/,'')`)
  })
  it('exposes FAQs, real ticket submission and a mail contact fallback',()=>{
   expect(helpFaq.length).toBeGreaterThanOrEqual(6)
