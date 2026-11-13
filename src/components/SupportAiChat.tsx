@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type FormEvent, type KeyboardEvent} from 'reac
 import {ArrowLeft,Info,LoaderCircle,Send,Sparkles,Trash2} from 'lucide-react'
 import {db} from '../lib/data'
 
-type ChatMessage={role:'user'|'assistant';content:string}
+type ChatMessage={role:'user'|'assistant';content:string;sources?:string[]}
 const errors:Record<string,string>={
  authentication_required:'Sua sessão expirou. Faça login novamente.',
  account_not_authorized:'Este recurso está disponível apenas para contas aprovadas.',
@@ -13,11 +13,13 @@ const errors:Record<string,string>={
  quota_unavailable:'Não foi possível validar o limite de uso. Tente novamente.',
  ai_unavailable:'A IA está temporariamente indisponível. Tente novamente.',
  ai_invalid_response:'Não foi possível interpretar a resposta. Tente novamente.',
+ financial_data_unavailable:'Não foi possível consultar seus dados com segurança. Verifique sua sessão e tente novamente.',
 }
 export function SupportAiChat({onBack}:{onBack:()=>void}){
  const [messages,setMessages]=useState<ChatMessage[]>([])
  const [draft,setDraft]=useState('')
  const [busy,setBusy]=useState(false)
+ const [useFinancialData,setUseFinancialData]=useState(false)
  const [error,setError]=useState('')
  const bottom=useRef<HTMLDivElement|null>(null)
  useEffect(()=>{bottom.current?.scrollIntoView({block:'nearest'})},[messages,busy])
@@ -31,7 +33,7 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
   try{
    const history=prior.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,800)}))
    const {data, error:invokeError}=await db.functions.invoke('support-ai',{
-    body:{question,history}
+    body:{question,history,useFinancialData}
    })
    if(invokeError){
     let code='ai_unavailable'
@@ -42,7 +44,7 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
     throw Error(errors[code]||errors.ai_unavailable)
    }
    if(!data||typeof data.answer!=='string'||!data.answer.trim())throw Error(errors.ai_invalid_response)
-   setMessages([...prior,{role:'user',content:question},{role:'assistant',content:data.answer.slice(0,1300)}])
+   setMessages([...prior,{role:'user',content:question},{role:'assistant',content:data.answer.slice(0,1300),sources:Array.isArray(data.sources)?data.sources.filter((x:unknown)=>typeof x==='string').slice(0,2):[]}])
   }catch(err){
    setMessages(prior)
    setDraft(question)
@@ -64,14 +66,25 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
     <strong>Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
    </div></div>
    <button type="button" className="secondary" disabled={busy||messages.length===0}
-    onClick={()=>{setMessages([]);setError('')}}><Trash2 size={15}/> Nova conversa</button>
+    onClick={()=>{setMessages([]);setUseFinancialData(false);setError('')}}><Trash2 size={15}/> Nova conversa</button>
+   </div>
+   <div className="payrep-ai-consent">
+    <label className="payrep-ai-consent-label">
+     <input type="checkbox" checked={useFinancialData} disabled={busy}
+      onChange={e=>{setUseFinancialData(e.target.checked);setMessages([]);setError('')}}/>
+     <span><strong>Permitir consultas aos meus dados salariais</strong>
+      <small>Somente nesta conversa. A IA poderá consultar resumos de holerites, rubricas, eventos e configurações da sua conta.</small>
+     </span>
+    </label>
+    <p>Seus PDFs completos, arquivos originais, nomes e dados de identificação não serão enviados ao modelo. Os valores relevantes e a pergunta serão processados pela Cloudflare. Desmarcar apaga a conversa da tela.</p>
    </div>
    <div className="payrep-ai-messages" role="log" aria-live="polite" aria-relevant="additions text">
     {messages.length===0&&<div className="payrep-ai-welcome"><Sparkles size={25}/><h3>Como posso ajudar?</h3>
-      <p>Escreva sua pergunta livremente. Posso explicar como utilizar o Payrep, importar holerites, configurar eventos ou consultar informações.</p>
+      <p>Escreva sua pergunta livremente. Posso orientar sobre processos e, com sua autorização, explicar os valores importados no Payrep.</p>
     </div>}
     {messages.map((item,index)=><article key={index} className={'payrep-ai-bubble payrep-ai-bubble-'+item.role}>
       <strong>{item.role==='user'?'Você':'Assistente Payrep'}</strong><p>{item.content}</p>
+      {item.sources&&item.sources.length>0&&<small className="payrep-ai-sources">Fonte: {item.sources.join(' · ')}</small>}
      </article>)}
     {busy&&<div className="payrep-ai-thinking" role="status"><LoaderCircle size={16} className="payrep-ai-spin"/> Consultando...</div>}
     <div ref={bottom}/>
@@ -83,7 +96,7 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
       onChange={e=>setDraft(e.target.value)} onKeyDown={handleKey}
       placeholder="Digite sua dúvida sobre o Payrep..."/>
     <div className="payrep-ai-form-footer">
-     <span>Não envie senhas, holerites completos ou dados financeiros pessoais. O assistente ainda não consulta seus valores.</span>
+     <span>{useFinancialData?'Consulta autorizada apenas para esta conversa. Não envie documentos completos ou credenciais.':'Sem acesso aos seus valores até você autorizar acima. Não envie documentos completos ou credenciais.'}</span>
      <button className="primary" type="submit" disabled={busy||!db||draft.trim().length<3}>
       <Send size={16}/> Enviar
      </button>
