@@ -144,11 +144,12 @@ export default function App(){
  const [entry,setEntry]=useState<DayEntry>({date:today(),start:'09:00',lunchStart:'12:00',lunchEnd:'13:00',end:'18:00',holidayOverride:null})
 
  useEffect(()=>{
-  if(!db)return
+  const authClient=db
+  if(!authClient)return
   let active=true
   // INITIAL_SESSION is the single authoritative bootstrap. Avoid racing a
   // second getSession() result against a cross-tab SIGNED_OUT event.
-  const {data:subscription}=db.auth.onAuthStateChange((event,session)=>{
+  const {data:subscription}=authClient.auth.onAuthStateChange((event,session)=>{
    if(!active)return
    const nextUserId=session?.user?.id??null
    const change=sessionAuthTransition(event,authUserIdRef.current,nextUserId)
@@ -164,7 +165,7 @@ export default function App(){
     // interrupt only if the session has actually lost required assurance.
     void Promise.resolve().then(()=>{
      if(!active||authUserIdRef.current!==nextUserId)return null
-     return db.auth.mfa.getAuthenticatorAssuranceLevel()
+     return authClient.auth.mfa.getAuthenticatorAssuranceLevel()
     }).then(result=>{
      if(!active||authUserIdRef.current!==nextUserId||!result)return
      const nextState=mfaGateForAssurance(result.data,result.error)
