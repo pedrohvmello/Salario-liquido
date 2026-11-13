@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
 import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
@@ -38,6 +38,7 @@ import {SupportPage} from './components/SupportPage'
 import {MfaGate} from './components/MfaGate'
 import {TotpSettings} from './components/TotpSettings'
 import {mfaGateForAssurance} from './lib/mfaAssurance'
+import {sessionAuthTransition} from './lib/sessionAuthTransition'
 import {accessScreenFor,adminNeedsTotp,membershipAccessState,type AccessDecision} from './lib/accessGate'
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
@@ -95,6 +96,7 @@ export default function App(){
   return ()=>window.removeEventListener('keydown',closeOnEscape)
  },[menu])
  const [user,setUser]=useState<User|null>(null)
+ const authUserIdRef=useRef<string|null>(null)
  const [authReady,setAuthReady]=useState(!db)
  useEffect(()=>{
   if(!authReady)return
@@ -142,18 +144,42 @@ export default function App(){
  const [entry,setEntry]=useState<DayEntry>({date:today(),start:'09:00',lunchStart:'12:00',lunchEnd:'13:00',end:'18:00',holidayOverride:null})
 
  useEffect(()=>{
-  if(!db)return
-  db.auth.getSession().then(({data})=>{setUser(data.session?.user||null);setAuthReady(true)})
-  const {data:subscription}=db.auth.onAuthStateChange((event,session)=>{
-   if(mfaEnabled&&(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')){
+  const authClient=db
+  if(!authClient)return
+  let active=true
+  // INITIAL_SESSION is the single authoritative bootstrap. Avoid racing a
+  // second getSession() result against a cross-tab SIGNED_OUT event.
+  const {data:subscription}=authClient.auth.onAuthStateChange((event,session)=>{
+   if(!active)return
+   const nextUserId=session?.user?.id??null
+   const change=sessionAuthTransition(event,authUserIdRef.current,nextUserId)
+   authUserIdRef.current=nextUserId
+   if(mfaEnabled&&change.resetMfa){
+    // New identity or actual sign-out: always re-enter the security gate.
     setMfaState('checking')
-    setMfaRetry(n=>n+1)
+   }
+   if(mfaEnabled&&change.backgroundMfaCheck){
+    // SIGNED_IN fires when a tab is refocused; TOKEN_REFRESHED fires when
+    // Supabase renews a session. Neither should unmount the current screen.
+    // Verify assurance asynchronously, *outside* the auth callback, and
+    // interrupt only if the session has actually lost required assurance.
+    void Promise.resolve().then(()=>{
+     if(!active||authUserIdRef.current!==nextUserId)return null
+     return authClient.auth.mfa.getAuthenticatorAssuranceLevel()
+    }).then(result=>{
+     if(!active||authUserIdRef.current!==nextUserId||!result)return
+     const nextState=mfaGateForAssurance(result.data,result.error)
+     if(nextState!=='ready')setMfaState(nextState)
+    }).catch(()=>{
+     if(active&&authUserIdRef.current===nextUserId)setMfaState('error')
+    })
    }
    setUser(session?.user||null)
+   setAuthReady(true)
    if(event==='PASSWORD_RECOVERY')setPasswordSetup(true)
    if(event==='SIGNED_OUT')setPasswordSetup(false)
   })
-  return ()=>subscription.subscription.unsubscribe()
+  return ()=>{active=false;subscription.subscription.unsubscribe()}
  },[])
  useEffect(()=>{
   if(!mfaEnabled){setMfaState('ready');return}
