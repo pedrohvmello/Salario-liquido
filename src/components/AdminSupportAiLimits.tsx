@@ -58,7 +58,7 @@ export function AdminSupportAiLimits(){
    Uso dos usuários comuns hoje: <strong>{limits.usedToday} de {limits.globalDailyLimit}</strong> perguntas, por <strong>{limits.usersToday}</strong> usuário(s).
    A contagem reinicia à meia-noite UTC.
   </p>}
-  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. O intervalo mínimo de 20 segundos vale para usuários comuns. Administradores não consomem a cota de usuários comuns e não têm limite interno. A franquia externa da Cloudflare continua válida.</p>
+  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. Administradores não consomem a cota de usuários comuns e não têm limite interno. A franquia externa da Cloudflare continua válida.</p>
   {!valid&&!loading&&<p role="alert" className="error">
    Informe números inteiros positivos. Os limites são independentes e não têm tetos adicionais definidos pelo Payrep.
   </p>}

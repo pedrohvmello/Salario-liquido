@@ -3,6 +3,18 @@ import {readFileSync} from 'node:fs'
 import {validSupportAiLimits} from './supportAiLimits'
 
 describe('Daily Payrep AI quotas controlled by administrators',()=>{
+ it('does not impose an undocumented cooldown beyond administrator-chosen daily limits',()=>{
+  const fn=readFileSync('supabase/migrations/0034_support_ai_remove_cooldown_hml.sql','utf8')
+  const app=readFileSync('src/components/AdminSupportAiLimits.tsx','utf8')
+  const backend=readFileSync('supabase/functions/support-ai/index.ts','utf8')
+  expect(fn).not.toContain("interval '20 seconds'")
+  expect(fn).not.toContain("return 'cooldown'")
+  expect(fn).toContain("v_global >= v_global_limit")
+  expect(fn).toContain("v_count >= v_user_limit")
+  expect(app).not.toContain('O intervalo mínimo de 20 segundos')
+  expect(backend).not.toContain("error:quota==='cooldown'")
+ })
+
  it('exempts authenticated administrators without requiring MFA solely for AI questions',()=>{
   const edge=readFileSync('supabase/functions/support-ai/index.ts','utf8')
   const ui=readFileSync('src/components/AdminSupportAiLimits.tsx','utf8')

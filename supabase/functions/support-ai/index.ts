@@ -105,7 +105,7 @@ Deno.serve(async req=>{
  if(!verifiedAdmin){
   const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
   if(quotaError)return reply({error:'quota_unavailable'},503)
-  if(quota!=='ok')return reply({error:quota==='cooldown'?'cooldown':'daily_limit'},429)
+  if(quota!=='ok')return reply({error:'daily_limit'},429)
  }
 
  const messages=[

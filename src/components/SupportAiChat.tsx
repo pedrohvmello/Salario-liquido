@@ -6,7 +6,6 @@ type ChatMessage={role:'user'|'assistant';content:string;sources?:string[]}
 const errors:Record<string,string>={
  authentication_required:'Sua sessão expirou. Faça login novamente.',
  account_not_authorized:'Este recurso está disponível apenas para contas aprovadas.',
- cooldown:'Aguarde 20 segundos entre as perguntas.',
  daily_limit:'O limite gratuito de perguntas foi atingido por hoje. Tente novamente amanhã.',
  ai_free_limit:'A cota gratuita do modelo foi esgotada. Tente novamente mais tarde.',
  ai_not_configured:'A integração com IA ainda não está pronta neste ambiente.',
