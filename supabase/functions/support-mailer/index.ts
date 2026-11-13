@@ -71,7 +71,13 @@ Deno.serve(async req=>{
     const {data:route,error:routeError}=await db.from('support_ticket_reply_routes')
      .select('token').eq('ticket_id',t.id).is('revoked_at',null).single()
     if(routeError||!route?.token)throw Error('Support reply address unavailable')
-    replyTo='hml-chamado-'+String(t.ticket_year)+'-'+String(t.ticket_sequence).padStart(4,'0')+
+    const prefix=env('SUPPORT_REPLY_PREFIX')||'hml-chamado'
+    if(prefix!=='hml-chamado'&&prefix!=='chamado')throw Error('Invalid support reply prefix')
+    const hostname=new URL(app).hostname
+    if((hostname==='payrep-hml.vercel.app'&&prefix!=='hml-chamado')
+     ||(hostname==='payrep.com.br'&&prefix!=='chamado'))
+     throw Error('Support reply prefix does not match the deployment')
+    replyTo=prefix+'-'+String(t.ticket_year)+'-'+String(t.ticket_sequence).padStart(4,'0')+
      '-'+route.token+'@payrep.com.br'
    }
    const prefix=eventLabel[item.kind]

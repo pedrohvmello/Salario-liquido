@@ -49,6 +49,13 @@ describe('Maileroo inbound Payrep webhook',()=>{
   expect(parseMailerooEmail({...valid,body:{stripped_plaintext:'x'.repeat(4001)}})).toBeNull()
   expect(parseMailerooEmail({...valid,validation_url:'https://127.0.0.1'})).toBeNull()
  })
+ it('keeps HML and PRD recipient namespaces isolated',()=>{
+  const hml=valid.recipients[0]
+  const prd=hml.replace('hml-chamado-','chamado-')
+  expect(parseMailerooEmail({...valid,recipients:[prd]})).toBeNull()
+  expect(parseMailerooEmail({...valid,recipients:[prd]},'chamado')?.recipient).toBe(prd)
+  expect(parseMailerooEmail({...valid,recipients:[hml]},'chamado')).toBeNull()
+ })
  it('safely extracts plaintext when the provider has no stripped plaintext',()=>{
   const reply={...valid,body:{
    stripped_plaintext:'',plaintext:'Uma resposta de teste!\n\nOn Nov 13 2026 01:49, Suporte wrote:\n> Mensagem original'

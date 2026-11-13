@@ -16,7 +16,10 @@ Deno.serve(async request=>{
  if(raw.length>65536)return new Response('Payload too large',{status:413})
  let payload:unknown
  try{payload=JSON.parse(raw)}catch{return new Response('Invalid JSON',{status:400})}
- const parsed=inspectMailerooEmail(payload)
+ const replyPrefix=Deno.env.get('SUPPORT_REPLY_PREFIX')||'hml-chamado'
+ if(replyPrefix!=='hml-chamado'&&replyPrefix!=='chamado')
+  return new Response('Invalid support email environment',{status:503})
+ const parsed=inspectMailerooEmail(payload,replyPrefix)
  if(!parsed.candidate){
   // Reason codes only; never log email headers, addresses, tokens or message text.
   console.warn('Payrep inbound rejected format:',parsed.reason)

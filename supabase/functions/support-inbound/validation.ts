@@ -60,7 +60,7 @@ function latestText(body:Bag):string|null{
  return result.join('\n').trim()||null
 }
 
-export function inspectMailerooEmail(raw:unknown):InboundParseResult{
+export function inspectMailerooEmail(raw:unknown,replyPrefix:'hml-chamado'|'chamado'='hml-chamado'):InboundParseResult{
  if(!RECORD(raw)||!RECORD(raw.headers)||!RECORD(raw.body))return fail('invalid_structure')
  // The provider's domain field is not authoritative for ticket ownership.
  // Require an exact Payrep HML recipient, random route token, authenticated
@@ -73,8 +73,11 @@ export function inspectMailerooEmail(raw:unknown):InboundParseResult{
  if(typeof eventId!=='string'||!/^([0-9a-f]{24})$/.test(eventId))return fail('invalid_event_id')
  if(typeof sourceMessageId!=='string'||sourceMessageId.length<5||sourceMessageId.length>255)return fail('invalid_message_id')
  if(!Array.isArray(raw.recipients))return fail('invalid_recipients')
+ const recipientPattern=replyPrefix==='hml-chamado'
+  ? /^hml-chamado-[0-9]{4}-[0-9]{4,}-[0-9a-f]{32}@payrep\.com\.br$/
+  : /^chamado-[0-9]{4}-[0-9]{4,}-[0-9a-f]{32}@payrep\.com\.br$/
  const addresses=[...new Set(raw.recipients.filter((x):x is string=>typeof x==='string').map(x=>x.trim().toLowerCase())
-  .filter(x=>/^hml-chamado-[0-9]{4}-[0-9]{4,}-[0-9a-f]{32}@payrep\.com\.br$/.test(x)))]
+  .filter(x=>recipientPattern.test(x)))]
  if(addresses.length!==1)return fail('invalid_recipients')
  const from=header(raw.headers,'From')
  if(!from)return fail('missing_sender')
@@ -91,6 +94,6 @@ export function inspectMailerooEmail(raw:unknown):InboundParseResult{
   eventId,sourceMessageId,recipient:addresses[0],senderEmail,body,validationUrl
  },reason:null}
 }
-export function parseMailerooEmail(raw:unknown):VerifiedEmailCandidate|null{
- return inspectMailerooEmail(raw).candidate
+export function parseMailerooEmail(raw:unknown,replyPrefix:'hml-chamado'|'chamado'='hml-chamado'):VerifiedEmailCandidate|null{
+ return inspectMailerooEmail(raw,replyPrefix).candidate
 }
