@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useRef,useState,type ChangeEvent,type FormEvent} from 'react'
+import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
 import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Sparkles,Ticket} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
@@ -127,52 +127,84 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
+ const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
  const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
- const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'ready'>('checking')
- const pepPreviewUrlRef=useRef<string|null>(null)
+ const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'local'|'ready'>('checking')
+ const [cachedPepVideo,setCachedPepVideo]=useState<Blob|null>(null)
+ const [isAdmin,setIsAdmin]=useState(false)
+ const [uploadingPepVideo,setUploadingPepVideo]=useState(false)
+ const [pepUploadError,setPepUploadError]=useState('')
+ const localVideoUrl=useRef<string|null>(null)
+ const mediaBucket='payrep-mascot'
+ const mediaPath='pep-chat-loop.mp4'
  const setLocalVideo=(file:Blob)=>{
-  if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)
+  if(localVideoUrl.current)URL.revokeObjectURL(localVideoUrl.current)
   const url=URL.createObjectURL(file)
-  pepPreviewUrlRef.current=url
+  localVideoUrl.current=url
   setPepPreviewUrl(url)
-  setPepVideoStatus('ready')
+  setCachedPepVideo(file)
+  setPepVideoStatus('local')
  }
  useEffect(()=>{
   let cancelled=false
-  // A permanent deployed asset is preferred when present.
-  void fetch('/brand/pep-chat-loop.mp4',{method:'HEAD'}).then(res=>{
-   if(!res.ok||!res.headers.get('content-type')?.toLowerCase().startsWith('video/'))throw Error('Asset ainda não está publicado')
-   if(!cancelled){setPepPreviewUrl('/brand/pep-chat-loop.mp4');setPepVideoStatus('ready')}
-  }).catch(()=>{
-   const req=indexedDB.open('payrep-pep-media',1)
-   req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('media'))req.result.createObjectStore('media')}
-   req.onsuccess=()=>{
-    const db=req.result
-    const read=db.transaction('media','readonly').objectStore('media').get('video')
-    read.onsuccess=()=>{if(!cancelled){if(read.result instanceof Blob)setLocalVideo(read.result);else setPepVideoStatus('missing')}db.close()}
-    read.onerror=()=>{if(!cancelled)setPepVideoStatus('missing');db.close()}
+  if(!db||!hmlAiEnabled)return
+  const client=db
+  const load=async()=>{
+   const {data:membership}=await client.from('app_members').select('role,active,status').eq('user_id',user.id).maybeSingle()
+   if(!cancelled)setIsAdmin(membership?.role==='admin'&&membership?.active===true&&membership?.status==='approved')
+   const publicUrl=client.storage.from(mediaBucket).getPublicUrl(mediaPath).data.publicUrl
+   try{
+    const response=await fetch(publicUrl,{method:'HEAD',cache:'no-store'})
+    if(!response.ok||!response.headers.get('content-type')?.toLowerCase().startsWith('video/'))throw Error('not_found')
+    if(!cancelled){setPepPreviewUrl(publicUrl);setPepVideoStatus('ready')}
+    return
+   }catch{}
+   if(cancelled)return
+   // Temporary fallback from the previous HML video test. Only the administrator can publish it.
+   if(typeof indexedDB==='undefined'){setPepVideoStatus('missing');return}
+   const request=indexedDB.open('payrep-pep-media',1)
+   request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('media'))request.result.createObjectStore('media')}
+   request.onerror=()=>{if(!cancelled)setPepVideoStatus('missing')}
+   request.onsuccess=()=>{
+    const connection=request.result
+    const tx=connection.transaction('media','readonly')
+    const read=tx.objectStore('media').get('video')
+    read.onsuccess=()=>{
+     if(!cancelled){
+      if(read.result instanceof Blob&&read.result.type==='video/mp4')setLocalVideo(read.result)
+      else setPepVideoStatus('missing')
+     }
+     connection.close()
+    }
+    read.onerror=()=>{if(!cancelled)setPepVideoStatus('missing');connection.close()}
    }
-   req.onerror=()=>{if(!cancelled)setPepVideoStatus('missing')}
-  })
-  return ()=>{cancelled=true;if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)}
- },[])
- const handlePepVideo=(event:ChangeEvent<HTMLInputElement>)=>{
-  const file=event.currentTarget.files?.[0]
-  event.currentTarget.value=''
-  if(!file||!['video/mp4','video/webm'].includes(file.type)||file.size>35_000_000)return
-  setLocalVideo(file)
-  const req=indexedDB.open('payrep-pep-media',1)
-  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('media'))req.result.createObjectStore('media')}
-  req.onsuccess=()=>{
-   const db=req.result
-   const txn=db.transaction('media','readwrite')
-   txn.objectStore('media').put(file,'video')
-   txn.oncomplete=()=>db.close()
-   txn.onerror=()=>db.close()
   }
+  void load()
+  return ()=>{cancelled=true;if(localVideoUrl.current){URL.revokeObjectURL(localVideoUrl.current);localVideoUrl.current=null}}
+ },[user.id,hmlAiEnabled])
+ const uploadPepVideo=async(file:Blob)=>{
+  if(!db||!isAdmin||uploadingPepVideo)return
+  if(file.type!=='video/mp4'||file.size<1000||file.size>15_000_000){
+   setPepUploadError('Selecione um MP4 válido de até 15 MB.')
+   return
+  }
+  setUploadingPepVideo(true);setPepUploadError('')
+  try{
+   const storage=db.storage.from(mediaBucket)
+   const {error}=await storage.upload(mediaPath,file,{contentType:'video/mp4',cacheControl:'60',upsert:true})
+   if(error)throw error
+   const url=storage.getPublicUrl(mediaPath).data.publicUrl
+   const checkedUrl=url+'?v='+Date.now()
+   const response=await fetch(checkedUrl,{method:'HEAD',cache:'no-store'})
+   if(!response.ok||!response.headers.get('content-type')?.toLowerCase().startsWith('video/'))throw Error('O upload foi realizado, mas não foi possível verificar o vídeo publicado.')
+   if(localVideoUrl.current){URL.revokeObjectURL(localVideoUrl.current);localVideoUrl.current=null}
+   setPepPreviewUrl(checkedUrl)
+   setPepVideoStatus('ready')
+   setCachedPepVideo(null)
+  }catch(err){setPepUploadError(err instanceof Error?err.message:'Não foi possível publicar o vídeo. Confira sua autenticação MFA e tente novamente.')}
+  finally{setUploadingPepVideo(false)}
  }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
- const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
  if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl}/>
  return <div className="stack payrep-help-page">
@@ -183,10 +215,17 @@ export function SupportPage({user}:{user:User}){
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
     <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
     <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
-    {pepVideoStatus==='missing'&&<label className="secondary" style={{position:'relative',display:'inline-flex',marginTop:12,cursor:'pointer'}}>
-     Ativar animação do Pep
-     <input type="file" accept="video/mp4,video/webm" onChange={handlePepVideo} aria-label="Adicionar animação do Pep neste navegador" style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:'pointer'}}/>
-    </label>}
+    {isAdmin&&<details className="pep-admin-media">
+     <summary>Gerenciar animação do Pep</summary>
+     <p className="subtle">Publicação definitiva em homologação. O vídeo ficará disponível para todos os usuários deste ambiente.</p>
+     {pepVideoStatus==='local'&&cachedPepVideo&&<button type="button" className="secondary" disabled={uploadingPepVideo} onClick={()=>void uploadPepVideo(cachedPepVideo)}>Publicar vídeo atual para todos</button>}
+     <label className="secondary" style={{position:'relative',display:'inline-flex',cursor:uploadingPepVideo?'not-allowed':'pointer',marginLeft:pepVideoStatus==='local'?8:0}}>
+      {uploadingPepVideo?'Publicando...':pepVideoStatus==='ready'?'Substituir MP4 publicado':'Selecionar MP4 para publicar'}
+      <input type="file" accept="video/mp4" disabled={uploadingPepVideo} aria-label="Publicar arquivo MP4 do Pep para todos os usuários" onChange={event=>{const file=event.currentTarget.files?.[0];event.currentTarget.value='';if(file)void uploadPepVideo(file)}} style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:'pointer'}}/>
+     </label>
+     {pepUploadError&&<p className="error" role="alert">{pepUploadError}</p>}
+     {pepVideoStatus==='ready'&&<p className="subtle">Vídeo publicado e carregado automaticamente para todos os visitantes.</p>}
+    </details>}
    </div>
    <PepMascot variant="help" videoUrl={pepPreviewUrl}/>
   </section>}
