@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
+import {useCallback,useEffect,useMemo,useRef,useState,type ChangeEvent,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
 import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Sparkles,Ticket} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
@@ -127,10 +127,27 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
+ const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
+ const pepPreviewUrlRef=useRef<string|null>(null)
+ useEffect(()=>()=>{if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)},[])
+ const handlePepVideo=(event:ChangeEvent<HTMLInputElement>)=>{
+  const file=event.currentTarget.files?.[0]
+  event.currentTarget.value=''
+  if(!file||!['video/mp4','video/webm'].includes(file.type))return
+  if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)
+  const url=URL.createObjectURL(file)
+  pepPreviewUrlRef.current=url
+  setPepPreviewUrl(url)
+ }
+ const clearPepVideo=()=>{
+  if(pepPreviewUrlRef.current)URL.revokeObjectURL(pepPreviewUrlRef.current)
+  pepPreviewUrlRef.current=null
+  setPepPreviewUrl(null)
+ }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
  const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
- if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)}/>
+ if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
   {hmlAiEnabled&&<section className="panel help-ai-entry">
@@ -139,8 +156,15 @@ export function SupportPage({user}:{user:User}){
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
     <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
     <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
+    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:12}}>
+     <label className="secondary" style={{cursor:"pointer",position:"relative"}}>Testar vídeo do Pep
+      <input type="file" accept="video/mp4,video/webm" onChange={handlePepVideo} style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",width:"100%",height:"100%"}} aria-label="Selecionar vídeo do Pep para visualização local"/>
+     </label>
+     {pepPreviewUrl&&<button type="button" className="secondary" onClick={clearPepVideo}>Voltar à imagem</button>}
+     <small className="subtle">Prévia local. O arquivo não é enviado ao Payrep.</small>
+    </div>
    </div>
-   <PepMascot variant="help"/>
+   <PepMascot variant="help" videoUrl={pepPreviewUrl}/>
   </section>}
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
