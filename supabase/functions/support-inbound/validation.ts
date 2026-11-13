@@ -48,8 +48,8 @@ function quotedHistoryStarts(lines:string[],index:number):boolean{
  if(!line)return false
  if(/^>/.test(line) ||
     /^-{3,}\s*(?:Original Message|Mensagem original|Forwarded message)\s*-{3,}/i.test(line))return true
- const following=lines.slice(index,index+6).join(' ').replace(/\s+/g,' ').trim()
- if(following.length>650)return false
+ // Inspect only the attribution prefix. Quoted history may be many kilobytes.
+ const following=lines.slice(index,index+6).join(' ').replace(/\s+/g,' ').trim().slice(0,650)
  // Gmail pt-BR: "Em sex., 13 de nov. de 2026, ..., Suporte <...>"
  // followed by "escreveu:" on the same or a subsequent line.
  const portugueseAttribution=/^Em\s+(?:[a-zà-ÿ-]+[.,]{0,2}\s+)?\d{1,2}\s+de\s+[a-zà-ÿ]+/i
