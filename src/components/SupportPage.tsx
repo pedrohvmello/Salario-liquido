@@ -4,6 +4,7 @@ import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,M
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {SupportAiChat} from './SupportAiChat'
+import {PepMascot} from './PepMascot'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
@@ -133,11 +134,14 @@ export function SupportPage({user}:{user:User}){
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
   {hmlAiEnabled&&<section className="panel help-ai-entry">
-   <div className="panel-heading"><h2><Sparkles size={19}/> Pergunte ao Payrep</h2></div>
-   <p>Escreva sua pergunta e receba uma orientação curta sobre como utilizar o Payrep. Você também pode continuar a conversa com novas dúvidas.</p>
-   <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com a IA</button>
-   <p className="subtle">Em teste na homologação. Ainda não consulta seus holerites nem valores individuais.</p>
-  </section>}
+   <div className="help-ai-entry-content">
+    <div className="panel-heading"><h2><Sparkles size={19}/> Pergunte ao Pep</h2></div>
+    <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
+    <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
+    <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
+   </div>
+   <PepMascot variant="help"/>
+  </section>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
    <div className="help-faq-list">{helpFaq.map(item=><details className="help-faq-item" key={item.question}>

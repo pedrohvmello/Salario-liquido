@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type FormEvent, type KeyboardEvent} from 'react'
 import {ArrowLeft,Info,LoaderCircle,Send,Sparkles,Trash2} from 'lucide-react'
 import {db} from '../lib/data'
+import {PepMascot} from './PepMascot'
 
 type ChatMessage={role:'user'|'assistant';content:string;sources?:string[]}
 const errors:Record<string,string>={
@@ -61,12 +62,15 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button>
   </div>
   <section className="panel payrep-ai-shell" aria-label="Conversa com o Assistente Payrep">
-   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-avatar"><Sparkles size={20}/></span><div>
-    <strong>Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
+   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-avatar"><PepMascot variant="avatar"/></span><div>
+    <strong>Pep · Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
    </div></div>
-   <button type="button" className="secondary" disabled={busy||messages.length===0}
-    onClick={()=>{setMessages([]);setUseFinancialData(false);setError('')}}><Trash2 size={15}/> Nova conversa</button>
+   <div className="payrep-ai-header-actions">
+    <PepMascot variant="header"/>
+    <button type="button" className="secondary" disabled={busy||messages.length===0}
+     onClick={()=>{setMessages([]);setUseFinancialData(false);setError('')}}><Trash2 size={15}/> Nova conversa</button>
    </div>
+  </div>
    <div className="payrep-ai-consent">
     <label className="payrep-ai-consent-label">
      <input type="checkbox" checked={useFinancialData} disabled={busy}
@@ -82,10 +86,13 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
       <p>Escreva sua pergunta livremente. Posso orientar sobre processos e, com sua autorização, explicar os valores importados no Payrep.</p>
     </div>}
     {messages.map((item,index)=><article key={index} className={'payrep-ai-bubble payrep-ai-bubble-'+item.role}>
-      <strong>{item.role==='user'?'Você':'Assistente Payrep'}</strong><p>{item.content}</p>
-      {item.sources&&item.sources.length>0&&<small className="payrep-ai-sources">Fonte: {item.sources.join(' · ')}</small>}
+      {item.role==='assistant'&&<span className="pep-chat-reply-avatar"><PepMascot variant="avatar"/></span>}
+      <div className="payrep-ai-bubble-content">
+       <strong>{item.role==='user'?'Você':'Pep'}</strong><p>{item.content}</p>
+       {item.sources&&item.sources.length>0&&<small className="payrep-ai-sources">Fonte: {item.sources.join(' · ')}</small>}
+      </div>
      </article>)}
-    {busy&&<div className="payrep-ai-thinking" role="status"><LoaderCircle size={16} className="payrep-ai-spin"/> Consultando...</div>}
+    {busy&&<div className="payrep-ai-thinking" role="status"><PepMascot variant="thinking"/><LoaderCircle size={16} className="payrep-ai-spin"/> Pep está analisando...</div>}
     <div ref={bottom}/>
    </div>
    <form className="payrep-ai-form" onSubmit={e=>void submit(e)}>
