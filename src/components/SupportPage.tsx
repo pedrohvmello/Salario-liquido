@@ -141,7 +141,7 @@ export function SupportPage({user}:{user:User}){
     <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
    </div>
    <PepMascot variant="help"/>
-  </section>
+  </section>}
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
    <div className="help-faq-list">{helpFaq.map(item=><details className="help-faq-item" key={item.question}>
