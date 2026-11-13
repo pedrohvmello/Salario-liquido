@@ -1132,3 +1132,13 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .payrep-ai-form-footer button{justify-content:center}
  .payrep-ai-bubble{max-width:94%}
 }
+
+/* Optional and revocable authorization to consult personal payroll facts. */
+.payrep-ai-consent{padding:14px 22px;background:#fcf9ff;border-bottom:1px solid #e9dcef}
+.payrep-ai-consent-label{display:flex;align-items:flex-start;gap:11px;cursor:pointer;color:#37174e}
+.payrep-ai-consent-label input[type="checkbox"]{height:18px;width:18px;margin:2px 0 0;accent-color:#7f08cf;flex:0 0 18px}
+.payrep-ai-consent-label strong{display:block;font-size:13px}
+.payrep-ai-consent-label small{display:block;font-size:12px;color:#6f6180;line-height:1.5;margin-top:4px}
+.payrep-ai-consent>p{margin:9px 0 0 29px;color:#806a90;font-size:11px;line-height:1.6}
+.payrep-ai-sources{display:block;margin-top:9px;color:#806c91;font-size:11px;line-height:1.5;border-top:1px solid #eee4f4;padding-top:8px}
+@media(max-width:640px){.payrep-ai-consent{padding:13px 15px}.payrep-ai-consent>p{margin-left:0}}
