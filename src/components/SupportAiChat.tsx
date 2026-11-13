@@ -62,11 +62,10 @@ export function SupportAiChat({onBack,pepPreviewUrl}:{onBack:()=>void;pepPreview
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button>
   </div>
   <section className="panel payrep-ai-shell" aria-label="Conversa com o Assistente Payrep">
-   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-avatar"><PepMascot variant="avatar"/></span><div>
+   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-video-avatar"><PepMascot variant="header" videoUrl={pepPreviewUrl}/></span><div>
     <strong>Pep · Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
    </div></div>
    <div className="payrep-ai-header-actions">
-    <PepMascot variant="header" videoUrl={pepPreviewUrl}/>
     <button type="button" className="secondary" disabled={busy||messages.length===0}
      onClick={()=>{setMessages([]);setUseFinancialData(false);setError('')}}><Trash2 size={15}/> Nova conversa</button>
    </div>
