@@ -970,3 +970,38 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .help-admin-ticket-status{min-width:175px}
 .help-admin-ticket-status label{font-size:12px;color:#684c7f}
 @media(max-width:640px){.help-ticket-item,.help-admin-ticket{flex-direction:column}.help-admin-ticket-status{width:100%}.help-contact-link{width:100%;justify-content:center}}
+
+
+/* Identidade do usuário abaixo do avatar. */
+.profile-display-name{display:block;max-width:100%;font-size:15px;font-weight:750;line-height:1.35;color:#32124e;text-align:center;overflow-wrap:anywhere}
+.profile-photo-section{gap:11px;margin-bottom:20px}
+
+/* Área dedicada de chamados, separada do FAQ. */
+.help-ticket-button{width:100%;text-align:left;font:inherit;cursor:pointer}
+.help-ticket-button:hover,.help-ticket-button:focus-visible{border-color:#b376e8;outline:2px solid transparent;background:#f4eaff}
+.help-ticket-button.is-selected{border-color:#a654dd;box-shadow:0 0 0 1px #a654dd55;background:#f8f0ff}
+.help-ticket-button>span:first-child{min-width:0}
+.help-conversation{display:flex;flex-direction:column;gap:17px}
+.help-conversation-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.help-conversation-heading strong{display:block;font-size:15px;color:#32124e}
+.help-conversation-heading small{display:block;color:#806896;margin-top:5px;font-size:12px}
+.help-conversation-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.help-message-list{list-style:none;padding:16px;margin:0;border:1px solid #eadcf4;border-radius:14px;background:#fcfaff;display:flex;flex-direction:column;gap:12px;max-height:430px;overflow-y:auto}
+.help-message{width:fit-content;max-width:min(85%,660px);padding:12px 14px;border-radius:14px;border:1px solid #e2d2ef;background:white;overflow-wrap:anywhere}
+.help-message-user{align-self:flex-start}
+.help-message-admin{align-self:flex-end;background:#f0e1ff;border-color:#d7baf0}
+.help-message-meta{font-size:11px;font-weight:700;color:#73598b}
+.help-message p{font-size:13px;line-height:1.65;margin:7px 0 0;white-space:pre-wrap;color:#35194d}
+.help-message-form{display:flex;flex-direction:column;gap:10px}
+.help-message-form label{font-size:12px;font-weight:750;color:#4b3064}
+.help-message-form textarea{min-height:85px;resize:vertical}
+.help-message-form button{align-self:flex-start}
+.help-ticket-closed{display:flex;align-items:flex-start;gap:9px;color:#5c456e;font-size:12px;line-height:1.6;background:#f5f0f9;padding:13px;border-radius:10px}
+.help-admin-ticket-main{flex:1;min-width:0}
+.help-admin-ticket-main>.secondary{margin-top:12px}
+.help-admin-conversation{margin-top:20px;border-top:1px solid #eadcf4;padding-top:22px}
+@media(max-width:640px){
+ .help-conversation-heading-actions{width:100%}
+ .help-message{max-width:96%}
+ .help-ticket-button{align-items:flex-start}
+}

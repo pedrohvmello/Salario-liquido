@@ -1,8 +1,10 @@
-import {useEffect,useState,type FormEvent} from 'react'
+import {useCallback,useEffect,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {BookOpen,CheckCircle2,ExternalLink,LifeBuoy,Mail,Send,Ticket,Info} from 'lucide-react'
+import {ArrowLeft,BookOpen,CheckCircle2,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Ticket} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
+import {TicketConversation} from './TicketConversation'
 import {db} from '../lib/data'
+import {supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type SupportTicket} from '../lib/support'
 
 export const SUPPORT_EMAIL='suporte@payrep.com.br'
 export const helpFaq=[
@@ -15,51 +17,30 @@ export const helpFaq=[
  {question:'Como excluir minha conta?',answer:'Abra o avatar, escolha Segurança e procure Excluir minha conta. Confira cuidadosamente o efeito da exclusão antes de confirmar.'}
 ] as const
 
-export type SupportTicket={
- id:string
- user_id:string
- category:string
- subject:string
- description:string
- status:'open'|'in_progress'|'resolved'
- created_at:string
- updated_at:string
-}
-export const supportStatuses:Record<SupportTicket['status'],string>={
- open:'Aberto',in_progress:'Em atendimento',resolved:'Resolvido'
-}
-const supportCategories=[
- {value:'acesso',label:'Acesso e segurança'},
- {value:'holerites',label:'Holerites e importação'},
- {value:'calculos',label:'Cálculos e projeções'},
- {value:'conta',label:'Cadastro e conta'},
- {value:'outro',label:'Outro assunto'}
-]
-const formatDate=(value:string)=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'}).format(new Date(value))
-const friendlyError=(message:string)=>/support_tickets|schema cache|relation .* does not exist/i.test(message)?'Abertura de chamados indisponível neste ambiente. Use o contato por e-mail.':message
-
-export function SupportPage({user}:{user:User}){
+function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
  const [category,setCategory]=useState('acesso')
  const [subject,setSubject]=useState('')
  const [description,setDescription]=useState('')
  const [tickets,setTickets]=useState<SupportTicket[]>([])
+ const [selectedId,setSelectedId]=useState<string|null>(null)
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
- useEffect(()=>{
-  let active=true
+ const loadTickets=useCallback(async()=>{
   if(!db){setLoading(false);return}
-  void db.from('support_tickets').select('id,user_id,category,subject,description,status,created_at,updated_at')
-   .eq('user_id',user.id).order('created_at',{ascending:false}).limit(30)
-   .then(({data,error})=>{
-    if(!active)return
-    if(error)setError(friendlyError(error.message))
-    else setTickets((data||[]) as SupportTicket[])
-    setLoading(false)
-   })
-  return ()=>{active=false}
+  try{
+   const {data,error:readError}=await db.from('support_tickets').select(supportTicketFields)
+    .eq('user_id',user.id).order('created_at',{ascending:false}).limit(50)
+   if(readError)throw Error(supportError(readError.message))
+   const next=(data||[]) as SupportTicket[]
+   setTickets(next)
+   setSelectedId(old=>next.some(item=>item.id===old)?old:next[0]?.id||null)
+   setError('')
+  }catch(err){setError(err instanceof Error?err.message:'Não foi possível carregar seus chamados.')}
+  finally{setLoading(false)}
  },[user.id])
+ useEffect(()=>{void loadTickets()},[loadTickets])
  const submit=async(e:FormEvent<HTMLFormElement>)=>{
   e.preventDefault()
   if(!db||busy)return
@@ -70,16 +51,54 @@ export function SupportPage({user}:{user:User}){
    if(authError||!current||current.id!==user.id)throw Error('Sessão expirada. Faça login novamente.')
    const {data,error:insertError}=await db.from('support_tickets')
     .insert({user_id:current.id,category,subject:subject.trim(),description:description.trim()})
-    .select('id,user_id,category,subject,description,status,created_at,updated_at').single()
-   if(insertError||!data)throw Error(friendlyError(insertError?.message||'Não foi possível registrar o chamado.'))
-   setTickets(old=>[data as SupportTicket,...old])
+    .select(supportTicketFields).single()
+   if(insertError||!data)throw Error(supportError(insertError?.message||'Não foi possível registrar o chamado.'))
+   const next=data as SupportTicket
+   setTickets(old=>[next,...old])
+   setSelectedId(next.id)
    setSubject('');setDescription('');setCategory('acesso')
-   setMessage('Chamado registrado: '+String(data.id)+'. Acompanhe o status nesta página.')
+   setMessage('Chamado '+supportTicketCode(next)+' registrado. Você já pode adicionar mensagens.')
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível registrar o chamado.')}
   finally{setBusy(false)}
  }
+ const selected=tickets.find(ticket=>ticket.id===selectedId)
  return <div className="stack payrep-help-page">
-  <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Encontre orientações, registre uma solicitação e acompanhe os chamados associados à sua conta.</p></div></div>
+  <div className="page-intro"><div><h2>Chamados de suporte</h2><p>Abra uma solicitação e converse com o suporte até a finalização.</p></div>
+   <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button></div>
+  <section className="panel">
+   <div className="panel-heading"><h2><LifeBuoy size={18}/> Abrir novo chamado</h2></div>
+   <p className="subtle">Descreva a dificuldade sem enviar senha, código de autenticação ou holerite completo. Os chamados ficam vinculados à sua conta.</p>
+   <form className="help-ticket-form" onSubmit={e=>void submit(e)}>
+    <label>Categoria<PayrepSelect value={category} onChange={setCategory} title="Categoria do chamado">
+     {supportCategories.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
+    </PayrepSelect></label>
+    <label>Assunto<input type="text" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={120} minLength={5} required placeholder="Resumo da sua solicitação"/></label>
+    <label>Descrição<textarea value={description} onChange={e=>setDescription(e.target.value)} maxLength={4000} minLength={20} required rows={5} placeholder="Explique o que aconteceu, em qual tela e quais etapas reproduzem o problema."/></label>
+    {message&&<div className="notice success" role="status"><CheckCircle2 size={17}/>{message}</div>}
+    {error&&<div className="notice danger" role="alert"><Info size={17}/>{error}</div>}
+    <button type="submit" className="primary" disabled={!db||busy}><Send size={17}/>{busy?'Registrando...':'Registrar chamado'}</button>
+   </form>
+  </section>
+  <section className="panel">
+   <div className="panel-heading"><h2><Ticket size={18}/> Meus chamados</h2>
+    <button type="button" className="secondary" disabled={loading} onClick={()=>void loadTickets()}><RefreshCw size={15}/> Atualizar</button></div>
+   {loading?<p className="subtle">Consultando chamados...</p>:tickets.length===0?<p className="subtle">Nenhum chamado cadastrado.</p>:
+    <div className="help-ticket-list">{tickets.map(ticket=><button type="button"
+     className={'help-ticket-item help-ticket-button'+(selectedId===ticket.id?' is-selected':'')}
+     key={ticket.id} onClick={()=>setSelectedId(ticket.id)} aria-pressed={selectedId===ticket.id}>
+     <span><strong>{ticket.subject}</strong><small>#{supportTicketCode(ticket)} · {supportCategoryLabel(ticket.category)} · {supportDate(ticket.created_at)}</small></span>
+     <span className="help-ticket-status">{supportStatuses[ticket.status]}</span>
+    </button>)}</div>}
+  </section>
+  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected}/></section>}
+ </div>
+}
+
+export function SupportPage({user}:{user:User}){
+ const [inTickets,setInTickets]=useState(false)
+ if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
+ return <div className="stack payrep-help-page">
+  <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
    <div className="help-faq-list">{helpFaq.map(item=><details className="help-faq-item" key={item.question}>
@@ -88,31 +107,14 @@ export function SupportPage({user}:{user:User}){
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><LifeBuoy size={18}/> Abrir chamado</h2></div>
-   <p className="subtle">Descreva a dificuldade sem enviar senha, código de autenticação ou holerite completo. Os chamados ficam vinculados à sua conta.</p>
-   <form className="help-ticket-form" onSubmit={e=>void submit(e)}>
-    <label>Categoria<PayrepSelect value={category} onChange={setCategory} title="Categoria do chamado">
-     {supportCategories.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
-    </PayrepSelect></label>
-    <label>Assunto<input type="text" value={subject} onChange={e=>setSubject(e.target.value)} maxLength={120} minLength={5} required placeholder="Resumo da sua solicitação"/></label>
-    <label>Descrição<textarea value={description} onChange={e=>setDescription(e.target.value)} maxLength={4000} minLength={20} required rows={6} placeholder="Explique o que aconteceu, em qual tela e quais etapas reproduzem o problema."/></label>
-    {message&&<div className="notice success" role="status"><CheckCircle2 size={17}/>{message}</div>}
-    {error&&<div className="notice danger" role="alert"><Info size={17}/>{error}</div>}
-    <button type="submit" className="primary" disabled={!db||busy}><Send size={17}/>{busy?'Registrando...':'Registrar chamado'}</button>
-   </form>
-  </section>
-  <section className="panel">
-   <div className="panel-heading"><h2><Ticket size={18}/> Meus chamados</h2></div>
-   {loading?<p className="subtle">Consultando chamados...</p>:tickets.length===0?<p className="subtle">Nenhum chamado cadastrado.</p>:
-    <div className="help-ticket-list">{tickets.map(ticket=><article className="help-ticket-item" key={ticket.id}>
-     <div><strong>{ticket.subject}</strong><small>{formatDate(ticket.created_at)} · Protocolo {ticket.id}</small></div>
-     <span className="help-ticket-status">{supportStatuses[ticket.status]}</span>
-    </article>)}</div>}
+   <p>Precisa de atendimento individual? Abra um chamado para relatar um problema, acompanhar o andamento e trocar mensagens com o suporte. Todo o histórico permanece disponível até a finalização.</p>
+   <button type="button" className="primary" onClick={()=>setInTickets(true)}><Ticket size={17}/> Acessar meus chamados</button>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><Mail size={18}/> Contato</h2></div>
-   <p>Para dúvidas gerais ou quando o formulário estiver indisponível, escreva para o atendimento do Payrep.</p>
-   <a className="secondary help-contact-link" href={`mailto:${SUPPORT_EMAIL}`}><Mail size={16}/>{SUPPORT_EMAIL}<ExternalLink size={14}/></a>
-   <p className="subtle">O envio por e-mail exige confirmação no seu aplicativo de correio. Mensagens enviadas por esse canal não aparecem automaticamente em Meus chamados.</p>
+   <p>Para dúvidas gerais ou quando os chamados estiverem indisponíveis, escreva para o atendimento do Payrep.</p>
+   <a className="secondary help-contact-link" href={'mailto:'+SUPPORT_EMAIL}><Mail size={16}/>{SUPPORT_EMAIL}<ExternalLink size={14}/></a>
+   <p className="subtle">Mensagens enviadas por e-mail não aparecem automaticamente em Meus chamados.</p>
   </section>
  </div>
 }
