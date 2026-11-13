@@ -15,7 +15,7 @@ const errors:Record<string,string>={
  ai_invalid_response:'Não foi possível interpretar a resposta. Tente novamente.',
  financial_data_unavailable:'Não foi possível consultar seus dados com segurança. Verifique sua sessão e tente novamente.',
 }
-export function SupportAiChat({onBack}:{onBack:()=>void}){
+export function SupportAiChat({onBack,pepPreviewUrl}:{onBack:()=>void;pepPreviewUrl?:string|null}){
  const [messages,setMessages]=useState<ChatMessage[]>([])
  const [draft,setDraft]=useState('')
  const [busy,setBusy]=useState(false)
@@ -66,7 +66,7 @@ export function SupportAiChat({onBack}:{onBack:()=>void}){
     <strong>Pep · Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
    </div></div>
    <div className="payrep-ai-header-actions">
-    <PepMascot variant="header"/>
+    <PepMascot variant="header" videoUrl={pepPreviewUrl}/>
     <button type="button" className="secondary" disabled={busy||messages.length===0}
      onClick={()=>{setMessages([]);setUseFinancialData(false);setError('')}}><Trash2 size={15}/> Nova conversa</button>
    </div>
