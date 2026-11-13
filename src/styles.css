@@ -1194,3 +1194,22 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 @media(prefers-reduced-motion:reduce){
  .pep-mascot img{animation:none!important;transition:none!important}
 }
+
+/* Pep conversation: animation is now the identity at left of the name. */
+.payrep-ai-video-avatar{width:82px;height:82px;flex:0 0 82px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.payrep-ai-video-avatar .pep-mascot-header{width:82px;height:82px}
+.payrep-ai-video-avatar .pep-mascot-header img{animation:none}
+.payrep-ai-identity{display:flex;align-items:center;gap:12px;min-width:0}
+.payrep-ai-header-actions{margin-left:auto}
+.payrep-ai-toolbar{min-height:100px}
+.pep-chat-reply-avatar{width:42px;height:42px;flex:0 0 42px;border-radius:12px}
+.pep-chat-reply-avatar .pep-mascot-avatar{width:42px;height:42px;overflow:hidden}
+.pep-chat-reply-avatar .pep-mascot-avatar img{
+ width:66px;height:66px;max-width:none;left:50%;top:0;transform:translateX(-50%);animation:none!important
+}
+@media(max-width:700px){
+ .payrep-ai-video-avatar{width:56px;height:56px;flex-basis:56px}
+ .payrep-ai-video-avatar .pep-mascot-header{width:56px;height:56px}
+ .payrep-ai-identity{gap:8px}
+ .payrep-ai-toolbar{min-height:0}
+}
