@@ -56,17 +56,24 @@ Deno.serve(async req=>{
  if(!token||token.trim().length<20||!account||!/^[a-f0-9]{32}$/i.test(account))
   return reply({error:'ai_not_configured'},503)
 
+ // The exemption is verified using the caller's JWT, not metadata, an
+ // admin flag from the browser, or the elevated service-role client.
+ // is_app_admin() enforces current-session, active membership and TOTP MFA.
+ const anonKey=Deno.env.get('SUPABASE_ANON_KEY')
+ if(!anonKey)return reply({error:'authorization_unavailable'},503)
+ const scoped=createClient(apiUrl,anonKey,{
+  global:{headers:{Authorization:authHeader}},
+  auth:{persistSession:false,autoRefreshToken:false}
+ })
+ const {data:verifiedAdmin,error:adminError}=await scoped.rpc('is_app_admin')
+ if(adminError||typeof verifiedAdmin!=='boolean')
+  return reply({error:'authorization_unavailable'},503)
+
  // Only a deliberate opt-in may trigger a user-scoped financial read.
  // Revalidate ownership with the signed-in JWT and RLS; never use service_role
  // for payroll or payslip data. Do not send names, files, IDs or arbitrary notes.
  let context:{facts:string;sourceLabels:string[]}|null=null
  if(input.value.useFinancialData&&financialTopic(input.value.question,input.value.history)){
-  const anonKey=Deno.env.get('SUPABASE_ANON_KEY')
-  if(!anonKey)return reply({error:'financial_data_unavailable'},503)
-  const scoped=createClient(apiUrl,anonKey,{
-   global:{headers:{Authorization:authHeader}},
-   auth:{persistSession:false,autoRefreshToken:false}
-  })
   const [docs,events,settings]=await Promise.all([
    scoped.from('statements').select(
     'id,period,document_type,credits,debits,net,net_received,salary_advance,ir_base,fgts,salary_contract,trienio,gross_ppr,ppr_income_tax,thirteenth_gross,thirteenth_irrf,thirteenth_inss,thirteenth_pension,thirteenth_advance,payment_date')
@@ -93,9 +100,14 @@ Deno.serve(async req=>{
   })
  }
 
- const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
- if(quotaError)return reply({error:'quota_unavailable'},503)
- if(quota!=='ok')return reply({error:quota==='cooldown'?'cooldown':'daily_limit'},429)
+ // Administrators with VERIFIED MFA are exempt from both daily caps and
+ // cooldown, and are never added to the regular-user usage counters.
+ // The Cloudflare Free-plan capacity remains a separate external limit.
+ if(!verifiedAdmin){
+  const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
+  if(quotaError)return reply({error:'quota_unavailable'},503)
+  if(quota!=='ok')return reply({error:quota==='cooldown'?'cooldown':'daily_limit'},429)
+ }
 
  const messages=[
   {role:'system',content:SYSTEM},

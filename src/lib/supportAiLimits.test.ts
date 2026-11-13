@@ -3,6 +3,22 @@ import {readFileSync} from 'node:fs'
 import {AI_LIMITS,validSupportAiLimits} from './supportAiLimits'
 
 describe('Daily Payrep AI quotas controlled by administrators',()=>{
+ it('exempts only MFA-verified administrators from application-level quotas',()=>{
+  const edge=readFileSync('supabase/functions/support-ai/index.ts','utf8')
+  const sql=readFileSync('supabase/migrations/0032_support_ai_admin_unlimited_hml.sql','utf8')
+  const ui=readFileSync('src/components/AdminSupportAiLimits.tsx','utf8')
+  expect(edge).toContain("scoped.rpc('is_app_admin')")
+  expect(edge).toContain("typeof verifiedAdmin!=='boolean'")
+  expect(edge).toContain("if(!verifiedAdmin){")
+  expect(edge).toContain("reserve_support_ai_request")
+  expect(edge).not.toContain("req.headers.get('x-payrep-admin')")
+  expect(sql).toContain("m.role='admin'")
+  expect(sql).toContain("not exists (")
+  expect(sql).toContain("usage_day")
+  expect(ui).toContain('Administradores com autenticação MFA validada não têm limite')
+  expect(ui).toContain('franquia gratuita da Cloudflare')
+ })
+
  it('accepts configurable daily quotas in the intended safe ranges',()=>{
   expect(validSupportAiLimits(8,50)).toBe(true)
   expect(validSupportAiLimits(25,100)).toBe(true)
@@ -20,8 +36,8 @@ describe('Daily Payrep AI quotas controlled by administrators',()=>{
   const admin=readFileSync('src/components/AdminSupportAiLimits.tsx','utf8')
   const api=readFileSync('src/lib/supportAiLimits.ts','utf8')
   expect(page).toContain('<AdminSupportAiLimits/>')
-  expect(admin).toContain('Limite diário de mensagens por usuário')
-  expect(admin).toContain('Limite diário total de mensagens da IA')
+  expect(admin).toContain('Mensagens por usuário comum / dia')
+  expect(admin).toContain('Mensagens totais de usuários comuns / dia')
   expect(admin).toContain('Salvar limites da IA')
   expect(api).toContain("rpc('get_support_ai_limits')")
   expect(api).toContain("rpc('set_support_ai_limits'")

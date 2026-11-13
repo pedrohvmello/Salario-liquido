@@ -41,24 +41,24 @@ export function AdminSupportAiLimits(){
  }
  return <section className="panel">
   <div className="panel-heading"><h2><Sparkles size={18}/> Assistente Payrep: limites de mensagens</h2></div>
-  <p>Configure quantas perguntas podem ser enviadas ao assistente por dia. Os limites são aplicados pelo servidor a todas as contas.</p>
+  <p>Configure os limites diários de perguntas para usuários comuns. Administradores com autenticação MFA validada não têm limite de perguntas no Payrep e não consomem a cota dos demais usuários.</p>
   <div className="password-policy-layout">
-   <label className="password-policy-length">Mensagens por usuário / dia
+   <label className="password-policy-length">Mensagens por usuário comum / dia
     <input type="number" min={1} max={AI_LIMITS.perUserMax} step={1}
      value={userInput} disabled={loading||saving} onChange={e=>{setUserInput(e.target.value);setMessage('')}}
      aria-label="Limite diário de mensagens por usuário"/>
    </label>
-   <label className="password-policy-length">Mensagens totais / dia
+   <label className="password-policy-length">Mensagens totais de usuários comuns / dia
     <input type="number" min={1} max={AI_LIMITS.globalMax} step={1}
      value={globalInput} disabled={loading||saving} onChange={e=>{setGlobalInput(e.target.value);setMessage('')}}
      aria-label="Limite diário total de mensagens da IA"/>
    </label>
   </div>
   {limits&&<p className="subtle" aria-live="polite">
-   Uso hoje: <strong>{limits.usedToday} de {limits.globalDailyLimit}</strong> perguntas, por <strong>{limits.usersToday}</strong> usuário(s).
+   Uso dos usuários comuns hoje: <strong>{limits.usedToday} de {limits.globalDailyLimit}</strong> perguntas, por <strong>{limits.usersToday}</strong> usuário(s).
    A contagem reinicia à meia-noite UTC.
   </p>}
-  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. O intervalo mínimo entre perguntas continua em 20 segundos. A franquia gratuita da Cloudflare é independente e pode acabar antes destes limites.</p>
+  <p className="subtle">Os limites não reiniciam o consumo já registrado hoje. O intervalo mínimo de 20 segundos vale para usuários comuns. Administradores estão isentos dos limites internos, mas continuam sujeitos à franquia gratuita da Cloudflare.</p>
   {!valid&&!loading&&<p role="alert" className="error">
    Use números inteiros: 1 a {AI_LIMITS.perUserMax} por usuário; limite total entre o valor por usuário e {AI_LIMITS.globalMax}.
   </p>}
