@@ -1,11 +1,11 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
-import {ArrowLeft,LifeBuoy,RefreshCw} from 'lucide-react'
+import {ArrowLeft,ChevronDown,LifeBuoy,RefreshCw} from 'lucide-react'
 import {db} from '../lib/data'
 import {fetchAdminDashboard} from '../lib/admin'
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {
- filterSupportTickets,supportCategoryLabel,supportDate,supportError,supportStatuses,
+ filterSupportTickets,supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,
  supportTicketCode,supportTicketFields,type SupportStatus,type SupportStatusFilter,type SupportTicket
 } from '../lib/support'
 
@@ -15,6 +15,7 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
  const [selectedId,setSelectedId]=useState<string|null>(null)
  const [statusFilter,setStatusFilter]=useState<SupportStatusFilter>('all')
  const [yearFilter,setYearFilter]=useState('all')
+ const [categoryFilter,setCategoryFilter]=useState('all')
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState('')
  const [error,setError]=useState('')
@@ -32,7 +33,7 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
     if((data||[]).length<200)break
    }
    if(collected.length>=10000)throw Error('Quantidade de chamados acima do limite desta tela. Contate o suporte técnico.')
-   // Reuse the existing privileged, admin-only dashboard query. Do not expose all user_profiles via RLS.
+   // Keep the existing admin-only lookup. Do not expose other users' profiles to ordinary accounts.
    const dashboard=await fetchAdminDashboard()
    const names:Record<string,string>={}
    for(const user of dashboard.users)names[user.id]=user.displayName?.trim().replace(/\.\s*$/,'')||user.email||'Nome não informado'
@@ -57,8 +58,7 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
   finally{setBusy('')}
  }
  const availableYears=useMemo(()=>[...new Set(tickets.map(ticket=>ticket.ticket_year))].sort((a,b)=>b-a),[tickets])
- const visible=useMemo(()=>filterSupportTickets(tickets,statusFilter,yearFilter),[tickets,statusFilter,yearFilter])
- const selected=tickets.find(ticket=>ticket.id===selectedId)
+ const visible=useMemo(()=>filterSupportTickets(tickets,statusFilter,yearFilter,categoryFilter),[tickets,statusFilter,yearFilter,categoryFilter])
  return <div className="stack payrep-admin-support-page">
   <div className="page-intro"><div><h2>Chamados de suporte</h2>
    <p>Consulte e responda aos chamados, acompanhe pendências e finalize os atendimentos.</p></div>
@@ -81,27 +81,42 @@ export function AdminSupportTickets({onBack}:{onBack:()=>void}){
      <option value="all">Todos os anos</option>
      {availableYears.map(year=><option value={String(year)} key={year}>{year}</option>)}
     </PayrepSelect></label>
+    <label>Categoria<PayrepSelect title="Filtrar por categoria" value={categoryFilter} onChange={setCategoryFilter}>
+     <option value="all">Todas as categorias</option>
+     {supportCategories.map(category=><option key={category.value} value={category.value}>{category.label}</option>)}
+    </PayrepSelect></label>
    </div>
    {error&&<p role="alert" className="error">{error}</p>}
    {message&&<p role="status" className="auth-success">{message}</p>}
    <p className="subtle">{visible.length} chamado(s) encontrado(s).</p>
    {loading&&tickets.length===0?<p className="subtle">Carregando chamados...</p>:visible.length===0?<p className="subtle">Nenhum chamado corresponde aos filtros selecionados.</p>:
-   <div className="help-admin-ticket-list">{visible.map(ticket=><article key={ticket.id} className="help-admin-ticket">
-    <div className="help-admin-ticket-main">
-     <strong>{ticket.subject}</strong>
-     <small>#{supportTicketCode(ticket)} · {supportDate(ticket.created_at)} · Categoria: {supportCategoryLabel(ticket.category)}</small>
-     <small>Solicitante: {identities[ticket.user_id]||'Nome não informado'}</small>
-     <p>{ticket.description}</p>
-     <button type="button" className="secondary" onClick={()=>setSelectedId(old=>old===ticket.id?null:ticket.id)}>
-      {selectedId===ticket.id?'Ocultar conversa':'Ver conversa e responder'}
-     </button>
-    </div>
-    <div className="help-admin-ticket-status"><label>Status<PayrepSelect title="Status do chamado" value={ticket.status} disabled={busy===ticket.id||ticket.status==='resolved'}
-     onChange={value=>void change(ticket.id,value as SupportStatus)}>
-      {Object.entries(supportStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
-     </PayrepSelect></label></div>
-   </article>)}</div>}
+   <div className="help-admin-ticket-list">{visible.map(ticket=>{
+    const expanded=selectedId===ticket.id
+    return <article key={ticket.id} className={'help-admin-ticket support-compact-ticket support-compact-ticket-'+ticket.status+(expanded?' is-expanded':'')}>
+     <div className="support-compact-row">
+      <button type="button" className="support-compact-toggle" aria-expanded={expanded} aria-controls={'support-thread-'+ticket.id}
+       aria-label={(expanded?'Recolher':'Expandir')+' chamado '+supportTicketCode(ticket)+': '+ticket.subject}
+       onClick={()=>setSelectedId(old=>old===ticket.id?null:ticket.id)}>
+       <span className="support-compact-details">
+        <strong>{ticket.subject}</strong>
+        <small>#{supportTicketCode(ticket)} · {supportDate(ticket.created_at)} · Categoria: {supportCategoryLabel(ticket.category)}</small>
+        <small>Solicitante: {identities[ticket.user_id]||'Nome não informado'}</small>
+       </span>
+       <ChevronDown size={18} className={'support-compact-chevron'+(expanded?' is-expanded':'')} aria-hidden="true"/>
+      </button>
+      <div className="help-admin-ticket-status support-compact-status">
+       <label>Status<PayrepSelect title="Status do chamado" className={'support-status-select support-status-select-'+ticket.status}
+        value={ticket.status} disabled={busy===ticket.id||ticket.status==='resolved'}
+        onChange={value=>void change(ticket.id,value as SupportStatus)}>
+        {Object.entries(supportStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
+       </PayrepSelect></label>
+      </div>
+     </div>
+     {expanded&&<div className="support-compact-conversation" id={'support-thread-'+ticket.id}>
+      <TicketConversation key={ticket.id} ticket={ticket} admin requesterName={identities[ticket.user_id]} onMessageSent={()=>void load()}/>
+     </div>}
+    </article>
+   })}</div>}
   </section>
-  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected} admin requesterName={identities[selected.user_id]} onMessageSent={()=>void load()}/></section>}
  </div>
 }

@@ -1013,3 +1013,44 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .help-admin-filters{display:grid;grid-template-columns:repeat(2,minmax(180px,300px));gap:14px;margin:17px 0}
 .help-admin-filters label{display:flex;flex-direction:column;gap:7px;color:#4b3064;font-size:12px;font-weight:750}
 @media(max-width:640px){.help-admin-filters{grid-template-columns:1fr}}
+
+
+/* Chamados administrativos compactos: expandir em linha e diferenciar o status sem saturação. */
+.help-admin-filters{grid-template-columns:repeat(3,minmax(0,1fr));max-width:920px}
+.help-admin-ticket-list{gap:10px}
+.help-admin-ticket.support-compact-ticket{
+ display:block;padding:0;overflow:visible;border:1px solid #e5d9ee;background:#faf8fd;
+ transition:background-color .15s,border-color .15s
+}
+.support-compact-ticket:hover{border-color:#d8c2eb}
+.support-compact-ticket.is-expanded{border-color:#c5a0e3}
+.support-compact-row{display:flex;align-items:center;gap:15px;padding:4px 14px 4px 0}
+.support-compact-toggle{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ min-width:0;flex:1;background:transparent;border:0;border-radius:11px;
+ padding:15px 14px 15px 19px;text-align:left;color:#32154c
+}
+.support-compact-toggle:hover,.support-compact-toggle:focus-visible{background:#f2ebfa}
+.support-compact-toggle:focus-visible{outline:2px solid #8b45be;outline-offset:-2px}
+.support-compact-details{display:flex;flex-direction:column;gap:5px;min-width:0}
+.support-compact-details strong{font-size:13px;line-height:1.45;color:#341752}
+.support-compact-details small{font-size:11px;line-height:1.5;margin:0;color:#816b92;overflow-wrap:anywhere}
+.support-compact-chevron{flex-shrink:0;color:#815b9f;transition:transform .16s}
+.support-compact-chevron.is-expanded{transform:rotate(180deg)}
+.support-compact-status{flex:0 0 178px;min-width:0}
+.support-compact-status label{display:flex;flex-direction:column;gap:5px;font-weight:650}
+.support-compact-status .payrep-select-trigger{padding:9px 12px;min-height:39px;min-width:0;width:100%;font-size:12px;border-radius:10px;box-shadow:none}
+.support-status-select-open{background:#fff6d8!important;color:#805900!important;border-color:#edd9a0!important}
+.support-status-select-in_progress{background:#fff0de!important;color:#a45413!important;border-color:#f0d0ad!important}
+.support-status-select-resolved{background:#e9f7eb!important;color:#28764a!important;border-color:#bfe1c9!important}
+.support-compact-status .payrep-select-trigger:disabled{opacity:.85}
+.support-compact-conversation{padding:18px 19px 21px;border-top:1px solid #e7d9f0}
+.support-compact-conversation .help-conversation{gap:15px}
+@media(max-width:900px){.help-admin-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+ .help-admin-filters{grid-template-columns:1fr;max-width:100%}
+ .support-compact-row{align-items:stretch;flex-direction:column;gap:0;padding:0 12px 12px}
+ .support-compact-toggle{width:100%;padding:14px 4px}
+ .support-compact-status{flex:auto;width:100%}
+ .support-compact-conversation{padding:15px 12px 19px}
+}

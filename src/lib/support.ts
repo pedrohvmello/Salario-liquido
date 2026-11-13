@@ -52,8 +52,8 @@ export function supportPendingReply(ticket:Pick<SupportTicket,'status'|'last_use
   ticket.last_admin_activity_at===null || new Date(ticket.last_user_activity_at).getTime()>new Date(ticket.last_admin_activity_at).getTime()
  )
 }
-export function filterSupportTickets(tickets:SupportTicket[],status:SupportStatusFilter,year:string):SupportTicket[]{
- return tickets.filter(ticket=>(year==='all'||String(ticket.ticket_year)===year)&&(
-  status==='all'||(status==='pending'?supportPendingReply(ticket):ticket.status===status)
- ))
+export function filterSupportTickets(tickets:SupportTicket[],status:SupportStatusFilter,year:string,category='all'):SupportTicket[]{
+ return tickets.filter(ticket=>(year==='all'||String(ticket.ticket_year)===year)
+  &&(category==='all'||ticket.category===category)
+  &&(status==='all'||(status==='pending'?supportPendingReply(ticket):ticket.status===status)))
 }

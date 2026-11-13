@@ -24,7 +24,7 @@ describe('support ticket presentation',()=>{
  })
  it('combines status and year filters',()=>{
   const t=(year:number,status:SupportTicket['status'],userAt:string,adminAt:string|null)=>({
-    ticket_year:year,status,last_user_activity_at:userAt,last_admin_activity_at:adminAt
+    ticket_year:year,status,category:'acesso',last_user_activity_at:userAt,last_admin_activity_at:adminAt
   }) as SupportTicket
   const tickets=[
    t(2026,'in_progress','2026-11-12T12:00:00Z',null),
@@ -36,5 +36,8 @@ describe('support ticket presentation',()=>{
   expect(filterSupportTickets(tickets,'in_progress','2026')).toHaveLength(2)
   expect(filterSupportTickets(tickets,'all','2025')).toHaveLength(1)
   expect(filterSupportTickets(tickets,'resolved','all')).toHaveLength(1)
+  expect(filterSupportTickets(tickets,'all','all','acesso')).toHaveLength(4)
+  expect(filterSupportTickets(tickets,'all','all','holerites')).toHaveLength(0)
+  expect(filterSupportTickets([{...tickets[0],category:'holerites'},...tickets.slice(1)],'pending','2026','holerites')).toHaveLength(1)
  })
 })
