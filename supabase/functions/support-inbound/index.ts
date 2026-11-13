@@ -3,7 +3,7 @@
 // No user-facing credentials are accepted. Maileroo proves authenticity with a
 // single-use validation URL, checked before any ticket data is inserted.
 import {createClient} from 'npm:@supabase/supabase-js@2.105.0'
-import {parseMailerooEmail} from './validation.ts'
+import {inspectMailerooEmail} from './validation.ts'
 
 Deno.serve(async request=>{
  if(request.method!=='POST')return new Response('Method not allowed',{status:405})
@@ -16,9 +16,20 @@ Deno.serve(async request=>{
  if(raw.length>65536)return new Response('Payload too large',{status:413})
  let payload:unknown
  try{payload=JSON.parse(raw)}catch{return new Response('Invalid JSON',{status:400})}
- const candidate=parseMailerooEmail(payload)
- // Ignored messages should not be retried. Do not reveal ticket identities.
- if(!candidate)return Response.json({accepted:false,reason:'not_eligible'})
+ const parsed=inspectMailerooEmail(payload)
+ if(!parsed.candidate){
+  // Reason codes only; never log email headers, addresses, tokens or message text.
+  console.warn('Payrep inbound rejected format:',parsed.reason)
+  // Unexpected provider payloads may be fixed before a provider retry, whereas
+  // intentionally blocked spam/DMARC/autoresponses should not be retried.
+  const retryable=['invalid_structure','invalid_event_id','invalid_message_id',
+   'invalid_recipients','missing_sender','missing_reply_text','invalid_validation_url']
+   .includes(parsed.reason)
+  return Response.json({accepted:false,reason:'not_eligible'},{
+   status:retryable?503:200
+  })
+ }
+ const candidate=parsed.candidate
  const url=Deno.env.get('SUPABASE_URL')
  const key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
  if(!url||!key)return new Response('Backend unavailable',{status:503})

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {parseMailerooEmail,safeValidationUrl} from '../../supabase/functions/support-inbound/validation'
+import {parseMailerooEmail,inspectMailerooEmail,safeValidationUrl} from '../../supabase/functions/support-inbound/validation'
 
 const validUrl='https://inbound-api.maileroo.net/validate-callback/677730adac1b7a32de362cce/b71bfca7653deeb8802c87124ba65212'
 const valid={
@@ -38,10 +38,27 @@ describe('Maileroo inbound Payrep webhook',()=>{
   expect(parseMailerooEmail({...valid,domain:'other.com'})).toBeNull()
   expect(parseMailerooEmail({...valid,recipients:['suporte@payrep.com.br']})).toBeNull()
   expect(parseMailerooEmail({...valid,recipients:[valid.recipients[0],valid.recipients[0]]})).toBeNull()
-  expect(parseMailerooEmail({...valid,attachments:[{filename:'doc.pdf'}]})).toBeNull()
+  // Attachments are deliberately ignored, not downloaded into ticket messages.
+  expect(parseMailerooEmail({...valid,attachments:[{filename:'image-signature.png'}]})).not.toBeNull()
+  expect(parseMailerooEmail({...valid,recipients:[valid.recipients[0],valid.recipients[0].toUpperCase()]})).not.toBeNull()
   expect(parseMailerooEmail({...valid,headers:{From:['User <owner@example.org>'], 'Auto-Submitted':['auto-replied']}})).toBeNull()
   expect(parseMailerooEmail({...valid,body:{stripped_plaintext:''}})).toBeNull()
   expect(parseMailerooEmail({...valid,body:{stripped_plaintext:'x'.repeat(4001)}})).toBeNull()
   expect(parseMailerooEmail({...valid,validation_url:'https://127.0.0.1'})).toBeNull()
  })
+ it('safely extracts plaintext when the provider has no stripped plaintext',()=>{
+  const reply={...valid,body:{
+   stripped_plaintext:'',plaintext:'Uma resposta de teste!\n\nOn Nov 13 2026 01:49, Suporte wrote:\n> Mensagem original'
+  }}
+  const result=inspectMailerooEmail(reply)
+  expect(result.reason).toBeNull()
+  expect(result.candidate?.body).toBe('Uma resposta de teste!')
+ })
+ it('returns safe diagnostic codes for unexpected provider formats',()=>{
+  expect(inspectMailerooEmail({...valid,body:{stripped_plaintext:''}}).reason).toBe('missing_reply_text')
+  expect(inspectMailerooEmail({...valid,recipients:[]}).reason).toBe('invalid_recipients')
+  expect(inspectMailerooEmail({...valid,is_dmarc_aligned:false}).reason).toBe('unaligned_dmarc')
+  expect(inspectMailerooEmail({...valid,headers:{}}).reason).toBe('missing_sender')
+ })
+
 })

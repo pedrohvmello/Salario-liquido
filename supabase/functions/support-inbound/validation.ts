@@ -31,31 +31,64 @@ function senderFromHeader(raw:string):string|null{
  const candidate=(capture?capture[1]:text).trim().toLowerCase()
  return addr.test(candidate)?candidate:null
 }
-export function parseMailerooEmail(raw:unknown):VerifiedEmailCandidate|null{
- if(!RECORD(raw)||!RECORD(raw.headers)||!RECORD(raw.body))return null
- if(raw.domain!=='payrep.com.br'||raw.is_spam!==false||raw.is_dmarc_aligned!==true)return null
- if(raw.attachments!==null&&raw.attachments!==undefined&&(!Array.isArray(raw.attachments)||raw.attachments.length>0))return null
- const eventId=raw._id,sourceMessageId=raw.message_id
- if(typeof eventId!=='string'||!/^([0-9a-f]{24})$/.test(eventId))return null
- if(typeof sourceMessageId!=='string'||sourceMessageId.length<5||sourceMessageId.length>255)return null
- if(!Array.isArray(raw.recipients))return null
- const addresses=raw.recipients.filter(x=>typeof x==='string'&&
-  /^hml-chamado-[0-9]{4}-[0-9]{4,}-[0-9a-f]{32}@payrep\.com\.br$/i.test(x))
- if(addresses.length!==1)return null
- const from=header(raw.headers,'From')
- if(!from)return null
- const senderEmail=senderFromHeader(from)
- if(!senderEmail)return null
- if(header(raw.headers,'Auto-Submitted')&&!/^no$/i.test(header(raw.headers,'Auto-Submitted')!.trim()))return null
- if(header(raw.headers,'List-Id')||header(raw.headers,'X-Auto-Response-Suppress'))return null
- const body=raw.body.stripped_plaintext
- if(typeof body!=='string')return null
- const stripped=body.trim()
- if(stripped.length<1||stripped.length>4000)return null
- const validationUrl=raw.validation_url
- if(typeof validationUrl!=='string'||!safeValidationUrl(validationUrl))return null
- return {
-  eventId,sourceMessageId,recipient:addresses[0].toLowerCase(),senderEmail,
-  body:stripped,validationUrl
+
+export type InboundParseReason =
+ |'invalid_structure'|'wrong_domain'|'spam'|'unaligned_dmarc'|'invalid_event_id'
+ |'invalid_message_id'|'invalid_recipients'|'missing_sender'|'auto_response'
+ |'missing_reply_text'|'reply_too_long'|'invalid_validation_url'
+export type InboundParseResult=
+ |{candidate:VerifiedEmailCandidate;reason:null}
+ |{candidate:null;reason:InboundParseReason}
+const fail=(reason:InboundParseReason):InboundParseResult=>({candidate:null,reason})
+
+function latestText(body:Bag):string|null{
+ const stripped=body.stripped_plaintext
+ if(typeof stripped==='string'&&stripped.trim())return stripped.trim()
+ // Some clients only provide an unstripped plaintext body. Avoid importing
+ // quoted conversation history when a safe boundary is available.
+ if(typeof body.plaintext!=='string'||!body.plaintext.trim())return null
+ const lines=body.plaintext.replace(/\r\n?/g,'\n').split('\n')
+ const result:string[]=[]
+ for(const line of lines){
+  if(/^>/.test(line.trimStart()) ||
+    /^On .{8,240} wrote:\s*$/i.test(line) ||
+    /^Em .{8,240} escreveu:\s*$/i.test(line) ||
+    /^\s*-{3,}\s*(Original Message|Mensagem original)\s*-{3,}/i.test(line)
+  )break
+  result.push(line)
  }
+ return result.join('\n').trim()||null
+}
+
+export function inspectMailerooEmail(raw:unknown):InboundParseResult{
+ if(!RECORD(raw)||!RECORD(raw.headers)||!RECORD(raw.body))return fail('invalid_structure')
+ if(typeof raw.domain!=='string'||raw.domain.toLowerCase()!=='payrep.com.br')return fail('wrong_domain')
+ if(raw.is_spam!==false)return fail('spam')
+ if(raw.is_dmarc_aligned!==true)return fail('unaligned_dmarc')
+ // Attachment metadata can include signatures or inline images. We never
+ // download, store or render attachments. Plaintext is the only stored part.
+ const eventId=raw._id,sourceMessageId=raw.message_id
+ if(typeof eventId!=='string'||!/^([0-9a-f]{24})$/.test(eventId))return fail('invalid_event_id')
+ if(typeof sourceMessageId!=='string'||sourceMessageId.length<5||sourceMessageId.length>255)return fail('invalid_message_id')
+ if(!Array.isArray(raw.recipients))return fail('invalid_recipients')
+ const addresses=[...new Set(raw.recipients.filter((x):x is string=>typeof x==='string').map(x=>x.trim().toLowerCase())
+  .filter(x=>/^hml-chamado-[0-9]{4}-[0-9]{4,}-[0-9a-f]{32}@payrep\.com\.br$/.test(x)))]
+ if(addresses.length!==1)return fail('invalid_recipients')
+ const from=header(raw.headers,'From')
+ if(!from)return fail('missing_sender')
+ const senderEmail=senderFromHeader(from)
+ if(!senderEmail)return fail('missing_sender')
+ if(header(raw.headers,'Auto-Submitted')&&!/^no$/i.test(header(raw.headers,'Auto-Submitted')!.trim()))return fail('auto_response')
+ if(header(raw.headers,'List-Id')||header(raw.headers,'X-Auto-Response-Suppress'))return fail('auto_response')
+ const body=latestText(raw.body)
+ if(body===null)return fail('missing_reply_text')
+ if(body.length>4000)return fail('reply_too_long')
+ const validationUrl=raw.validation_url
+ if(typeof validationUrl!=='string'||!safeValidationUrl(validationUrl))return fail('invalid_validation_url')
+ return {candidate:{
+  eventId,sourceMessageId,recipient:addresses[0],senderEmail,body,validationUrl
+ },reason:null}
+}
+export function parseMailerooEmail(raw:unknown):VerifiedEmailCandidate|null{
+ return inspectMailerooEmail(raw).candidate
 }
