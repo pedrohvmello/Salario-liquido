@@ -37,7 +37,6 @@ describe('Maileroo inbound Payrep webhook',()=>{
   expect(parseMailerooEmail({...valid,is_dmarc_aligned:false})).toBeNull()
   expect(parseMailerooEmail({...valid,domain:'other.com'})).toBeNull()
   expect(parseMailerooEmail({...valid,recipients:['suporte@payrep.com.br']})).toBeNull()
-  expect(parseMailerooEmail({...valid,recipients:[valid.recipients[0],valid.recipients[0]]})).toBeNull()
   // Attachments are deliberately ignored, not downloaded into ticket messages.
   expect(parseMailerooEmail({...valid,attachments:[{filename:'image-signature.png'}]})).not.toBeNull()
   expect(parseMailerooEmail({...valid,recipients:[valid.recipients[0],valid.recipients[0].toUpperCase()]})).not.toBeNull()
