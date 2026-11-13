@@ -141,7 +141,7 @@ export function SupportPage({user}:{user:User}){
   let cancelled=false
   // A permanent deployed asset is preferred when present.
   void fetch('/brand/pep-chat-loop.mp4',{method:'HEAD'}).then(res=>{
-   if(!res.ok)throw Error('Asset ainda não está publicado')
+   if(!res.ok||!res.headers.get('content-type')?.toLowerCase().startsWith('video/'))throw Error('Asset ainda não está publicado')
    if(!cancelled){setPepPreviewUrl('/brand/pep-chat-loop.mp4');setPepVideoStatus('ready')}
   }).catch(()=>{
    const req=indexedDB.open('payrep-pep-media',1)
