@@ -1095,3 +1095,40 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .support-close-actions{flex-direction:column-reverse}
  .support-close-actions button{width:100%;min-height:46px}
 }
+
+/* Assistente Payrep: conversational support, HML pilot. */
+.help-ai-entry{border-color:#dfc8f4}
+.help-ai-entry>p{max-width:660px}
+.help-ai-entry>.subtle{margin-top:13px;font-size:11px}
+.payrep-ai-shell{padding:0;overflow:hidden}
+.payrep-ai-toolbar{padding:18px 22px;border-bottom:1px solid #e9dcef;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.payrep-ai-identity{display:flex;align-items:center;gap:11px;min-width:0}
+.payrep-ai-identity strong{display:block;color:#351752;font-size:14px}
+.payrep-ai-identity small{display:block;margin-top:4px;font-size:11px;color:#7d6891}
+.payrep-ai-avatar{width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:#efe0ff;display:grid;place-items:center;color:#7c00cc}
+.payrep-ai-messages{min-height:270px;max-height:440px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:23px;background:#fcfaff}
+.payrep-ai-welcome{max-width:490px;text-align:center;align-self:center;margin:auto;color:#725986;padding:22px}
+.payrep-ai-welcome svg{color:#8d23d6}
+.payrep-ai-welcome h3{font-size:18px;color:#351752;margin:12px 0}
+.payrep-ai-welcome p{font-size:13px;line-height:1.7;margin:0}
+.payrep-ai-bubble{border:1px solid #e2d3ef;border-radius:14px;padding:12px 15px;max-width:85%;align-self:flex-start;background:white;overflow-wrap:anywhere}
+.payrep-ai-bubble strong{font-size:11px;color:#795f90}
+.payrep-ai-bubble p{font-size:13px;color:#351752;white-space:pre-wrap;line-height:1.7;margin:7px 0 0}
+.payrep-ai-bubble-user{align-self:flex-end;background:#f0e1ff;border-color:#d9baf1}
+.payrep-ai-thinking{color:#7b5f94;display:flex;gap:8px;align-items:center;font-size:12px;padding:8px 3px}
+.payrep-ai-spin{animation:payrep-ai-rotate 1.2s linear infinite}
+@keyframes payrep-ai-rotate{to{transform:rotate(360deg)}}
+.payrep-ai-form{border-top:1px solid #e9dcef;padding:18px 22px 23px;display:flex;flex-direction:column;gap:9px}
+.payrep-ai-form>label{font-size:12px;font-weight:750;color:#4b3064}
+.payrep-ai-form textarea{width:100%;min-height:74px;resize:vertical}
+.payrep-ai-form-footer{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.payrep-ai-form-footer span{color:#836f94;font-size:11px;line-height:1.5;max-width:480px}
+.payrep-ai-form-footer button{flex:0 0 auto}
+@media(max-width:640px){
+ .payrep-ai-toolbar{padding:14px;flex-wrap:wrap}
+ .payrep-ai-messages{padding:16px;max-height:360px}
+ .payrep-ai-form{padding:15px}
+ .payrep-ai-form-footer{flex-direction:column;align-items:stretch}
+ .payrep-ai-form-footer button{justify-content:center}
+ .payrep-ai-bubble{max-width:94%}
+}

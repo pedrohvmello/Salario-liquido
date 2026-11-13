@@ -1,8 +1,9 @@
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Ticket} from 'lucide-react'
+import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Sparkles,Ticket} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
+import {SupportAiChat} from './SupportAiChat'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
@@ -124,9 +125,19 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
+ const [inAi,setInAi]=useState(false)
+ // Never display the AI entrypoint in PRD until the HML pilot is approved.
+ const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
+ if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
+  {hmlAiEnabled&&<section className="panel help-ai-entry">
+   <div className="panel-heading"><h2><Sparkles size={19}/> Pergunte ao Payrep</h2></div>
+   <p>Escreva sua pergunta e receba uma orientação curta sobre como utilizar o Payrep. Você também pode continuar a conversa com novas dúvidas.</p>
+   <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com a IA</button>
+   <p className="subtle">Em teste na homologação. Ainda não consulta seus holerites nem valores individuais.</p>
+  </section>}
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
    <div className="help-faq-list">{helpFaq.map(item=><details className="help-faq-item" key={item.question}>
