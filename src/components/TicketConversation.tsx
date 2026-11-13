@@ -3,7 +3,9 @@ import {CheckCircle2,RefreshCw,Send} from 'lucide-react'
 import {db} from '../lib/data'
 import {supportDate,supportError,supportStatuses,supportTicketCode,type SupportTicket,type SupportTicketMessage} from '../lib/support'
 
-export function TicketConversation({ticket,admin=false}:{ticket:SupportTicket;admin?:boolean}){
+export function TicketConversation({ticket,admin=false,requesterName,onMessageSent}:{
+ ticket:SupportTicket;admin?:boolean;requesterName?:string;onMessageSent?:()=>void
+}){
  const [current,setCurrent]=useState(ticket)
  const [messages,setMessages]=useState<SupportTicketMessage[]>([])
  const [draft,setDraft]=useState('')
@@ -11,18 +13,22 @@ export function TicketConversation({ticket,admin=false}:{ticket:SupportTicket;ad
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [success,setSuccess]=useState('')
+ const displayRequester=requesterName?.trim()||'Nome não informado'
  useEffect(()=>setCurrent(ticket),[ticket])
  const refresh=useCallback(async()=>{
   if(!db)return
   try{
-   const statusResult=await db.from('support_tickets').select('status,updated_at').eq('id',ticket.id).single()
+   const statusResult=await db.from('support_tickets').select('status,updated_at,last_user_activity_at,last_admin_activity_at').eq('id',ticket.id).single()
    if(statusResult.error)throw Error(statusResult.error.message)
    if(statusResult.data){
     const updated=statusResult.data
-    setCurrent(old=>({...old,status:updated.status as SupportTicket['status'],updated_at:updated.updated_at}))
+    setCurrent(old=>({...old,
+     status:updated.status as SupportTicket['status'],updated_at:updated.updated_at,
+     last_user_activity_at:updated.last_user_activity_at,last_admin_activity_at:updated.last_admin_activity_at
+    }))
    }
    const collected:SupportTicketMessage[]=[]
-   for(let offset=0;;offset+=200){
+   for(let offset=0;offset<10000;offset+=200){
     const {data,error:readError}=await db.from('support_ticket_messages')
      .select('id,ticket_id,sender_id,sender_role,body,created_at').eq('ticket_id',ticket.id)
      .order('created_at',{ascending:true}).order('id',{ascending:true}).range(offset,offset+199)
@@ -55,6 +61,7 @@ export function TicketConversation({ticket,admin=false}:{ticket:SupportTicket;ad
    setDraft('')
    setSuccess('Mensagem enviada.')
    await refresh()
+   onMessageSent?.()
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível enviar a mensagem.')}
   finally{setBusy(false)}
  }
@@ -67,11 +74,11 @@ export function TicketConversation({ticket,admin=false}:{ticket:SupportTicket;ad
   </div>
   <ol className="help-message-list" aria-live="polite">
    <li className="help-message help-message-user">
-    <span className="help-message-meta">Solicitação inicial · {supportDate(current.created_at)}</span>
+    <span className="help-message-meta">{displayRequester} · Solicitação inicial · {supportDate(current.created_at)}</span>
     <p>{current.description}</p>
    </li>
    {messages.map(item=><li className={'help-message '+(item.sender_role==='admin'?'help-message-admin':'help-message-user')} key={item.id}>
-    <span className="help-message-meta">{item.sender_role==='admin'?'Suporte':admin?'Usuário':'Você'} · {supportDate(item.created_at)}</span>
+    <span className="help-message-meta">{item.sender_role==='admin'?'Suporte Payrep':displayRequester} · {supportDate(item.created_at)}</span>
     <p>{item.body}</p>
    </li>)}
   </ol>

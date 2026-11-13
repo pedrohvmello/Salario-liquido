@@ -4,6 +4,8 @@ import {ArrowLeft,BookOpen,CheckCircle2,ExternalLink,Info,LifeBuoy,Mail,RefreshC
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {db} from '../lib/data'
+import {loadMyProfile} from '../lib/account'
+import {profileDisplayName} from '../lib/profile'
 import {supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type SupportTicket} from '../lib/support'
 
 export const SUPPORT_EMAIL='suporte@payrep.com.br'
@@ -18,6 +20,7 @@ export const helpFaq=[
 ] as const
 
 function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
+ const [requesterName,setRequesterName]=useState(profileDisplayName(user).replace(/\.\s*$/,'').trim())
  const [category,setCategory]=useState('acesso')
  const [subject,setSubject]=useState('')
  const [description,setDescription]=useState('')
@@ -41,6 +44,7 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
   finally{setLoading(false)}
  },[user.id])
  useEffect(()=>{void loadTickets()},[loadTickets])
+ useEffect(()=>{let active=true;void loadMyProfile().then(p=>{if(active)setRequesterName(p.display_name.replace(/\.\s*$/,'').trim())}).catch(()=>{});return ()=>{active=false}},[user.id])
  const submit=async(e:FormEvent<HTMLFormElement>)=>{
   e.preventDefault()
   if(!db||busy)return
@@ -90,7 +94,7 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
      <span className="help-ticket-status">{supportStatuses[ticket.status]}</span>
     </button>)}</div>}
   </section>
-  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected}/></section>}
+  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected} requesterName={requesterName} onMessageSent={()=>void loadTickets()}/></section>}
  </div>
 }
 

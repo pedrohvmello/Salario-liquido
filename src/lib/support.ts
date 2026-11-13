@@ -10,6 +10,8 @@ export type SupportTicket={
  ticket_sequence:number
  created_at:string
  updated_at:string
+ last_user_activity_at:string
+ last_admin_activity_at:string|null
 }
 export type SupportTicketMessage={
  id:string
@@ -19,7 +21,7 @@ export type SupportTicketMessage={
  body:string
  created_at:string
 }
-export const supportTicketFields='id,user_id,category,subject,description,status,ticket_year,ticket_sequence,created_at,updated_at'
+export const supportTicketFields='id,user_id,category,subject,description,status,ticket_year,ticket_sequence,created_at,updated_at,last_user_activity_at,last_admin_activity_at'
 export const supportStatuses:Record<SupportStatus,string>={
  open:'Aberto',in_progress:'Em atendimento',resolved:'Finalizado'
 }
@@ -42,4 +44,16 @@ export function supportDate(value:string):string{
 export function supportError(message:string):string{
  return /support_ticket|schema cache|relation .* does not exist/i.test(message)
   ?'Chamados indisponíveis neste ambiente. Contate o suporte por e-mail.':message
+}
+
+export type SupportStatusFilter='all'|'open'|'in_progress'|'resolved'|'pending'
+export function supportPendingReply(ticket:Pick<SupportTicket,'status'|'last_user_activity_at'|'last_admin_activity_at'>):boolean{
+ return ticket.status==='in_progress' && (
+  ticket.last_admin_activity_at===null || new Date(ticket.last_user_activity_at).getTime()>new Date(ticket.last_admin_activity_at).getTime()
+ )
+}
+export function filterSupportTickets(tickets:SupportTicket[],status:SupportStatusFilter,year:string):SupportTicket[]{
+ return tickets.filter(ticket=>(year==='all'||String(ticket.ticket_year)===year)&&(
+  status==='all'||(status==='pending'?supportPendingReply(ticket):ticket.status===status)
+ ))
 }

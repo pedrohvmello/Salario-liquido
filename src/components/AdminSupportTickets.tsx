@@ -1,13 +1,20 @@
-import {useCallback,useEffect,useState} from 'react'
-import {LifeBuoy,RefreshCw} from 'lucide-react'
+import {useCallback,useEffect,useMemo,useState} from 'react'
+import {ArrowLeft,LifeBuoy,RefreshCw} from 'lucide-react'
 import {db} from '../lib/data'
+import {fetchAdminDashboard} from '../lib/admin'
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
-import {supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type SupportStatus,type SupportTicket} from '../lib/support'
+import {
+ filterSupportTickets,supportCategoryLabel,supportDate,supportError,supportStatuses,
+ supportTicketCode,supportTicketFields,type SupportStatus,type SupportStatusFilter,type SupportTicket
+} from '../lib/support'
 
-export function AdminSupportTickets(){
+export function AdminSupportTickets({onBack}:{onBack:()=>void}){
  const [tickets,setTickets]=useState<SupportTicket[]>([])
+ const [identities,setIdentities]=useState<Record<string,string>>({})
  const [selectedId,setSelectedId]=useState<string|null>(null)
+ const [statusFilter,setStatusFilter]=useState<SupportStatusFilter>('all')
+ const [yearFilter,setYearFilter]=useState('all')
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState('')
  const [error,setError]=useState('')
@@ -16,10 +23,21 @@ export function AdminSupportTickets(){
   if(!db){setLoading(false);return}
   setLoading(true)
   try{
-   const {data,error:readError}=await db.from('support_tickets').select(supportTicketFields)
-    .order('created_at',{ascending:false}).limit(50)
-   if(readError)throw Error(supportError(readError.message))
-   setTickets((data||[]) as SupportTicket[])
+   const collected:SupportTicket[]=[]
+   for(let offset=0;offset<10000;offset+=200){
+    const {data,error:readError}=await db.from('support_tickets').select(supportTicketFields)
+     .order('created_at',{ascending:false}).range(offset,offset+199)
+    if(readError)throw Error(supportError(readError.message))
+    collected.push(...(data||[]) as SupportTicket[])
+    if((data||[]).length<200)break
+   }
+   if(collected.length>=10000)throw Error('Quantidade de chamados acima do limite desta tela. Contate o suporte técnico.')
+   // Reuse the existing privileged, admin-only dashboard query. Do not expose all user_profiles via RLS.
+   const dashboard=await fetchAdminDashboard()
+   const names:Record<string,string>={}
+   for(const user of dashboard.users)names[user.id]=user.displayName?.trim().replace(/\.\s*$/,'')||user.email||'Nome não informado'
+   setIdentities(names)
+   setTickets(collected)
    setError('')
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível carregar os chamados.')}
   finally{setLoading(false)}
@@ -38,28 +56,52 @@ export function AdminSupportTickets(){
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível atualizar o chamado.')}
   finally{setBusy('')}
  }
+ const availableYears=useMemo(()=>[...new Set(tickets.map(ticket=>ticket.ticket_year))].sort((a,b)=>b-a),[tickets])
+ const visible=useMemo(()=>filterSupportTickets(tickets,statusFilter,yearFilter),[tickets,statusFilter,yearFilter])
  const selected=tickets.find(ticket=>ticket.id===selectedId)
- return <section className="panel">
-  <div className="panel-heading"><h2><LifeBuoy size={18}/> Chamados de suporte</h2>
-   <button type="button" className="secondary" onClick={()=>void load()} disabled={loading}><RefreshCw size={15}/> Atualizar</button></div>
-  <p className="subtle">Últimos 50 chamados. Abra uma conversa para responder ao usuário. Apenas a administração pode alterar o status ou finalizar um chamado.</p>
-  {error&&<p role="alert" className="error">{error}</p>}
-  {message&&<p role="status" className="auth-success">{message}</p>}
-  {loading?<p className="subtle">Carregando chamados...</p>:tickets.length===0?<p className="subtle">Nenhum chamado registrado.</p>:
-  <div className="help-admin-ticket-list">{tickets.map(ticket=><article key={ticket.id} className="help-admin-ticket">
-   <div className="help-admin-ticket-main"><strong>{ticket.subject}</strong>
-    <small>#{supportTicketCode(ticket)} · {supportDate(ticket.created_at)} · Categoria: {supportCategoryLabel(ticket.category)}</small>
-    <small>Conta: {ticket.user_id}</small>
-    <p>{ticket.description}</p>
-    <button type="button" className="secondary" onClick={()=>setSelectedId(old=>old===ticket.id?null:ticket.id)}>
-     {selectedId===ticket.id?'Ocultar conversa':'Ver conversa e responder'}
-    </button>
+ return <div className="stack payrep-admin-support-page">
+  <div className="page-intro"><div><h2>Chamados de suporte</h2>
+   <p>Consulte e responda aos chamados, acompanhe pendências e finalize os atendimentos.</p></div>
+   <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar às configurações</button>
+  </div>
+  <section className="panel">
+   <div className="panel-heading"><h2><LifeBuoy size={18}/> Chamados de suporte</h2>
+    <button type="button" className="secondary" onClick={()=>void load()} disabled={loading}><RefreshCw size={15}/> Atualizar</button>
    </div>
-   <div className="help-admin-ticket-status"><label>Status<PayrepSelect title="Status do chamado" value={ticket.status} disabled={busy===ticket.id||ticket.status==='resolved'}
-    onChange={value=>void change(ticket.id,value as SupportStatus)}>
-     {Object.entries(supportStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
-    </PayrepSelect></label></div>
-  </article>)}</div>}
-  {selected&&<div className="help-admin-conversation"><TicketConversation key={selected.id} ticket={selected} admin/></div>}
- </section>
+   <p className="subtle">Pendente de resposta inclui chamados em atendimento cuja última interação do usuário não foi respondida pelo suporte.</p>
+   <div className="help-admin-filters">
+    <label>Status<PayrepSelect title="Filtrar por status" value={statusFilter} onChange={v=>setStatusFilter(v as SupportStatusFilter)}>
+     <option value="all">Todos os status</option>
+     <option value="open">Aberto</option>
+     <option value="in_progress">Em atendimento</option>
+     <option value="resolved">Finalizado</option>
+     <option value="pending">Pendente de resposta</option>
+    </PayrepSelect></label>
+    <label>Ano<PayrepSelect title="Filtrar por ano" value={yearFilter} onChange={setYearFilter}>
+     <option value="all">Todos os anos</option>
+     {availableYears.map(year=><option value={String(year)} key={year}>{year}</option>)}
+    </PayrepSelect></label>
+   </div>
+   {error&&<p role="alert" className="error">{error}</p>}
+   {message&&<p role="status" className="auth-success">{message}</p>}
+   <p className="subtle">{visible.length} chamado(s) encontrado(s).</p>
+   {loading&&tickets.length===0?<p className="subtle">Carregando chamados...</p>:visible.length===0?<p className="subtle">Nenhum chamado corresponde aos filtros selecionados.</p>:
+   <div className="help-admin-ticket-list">{visible.map(ticket=><article key={ticket.id} className="help-admin-ticket">
+    <div className="help-admin-ticket-main">
+     <strong>{ticket.subject}</strong>
+     <small>#{supportTicketCode(ticket)} · {supportDate(ticket.created_at)} · Categoria: {supportCategoryLabel(ticket.category)}</small>
+     <small>Solicitante: {identities[ticket.user_id]||'Nome não informado'}</small>
+     <p>{ticket.description}</p>
+     <button type="button" className="secondary" onClick={()=>setSelectedId(old=>old===ticket.id?null:ticket.id)}>
+      {selectedId===ticket.id?'Ocultar conversa':'Ver conversa e responder'}
+     </button>
+    </div>
+    <div className="help-admin-ticket-status"><label>Status<PayrepSelect title="Status do chamado" value={ticket.status} disabled={busy===ticket.id||ticket.status==='resolved'}
+     onChange={value=>void change(ticket.id,value as SupportStatus)}>
+      {Object.entries(supportStatuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}
+     </PayrepSelect></label></div>
+   </article>)}</div>}
+  </section>
+  {selected&&<section className="panel"><TicketConversation key={selected.id} ticket={selected} admin requesterName={identities[selected.user_id]} onMessageSent={()=>void load()}/></section>}
+ </div>
 }

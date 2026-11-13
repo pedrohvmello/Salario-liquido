@@ -32,6 +32,7 @@ import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
+import {AdminSupportTickets} from './components/AdminSupportTickets'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
 import {SupportPage} from './components/SupportPage'
 import {MfaGate} from './components/MfaGate'
@@ -43,7 +44,7 @@ import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
 import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
-type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'profile'|'subscription'|'account-settings'|'help'
+type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
@@ -54,7 +55,6 @@ const nav=[
  {id:'income-tax',label:'Informe IR (prévia)',icon:FileSpreadsheet},
  {id:'imports',label:'Importar holerites',icon:FileInput},
  {id:'definitions',label:'Definições',icon:Settings2},
- {id:'admin',label:'Gestão de usuários',icon:UsersRound},
  {id:'admin-settings',label:'Configurações',icon:Settings2}
 ] as const
 const today=()=>new Date().toISOString().slice(0,10)
@@ -395,7 +395,7 @@ export default function App(){
   childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
- const accessiblePrimaryViews=nav.filter(item=>isAdmin||!(item.id==='admin'||item.id==='admin-settings')).map(item=>item.id) as MobilePrimaryView[]
+ const accessiblePrimaryViews=nav.filter(item=>isAdmin||item.id!=='admin-settings').map(item=>item.id) as MobilePrimaryView[]
  const renderPageBody=(section:Section)=> (
   <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
@@ -432,8 +432,9 @@ export default function App(){
     <td><strong>{s.documentType==='thirteenth'?brl(s.net??0):s.documentType==='vacation'?brl(s.net??0):s.documentType==='monthly'&&s.netReceived!==null?brl(s.netReceived+vacationAdvanceFromLines(s.lines)):s.netReceived===null?'A conferir':brl(s.netReceived)}</strong>
       {s.documentType==='vacation'&&<div className="subtle">Valor do recibo; não somar novamente</div>}{s.documentType==='thirteenth'&&<div className="subtle">Fechamento do 13º; adiantamento será conciliado ao salvar</div>}
       {s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0&&<div className="subtle">Estimado; recibo opcional</div>}</td><td>{s.warnings.length?<span title={s.warnings.join('; ')} className="flag">{s.warnings.length} aviso(s)</span>:<span className="ok">OK</span>}</td></tr>})}</tbody></table></div>{previews.some(s=>s.documentType==='vacation'||(s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0))&&<div className="notice subtle-notice"><Info size={18}/><div><strong>Conciliação automática de férias</strong><p style={{margin:'5px 0 0'}}>A folha mensal é suficiente para registrar os adiantamentos identificados. O recibo de férias é opcional e confirma ou substitui esse valor. O pagamento antecipado nunca será contabilizado duas vezes. Caso exista diferença, ela será exibida no Histórico salarial.</p></div></div>}{previews.some(s=>s.documentType==='thirteenth')&&<div className="suggestion"><strong>13º salário: prévia do recibo anual</strong>{previews.filter(s=>s.documentType==='thirteenth').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: bruto {s.thirteenthGross===null?'A conferir':brl(s.thirteenthGross)}; adiantamento anterior {brl(s.thirteenthAdvance)}; fechamento {s.net===null?'A conferir':brl(s.net)}; INSS {brl(s.thirteenthInss)}; IRRF exclusivo {brl(s.thirteenthIrrf)}; pensão {brl(s.thirteenthPension)}; pago em {s.paymentDate?dateBR(s.paymentDate):'data não identificada'}.</span></div>)}<small>Ao confirmar, o recibo ficará separado da folha mensal e será vinculado aos adiantamentos já contabilizados nas férias. O sistema não duplicará essas parcelas.</small></div>}{previews.some(s=>s.documentType==='ppr')&&<div className="suggestion"><strong>Evento PPR automático após confirmação</strong>{previews.filter(s=>s.documentType==='ppr').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: PPR bruto {s.grossPpr===null?'Não encontrado':brl(s.grossPpr)}; IRRF PPR {brl(s.pprIncomeTax)}; contribuição negocial {brl(s.pprUnionContribution)}; líquido pago {s.net===null?'A conferir':brl(s.net)}; data {s.paymentDate?dateBR(s.paymentDate):'Não encontrada'}.</span></div>)}<small>O evento será criado apenas ao confirmar o documento, uma vez por holerite, e não altera a projeção salarial fixa.</small></div>}{suggestions.length>0&&<div className="suggestion"><strong>Possíveis mudanças encontradas</strong>{suggestions.map((s,i)=><div key={i}><span>{s.period}: {fieldNames[s.kind]||s.kind} → {brl(s.value)}. {s.reason}</span></div>)}<small>As mudanças NÃO serão criadas automaticamente. Use a tela Eventos após verificar cada vigência.</small></div>}<button className="primary" disabled={busy||!db||importSelected.length===0} onClick={()=>task(async()=>{await saveStatements(previews,importFiles,importSelected);await refresh();setPreviews([])},'Holerites importados com valores originais preservados')}><Upload size={17}/> Confirmar {importSelected.length} documento(s)</button>{!db&&<p className="subtle">Configure o banco para habilitar o salvamento.</p>}</Panel>}</div>}
-    {section==='admin'&&isAdmin&&<AdminDashboard/>}
-    {section==='admin-settings'&&isAdmin&&<AdminSettingsPage/>}
+    {section==='admin'&&isAdmin&&<div className="stack"><div><button type="button" className="secondary" onClick={()=>setSection('admin-settings')}>Voltar às configurações</button></div><AdminDashboard/></div>}
+    {section==='admin-support'&&isAdmin&&<AdminSupportTickets onBack={()=>setSection('admin-settings')}/>}
+    {section==='admin-settings'&&isAdmin&&<AdminSettingsPage onNavigate={view=>setSection(view)}/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
     {section==='subscription'&&user&&<SubscriptionPage onBack={()=>setSection('overview')}/>}
     {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')}/>}
@@ -467,9 +468,9 @@ export default function App(){
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>
-     {nav.filter(n=>n.id!=='admin'&&n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {nav.filter(n=>n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
      {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
-     {isAdmin&&nav.filter(n=>n.id==='admin'||n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {isAdmin&&nav.filter(n=>n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
     </nav>
    <footer className="sidebar-footer" aria-label="Links institucionais">
     <span>© 2026 Payrep</span>
@@ -478,7 +479,7 @@ export default function App(){
   </aside>
   {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
-   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='help'?'Ajuda':section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='admin-support'?'Chamados de suporte':section==='admin'?'Gestão de usuários':section==='help'?'Ajuda':section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
    <PayrepMobileNavigationSurface
     accessibleViews={accessiblePrimaryViews}
     currentView={section as MobilePrimaryView}

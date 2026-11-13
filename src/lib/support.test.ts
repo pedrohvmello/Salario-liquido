@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {supportCategories,supportCategoryLabel,supportStatuses,supportTicketCode} from './support'
+import {supportCategories,supportCategoryLabel,supportStatuses,supportTicketCode,filterSupportTickets,supportPendingReply,type SupportTicket} from './support'
 
 describe('support ticket presentation',()=>{
  it('uses readable year and sequence identifiers',()=>{
@@ -13,5 +13,28 @@ describe('support ticket presentation',()=>{
  })
  it('treats resolution as final',()=>{
   expect(supportStatuses.resolved).toBe('Finalizado')
+ })
+ it('identifies pending replies only when a user has the latest activity in an active conversation',()=>{
+  const common={status:'in_progress' as const,last_user_activity_at:'2026-11-12T10:00:00Z',last_admin_activity_at:null}
+  expect(supportPendingReply(common)).toBe(true)
+  expect(supportPendingReply({...common,last_admin_activity_at:'2026-11-12T11:00:00Z'})).toBe(false)
+  expect(supportPendingReply({...common,last_admin_activity_at:'2026-11-12T09:00:00Z'})).toBe(true)
+  expect(supportPendingReply({...common,status:'resolved'})).toBe(false)
+  expect(supportPendingReply({...common,status:'open'})).toBe(false)
+ })
+ it('combines status and year filters',()=>{
+  const t=(year:number,status:SupportTicket['status'],userAt:string,adminAt:string|null)=>({
+    ticket_year:year,status,last_user_activity_at:userAt,last_admin_activity_at:adminAt
+  }) as SupportTicket
+  const tickets=[
+   t(2026,'in_progress','2026-11-12T12:00:00Z',null),
+   t(2026,'in_progress','2026-11-12T12:00:00Z','2026-11-12T13:00:00Z'),
+   t(2025,'in_progress','2025-03-03T12:00:00Z',null),
+   t(2026,'resolved','2026-11-12T12:00:00Z',null)
+  ]
+  expect(filterSupportTickets(tickets,'pending','2026')).toHaveLength(1)
+  expect(filterSupportTickets(tickets,'in_progress','2026')).toHaveLength(2)
+  expect(filterSupportTickets(tickets,'all','2025')).toHaveLength(1)
+  expect(filterSupportTickets(tickets,'resolved','all')).toHaveLength(1)
  })
 })

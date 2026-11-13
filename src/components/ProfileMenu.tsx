@@ -51,7 +51,7 @@ export function ProfileMenu({user,onNavigate}:{user:User|null;onNavigate:(view:'
    .catch(()=>{if(active)setDisplayName(profileDisplayName(user))})
   return ()=>{active=false}
  },[open,user?.id])
- const preferredName=displayName.trim()||profileDisplayName(user).trim()||user?.email?.split('@')[0]||'Usuário'
+ const preferredName=(displayName.trim()||profileDisplayName(user).trim()||user?.email?.split('@')[0]||'Usuário').replace(/\.\s*$/,'').trim()
  const perform=async(action:()=>Promise<void>,success?:string)=>{
   setBusy(true);setError('');setMessage('')
   try{await action();if(success)setMessage(success)}

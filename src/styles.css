@@ -1005,3 +1005,11 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .help-message{max-width:96%}
  .help-ticket-button{align-items:flex-start}
 }
+
+
+/* Administração de suporte: filtros independentes para status e competência anual. */
+.payrep-admin-support-page{max-width:1180px;margin:0 auto}
+.payrep-admin-support-page .panel-heading h2{display:flex;align-items:center;gap:10px}
+.help-admin-filters{display:grid;grid-template-columns:repeat(2,minmax(180px,300px));gap:14px;margin:17px 0}
+.help-admin-filters label{display:flex;flex-direction:column;gap:7px;color:#4b3064;font-size:12px;font-weight:750}
+@media(max-width:640px){.help-admin-filters{grid-template-columns:1fr}}
