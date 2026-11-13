@@ -64,6 +64,41 @@ describe('Maileroo inbound Payrep webhook',()=>{
   expect(result.reason).toBeNull()
   expect(result.candidate?.body).toBe('Uma resposta de teste!')
  })
+ it('removes multiline Gmail pt-BR attribution even inside stripped_plaintext',()=>{
+  const result=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'Entendi. Obrigado\n\nEm sex., 13 de nov. de 2026, 06:26, Suporte Payrep <suporte@payrep.com.br>\nescreveu:',
+   plaintext:'Entendi. Obrigado\n\nEm sex., 13 de nov. de 2026, 06:26, Suporte Payrep <suporte@payrep.com.br>\nescreveu:\n> conteúdo anterior'
+  }})
+  expect(result.candidate?.body).toBe('Entendi. Obrigado')
+ })
+ it('removes Gmail quoted message attribution after wrapped names and addresses',()=>{
+  const result=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'Resposta nova\nSegunda linha\n\nEm sex., 13 de novembro de 2026, 06:26,\nSuporte Payrep\n<suporte@payrep.com.br>\nescreveu:\n> histórico citado'
+  }})
+  expect(result.candidate?.body).toBe('Resposta nova\nSegunda linha')
+ })
+ it('handles wrapped Gmail English quotation in stripped_plaintext',()=>{
+  const result=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'Thanks for the answer.\n\nOn Fri, Nov 13, 2026 at 6:26 AM\nPayrep Support <suporte@payrep.com.br>\nwrote:\n> previous message'
+  }})
+  expect(result.candidate?.body).toBe('Thanks for the answer.')
+ })
+ it('preserves genuine new text and rejects quoted history without an answer',()=>{
+  const regular=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'Eu escrevi: uma explicação.\nEm outro momento discutimos o cálculo.'
+  }})
+  expect(regular.candidate?.body).toBe('Eu escrevi: uma explicação.\nEm outro momento discutimos o cálculo.')
+  const quoteOnly=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'\nEm sex., 13 de nov. de 2026, 06:26, Suporte Payrep <suporte@payrep.com.br>\nescreveu:\n> antigo'
+  }})
+  expect(quoteOnly.reason).toBe('missing_reply_text')
+ })
+ it('checks message size after removing old quoted history',()=>{
+  const result=inspectMailerooEmail({...valid,body:{
+   stripped_plaintext:'Mensagem curta\n\nEm sex., 13 de nov. de 2026, 06:26, Suporte Payrep <suporte@payrep.com.br>\nescreveu:\n>'+ 'antigo'.repeat(900)
+  }})
+  expect(result.candidate?.body).toBe('Mensagem curta')
+ })
  it('returns safe diagnostic codes for unexpected provider formats',()=>{
   expect(inspectMailerooEmail({...valid,body:{stripped_plaintext:''}}).reason).toBe('missing_reply_text')
   expect(inspectMailerooEmail({...valid,recipients:[]}).reason).toBe('invalid_recipients')

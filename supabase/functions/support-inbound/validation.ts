@@ -41,21 +41,34 @@ export type InboundParseResult=
  |{candidate:null;reason:InboundParseReason}
 const fail=(reason:InboundParseReason):InboundParseResult=>({candidate:null,reason})
 
-function latestText(body:Bag):string|null{
- const stripped=body.stripped_plaintext
- if(typeof stripped==='string'&&stripped.trim())return stripped.trim()
- // Some clients only provide an unstripped plaintext body. Avoid importing
- // quoted conversation history when a safe boundary is available.
- if(typeof body.plaintext!=='string'||!body.plaintext.trim())return null
- const lines=body.plaintext.replace(/\r\n?/g,'\n').split('\n')
+// Maileroo's stripped_plaintext is not guaranteed to remove email history.
+// Gmail may wrap its quote attribution across multiple lines, even in this field.
+function quotedHistoryStarts(lines:string[],index:number):boolean{
+ const line=lines[index].trim()
+ if(!line)return false
+ if(/^>/.test(line) ||
+    /^-{3,}\s*(?:Original Message|Mensagem original|Forwarded message)\s*-{3,}/i.test(line))return true
+ const following=lines.slice(index,index+6).join(' ').replace(/\s+/g,' ').trim()
+ if(following.length>650)return false
+ // Gmail pt-BR: "Em sex., 13 de nov. de 2026, ..., Suporte <...>"
+ // followed by "escreveu:" on the same or a subsequent line.
+ const portugueseAttribution=/^Em\s+(?:[a-zà-ÿ-]+[.,]{0,2}\s+)?\d{1,2}\s+de\s+[a-zà-ÿ]+/i
+ if(portugueseAttribution.test(line)&&/\bescreveu\s*:/i.test(following))return true
+ // English Gmail: "On Fri, Nov 13, 2026 at 6:26 AM, ... wrote:"
+ const englishAttribution=/^On\s+.{0,100}\d{1,2}.{0,120}/i
+ if(englishAttribution.test(line)&&/\bwrote\s*:/i.test(following))return true
+ return false
+}
+
+export function latestText(body:Bag):string|null{
+ const preferred=typeof body.stripped_plaintext==='string'&&body.stripped_plaintext.trim()
+  ? body.stripped_plaintext : body.plaintext
+ if(typeof preferred!=='string'||!preferred.trim())return null
+ const lines=preferred.replace(/\r\n?/g,'\n').split('\n')
  const result:string[]=[]
- for(const line of lines){
-  if(/^>/.test(line.trimStart()) ||
-    /^On .{8,240} wrote:\s*$/i.test(line) ||
-    /^Em .{8,240} escreveu:\s*$/i.test(line) ||
-    /^\s*-{3,}\s*(Original Message|Mensagem original)\s*-{3,}/i.test(line)
-  )break
-  result.push(line)
+ for(let i=0;i<lines.length;i++){
+  if(quotedHistoryStarts(lines,i))break
+  result.push(lines[i])
  }
  return result.join('\n').trim()||null
 }
