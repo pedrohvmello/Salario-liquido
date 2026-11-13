@@ -1,0 +1,7 @@
+# External webhooks authenticate through the provider's single-use validation URL.
+[functions.support-inbound]
+verify_jwt = false
+
+# This service uses an internal, strongly secret worker token.
+[functions.support-mailer]
+verify_jwt = false

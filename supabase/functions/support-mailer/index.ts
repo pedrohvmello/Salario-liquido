@@ -65,6 +65,14 @@ Deno.serve(async req=>{
     ticket_opened:'Novo chamado',user_message:'Mensagem do usuário',
     admin_message:'Resposta do suporte',ticket_closed:'Chamado finalizado'
    }
+   let replyTo='suporte@payrep.com.br'
+   if(item.kind==='admin_message'&&env('SUPPORT_EMAIL_REPLIES_ENABLED')==='true'){
+    const {data:route,error:routeError}=await db.from('support_ticket_reply_routes')
+     .select('token').eq('ticket_id',t.id).is('revoked_at',null).single()
+    if(routeError||!route?.token)throw Error('Support reply address unavailable')
+    replyTo='hml-chamado-'+String(t.ticket_year)+'-'+String(t.ticket_sequence).padStart(4,'0')+
+     '-'+route.token+'@payrep.com.br'
+   }
    const prefix=eventLabel[item.kind]
    if(!prefix)throw Error('Unexpected mail event')
    const notice=item.kind==='ticket_closed'?'O atendimento foi finalizado pelo suporte.':textMax(messageBody)
@@ -87,7 +95,7 @@ Deno.serve(async req=>{
     body:JSON.stringify({
      from:{address:from,display_name:'Suporte Payrep'},
      to:{address:recipient},
-     reply_to:{address:'suporte@payrep.com.br'},
+     reply_to:{address:replyTo},
      subject,plain,tracking:false,
      tags:{purpose:'payrep-support',event:item.kind},
      headers:{'X-Payrep-Ticket':ticketCode}

@@ -1,56 +1,73 @@
-# Payrep: envio de notificações de chamados por e-mail
+# Payrep HML: replies by email, Maileroo → Supabase
 
-## Estado
-A migração 0024 registra eventos em uma fila privada (outbox). O banco e a interface
-não enviam e-mail diretamente. Nenhuma mensagem é disparada por essa migração isoladamente.
-O worker `supabase/functions/support-mailer/index.ts` está preparado, mas seu envio
-**depende** de configuração independente no Supabase e no Maileroo.
+## Current state / activation gates
+- Inbound function source: `supabase/functions/support-inbound/index.ts`.
+- Inbound SQL migration: `0026_support_inbound_email.sql`. It creates opaque reply
+  addresses and a privileged, idempotent ingestion RPC, without opening table access.
+- `support-mailer` creates unique Reply-To addresses for admin replies only when
+  `SUPPORT_EMAIL_REPLIES_ENABLED=true`. Without the flag, existing Reply-To is unchanged.
+- The inbound endpoint refuses every webhook with 503 until
+  `SUPPORT_INBOUND_ENABLED=true` is configured in the **HML** Edge Function secrets.
+- Neither the Maileroo inbound route nor the mail sender scheduler should be activated
+  before a manual GO decision for HML. Do not enable these in PRD.
 
-## Eventos previstos
-- ticket_opened: e-mail para suporte@payrep.com.br com protocolo, categoria,
-  solicitante, assunto e descrição;
-- user_message: notifica suporte@payrep.com.br sobre novos comentários do usuário;
-- admin_message: notifica o titular do chamado com a resposta do suporte;
-- ticket_closed: notifica o titular do encerramento.
+## Endpoints
+HML webhook:
+`https://nrpqcrhschztdwbfgnyo.supabase.co/functions/v1/support-inbound`
 
-A página do Payrep continua sendo a fonte de verdade do atendimento.
-Um e-mail aceito pelo Maileroo não garante entrega final à caixa de destino.
+HML sender worker:
+`https://nrpqcrhschztdwbfgnyo.supabase.co/functions/v1/support-mailer`
 
-## Ativação controlada (HML antes de PRD)
-1. Verificar no Maileroo o domínio de envio e o remetente `SUPPORT_FROM_EMAIL`.
-2. Criar chave de envio restrita ao domínio, armazenada como Supabase Secret
-   `MAILEROO_API_KEY` no projeto HML, nunca como variável `VITE_*` ou em Git.
-3. Configurar `SUPPORT_FROM_EMAIL`, `SUPPORT_APP_URL` e um valor aleatório forte
-   para `SUPPORT_MAILER_WORKER_TOKEN` nas secrets do projeto HML.
-4. Publicar `support-mailer` em HML e configurar uma execução confiável a cada
-   minuto ou poucos minutos, por POST, com header
-   `X-Payrep-Worker-Token`. O endpoint sempre exige esse token, mesmo sem JWT.
-5. Testar utilizando endereços de e-mail de homologação. Confirmar o recebimento,
-   tratamento de erro, reenvio e ausência de vazamento de dados em logs.
-6. Somente após aceite, repetir a configuração em PRD, com credenciais separadas.
+## Existing DNS
+The primary domain `payrep.com.br` already uses the Maileroo MX hosts. Leave
+DNS untouched. Do not modify the current `suporte@payrep.com.br` inbound route.
+Make an additional route on this **same existing domain**.
 
-O worker marca os eventos como `sent` após aceitação do Maileroo; caso contrário,
-reagenda até cinco tentativas. Uma falha inesperada entre envio e gravação do resultado
-pode causar duplicidade; um monitoramento operacional deve detectar filas paradas.
+## Maileroo Inbound Routing
+1. Open Domains → payrep.com.br → Inbound Routing → New Route.
+2. Use Match Recipient and the wildcard
+   `hml-chamado-*@payrep.com.br`.
+3. Enable DMARC alignment requirements. Prefer blocking known spam.
+4. Add webhook action pointing to HML `support-inbound` endpoint above.
+5. Keep the existing route for `suporte@payrep.com.br` unchanged.
+6. Test with a new HML ticket. Do not use synthetic "Test Callback" to create
+   fake business replies; payloads without validated recipients are discarded.
 
-## Respostas por e-mail: estudo de integração (ainda não implementadas)
-O Maileroo oferece **Inbound Routing**. Após configurar MX/rota para o domínio
-ou subdomínio de atendimento, um webhook recebe mensagens processadas.
-Seu campo `body.stripped_plaintext` contém a última resposta sem histórico citado.
+## Supabase secrets (HML only)
+- `SUPPORT_INBOUND_ENABLED=true` only when ready to accept real inbound events.
+- `SUPPORT_EMAIL_REPLIES_ENABLED=true` only after the inbound route works.
+- Outbound `support-mailer`: `MAILEROO_API_KEY`, `SUPPORT_FROM_EMAIL`,
+  `SUPPORT_APP_URL=https://payrep-hml.vercel.app`, `SUPPORT_MAILER_WORKER_TOKEN`.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are Supabase-provided backend
+  environment variables. Do not put them in Git or any `VITE_*` variable.
+- Publish the sender worker and schedule a trusted POST with
+  `X-Payrep-Worker-Token`, **after** isolating old pending queue records.
+- Be aware that Maileroo reports acceptance, not final mailbox delivery.
 
-Antes de permitir inserção de mensagens por webhook:
-- validar o endereço único `validation_url` com o provedor, exigindo domínio HTTPS
-  confiável e evitando SSRF; cada URL pode ser usada só uma vez;
-- rejeitar spam, falhas de alinhamento DMARC, remetentes desconhecidos,
-  anexos inesperados e emails automáticos;
-- resolver protocolo com segurança e exigir que o remetente corresponda à conta
-  titular, em vez de confiar apenas no assunto;
-- deduplicar pelo `message_id` de origem;
-- recusar mensagens em chamados finalizados;
-- filtrar assinaturas, respostas citadas e conteúdo perigoso;
-- não criar respostas a partir de mensagens encaminhadas por terceiros;
-- auditar tentativas negadas sem registrar conteúdo pessoal nos logs.
+## Security constraints
+- Incoming Maileroo callbacks require fresh validation via the exact
+  `https://inbound-api.maileroo.net/validate-callback/...` URL.
+- DMARC must be aligned. Reject spam, attachments and automated replies.
+- Match authenticated From against ticket owner's verified account email.
+- Address contains 128-bit random token; do not trust the visible ticket number.
+- Database does final authorization and duplicate protection transactionally.
+- A closed ticket is read-only. No reopening through email.
+- The validation URL is single-use. If database ingestion fails *after* URL
+  validation, the webhook retry may not be able to validate again; investigate
+  logs and manually reconcile rather than blindly replaying.
+- Keep user financial documents and email bodies out of logs.
 
-Documentação oficial:
-https://maileroo.com/docs/api-reference/emails/send-email
-https://maileroo.com/docs/inbound-routing/webhooks
+## HML acceptance
+1. New ticket created and unique reply route exists in the private table.
+2. Admin replies in HML → worker sends a Maileroo e-mail with unique Reply-To.
+3. User replies through Gmail/Outlook → new message appears inside the same
+   ticket, with source channel `email` in the database.
+4. Repeated Maileroo message-id does not create a duplicate message.
+5. Wrong sender and DMARC failure are rejected.
+6. Closing the ticket prevents further inbound messages.
+7. All unrelated pages and accounting calculations remain unchanged.
+
+### Maileroo docs
+- https://maileroo.com/docs/inbound-routing/overview
+- https://maileroo.com/docs/inbound-routing/webhooks
+- https://maileroo.com/docs/api-reference/emails/send-email
