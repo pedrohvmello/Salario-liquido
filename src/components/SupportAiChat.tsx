@@ -15,7 +15,7 @@ const errors:Record<string,string>={
  ai_invalid_response:'Não foi possível interpretar a resposta. Tente novamente.',
  financial_data_unavailable:'Não foi possível consultar seus dados com segurança. Verifique sua sessão e tente novamente.',
 }
-export function SupportAiChat({onBack,pepPreviewUrl}:{onBack:()=>void;pepPreviewUrl?:string|null}){
+export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false}:{onBack:()=>void;pepPreviewUrl?:string|null;pepVideoLoading?:boolean}){
  const [messages,setMessages]=useState<ChatMessage[]>([])
  const [draft,setDraft]=useState('')
  const [busy,setBusy]=useState(false)
@@ -62,7 +62,7 @@ export function SupportAiChat({onBack,pepPreviewUrl}:{onBack:()=>void;pepPreview
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button>
   </div>
   <section className="panel payrep-ai-shell" aria-label="Conversa com o Assistente Payrep">
-   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-video-avatar"><PepMascot variant="header" videoUrl={pepPreviewUrl}/></span><div>
+   <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-video-avatar"><PepMascot variant="header" videoUrl={pepPreviewUrl} videoLoading={pepVideoLoading}/></span><div>
     <strong>Pep · Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
    </div></div>
    <div className="payrep-ai-header-actions">
