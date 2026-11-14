@@ -37,13 +37,17 @@ function removeStudioBackground(frame:ImageData){
  * Local-only HML test: uses the visitor's chosen MP4/WebM as a source
  * without uploading it. The character is composited onto the page.
  */
-export function PepMascot({variant='header',videoUrl}:{variant?:PepMascotVariant;videoUrl?:string|null}){
+export function PepMascot({variant='header',videoUrl,videoLoading=false}:{variant?:PepMascotVariant;videoUrl?:string|null;videoLoading?:boolean}){
  const decorative=variant==='avatar'
  const videoRef=useRef<HTMLVideoElement|null>(null)
  const canvasRef=useRef<HTMLCanvasElement|null>(null)
  const [ready,setReady]=useState(false)
  const [failed,setFailed]=useState(false)
- const videoPreview=Boolean(videoUrl&&(variant==='help'||variant==='header')&&!failed)
+ const supportsVideo=variant==='help'||variant==='header'
+ const videoPreview=Boolean(videoUrl&&supportsVideo&&!failed)
+ // Do not show a differently scaled still image before the video's first frame.
+ // The container already has fixed dimensions, so it stays stable during loading.
+ const hideStill=supportsVideo&&(videoLoading||videoPreview)
 
  useEffect(()=>{
   setReady(false)
@@ -91,14 +95,14 @@ export function PepMascot({variant='header',videoUrl}:{variant?:PepMascotVariant
    height={144}
    loading={variant==='help'?'lazy':'eager'}
    decoding="async"
-   style={videoPreview&&ready?{opacity:0}:undefined}
+   style={hideStill?{visibility:'hidden'}:undefined}
   />
   {videoPreview&&<>
    <video crossOrigin="anonymous" ref={videoRef} src={videoUrl||undefined} autoPlay loop muted playsInline preload="auto" aria-hidden="true"
     onError={()=>setFailed(true)}
     style={{position:'absolute',width:1,height:1,opacity:0,pointerEvents:'none'}}/>
    <canvas ref={canvasRef} role="img" aria-label="Pep animado"
-    style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:ready?1:0,pointerEvents:'none'}}/>
+    style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:ready?1:0,transition:'opacity 150ms ease-out',pointerEvents:'none'}}/>
   </>}
  </span>
 }
