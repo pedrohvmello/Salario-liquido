@@ -58,12 +58,12 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false}:{onBa
   }
  }
  return <div className="stack payrep-help-page">
-  <div className="page-intro"><div><h2>Assistente Payrep</h2><p>Tire dúvidas sobre as funcionalidades e os processos do aplicativo.</p></div>
+  <div className="page-intro"><div><h2>Pep · Assistente Payrep</h2><p>Tire dúvidas sobre as funcionalidades e os processos do aplicativo.</p></div>
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar à Ajuda</button>
   </div>
   <section className="panel payrep-ai-shell" aria-label="Conversa com o Assistente Payrep">
    <div className="payrep-ai-toolbar"><div className="payrep-ai-identity"><span className="payrep-ai-video-avatar"><PepMascot variant="header" videoUrl={pepPreviewUrl} videoLoading={pepVideoLoading}/></span><div>
-    <strong>Pep · Assistente Payrep</strong><small>Respostas curtas sobre o uso do aplicativo</small>
+    <strong>Pep · Assistente Payrep</strong>
    </div></div>
    <div className="payrep-ai-header-actions">
     <button type="button" className="secondary" disabled={busy||messages.length===0}
@@ -78,14 +78,13 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false}:{onBa
       <small>Somente nesta conversa. A IA poderá consultar resumos de holerites, rubricas, eventos e configurações da sua conta.</small>
      </span>
     </label>
-    <p>Seus PDFs completos, arquivos originais, nomes e dados de identificação não serão enviados ao modelo. Os valores relevantes e a pergunta serão processados pela Cloudflare. Desmarcar apaga a conversa da tela.</p>
    </div>
    <div className="payrep-ai-messages" role="log" aria-live="polite" aria-relevant="additions text">
     {messages.length===0&&<div className="payrep-ai-welcome"><Sparkles size={25}/><h3>Como posso ajudar?</h3>
       <p>Escreva sua pergunta livremente. Posso orientar sobre processos e, com sua autorização, explicar os valores importados no Payrep.</p>
     </div>}
     {messages.map((item,index)=><article key={index} className={'payrep-ai-bubble payrep-ai-bubble-'+item.role}>
-      {item.role==='assistant'&&<span className="pep-chat-reply-avatar"><PepMascot variant="avatar"/></span>}
+      {item.role==='assistant'&&<span className="pep-chat-reply-avatar"><img src="/brand/pep-reply-avatar.webp" alt="Pep" width={54} height={54} decoding="async"/></span>}
       <div className="payrep-ai-bubble-content">
        <strong>{item.role==='user'?'Você':'Pep'}</strong><p>{item.content}</p>
        {item.sources&&item.sources.length>0&&<small className="payrep-ai-sources">Fonte: {item.sources.join(' · ')}</small>}
