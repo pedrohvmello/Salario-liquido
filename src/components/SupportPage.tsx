@@ -206,7 +206,7 @@ export function SupportPage({user}:{user:User}){
  }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
- if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl}/>
+ if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
   {hmlAiEnabled&&<section className="panel help-ai-entry">
@@ -227,7 +227,7 @@ export function SupportPage({user}:{user:User}){
      {pepVideoStatus==='ready'&&<p className="subtle">Vídeo publicado e carregado automaticamente para todos os visitantes.</p>}
     </details>}
    </div>
-   <PepMascot variant="help" videoUrl={pepPreviewUrl}/>
+   <PepMascot variant="help" videoUrl={pepPreviewUrl} videoLoading={pepVideoStatus==='checking'}/>
   </section>}
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
