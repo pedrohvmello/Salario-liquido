@@ -1331,7 +1331,7 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
    Mobile order: Year + Month, followed by a full-width Type field. */
 .payslip-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"year month kind" "count count count";align-items:end;gap:13px 14px}
 .payslip-filter-field{display:flex;flex-direction:column;gap:7px;min-width:0}
-.payslip-filter-field>label{display:block;font-size:12px;font-weight:700;color:#65517b}
+.payslip-filter-field>label{display:block;min-width:0;flex:none;font-size:12px;font-weight:700;color:#65517b}
 .payslip-filter-year{grid-area:year}
 .payslip-filter-month{grid-area:month}
 .payslip-filter-kind{grid-area:kind}
