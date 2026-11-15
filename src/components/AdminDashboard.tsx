@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
+import {PayrepConfirmDialog} from './PayrepConfirmDialog'
 import {RefreshCw,ShieldCheck,UsersRound,UserCheck,Clock3,ShieldAlert,Activity,Info,CreditCard,MapPin} from 'lucide-react'
 import {AdminUserDetailDialog} from './AdminUserDetail'
 import {AdminAvatar} from './AdminAvatar'
@@ -28,6 +29,7 @@ export function AdminDashboard(){
  const [selectedDetails,setSelectedDetails]=useState<AdminUserDetail|null>(null)
  const [detailsLoading,setDetailsLoading]=useState(false)
  const [detailsError,setDetailsError]=useState('')
+ const [pendingStatus,setPendingStatus]=useState<{user:AdminUser;status:AccessStatus}|null>(null)
  const load=useCallback(async()=>{
   setError('')
   try{
@@ -37,11 +39,15 @@ export function AdminDashboard(){
   finally{setLoading(false)}
  },[])
  useEffect(()=>{void load()},[load])
- const changeStatus=async(user:AdminUser,status:AccessStatus)=>{
-  if(['rejected','suspended'].includes(status)&&!window.confirm('Confirma '+(status==='suspended'?'a suspensão':'a rejeição')+' de '+(user.email||'esta conta')+'? O acesso aos dados será bloqueado.'))return
+ const changeStatus=async(user:AdminUser,status:AccessStatus,confirmed=false)=>{
+  if(!confirmed&&['rejected','suspended'].includes(status)){
+   setPendingStatus({user,status})
+   return
+  }
   setBusy(true);setError('');setMessage('')
   try{
    await changeUserStatus(user.id,status)
+   setPendingStatus(null)
    await load()
    setMessage('Status atualizado para '+statuses[status]+'.')
   }catch(e){setError(e instanceof Error?e.message:'Falha ao atualizar acesso')}
@@ -140,6 +146,13 @@ export function AdminDashboard(){
      </tr>)}</tbody></table></div>:<p className="subtle">Nenhuma alteração administrativa registrada desde a ativação.</p>}
    </section>
   </>}
+  {pendingStatus&&<PayrepConfirmDialog
+   title={pendingStatus.status==='suspended'?'Suspender conta?':'Rejeitar cadastro?'}
+   description={'Confirma '+(pendingStatus.status==='suspended'?'a suspensão':'a rejeição')+' de '+(pendingStatus.user.email||'esta conta')+'? O acesso aos dados será bloqueado enquanto esta situação estiver vigente.'}
+   confirmLabel={pendingStatus.status==='suspended'?'Suspender conta':'Rejeitar cadastro'}
+   destructive busy={busy} onClose={()=>setPendingStatus(null)}
+   onConfirm={()=>void changeStatus(pendingStatus.user,pendingStatus.status,true)}
+  />}
   {selectedId&&<AdminUserDetailDialog user={selectedDetails} totalAccesses={users.find(u=>u.id===selectedId)?.sessions??null} loading={detailsLoading} error={detailsError} onClose={()=>{setSelectedId(null);setSelectedDetails(null)}}/>}
  </div>
 }
