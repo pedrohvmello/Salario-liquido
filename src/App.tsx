@@ -156,7 +156,7 @@ export default function App(){
  const [importFiles,setImportFiles]=useState<File[]>([])
  const [previews,setPreviews]=useState<ParsedStatement[]>([])
  const [importSelected,setImportSelected]=useState<string[]>([])
- const [payslipTab,setPayslipTab]=useState<'import'|'documents'>('import')
+ const [payslipTab,setPayslipTab]=useState<'import'|'documents'>('documents')
  const [eventId,setEventId]=useState<string|undefined>()
  const [eventKind,setEventKind]=useState('salary')
  const [eventValue,setEventValue]=useState('')
@@ -480,8 +480,8 @@ export default function App(){
     {section==='imports'&&<div className="stack">
      <div className="page-intro"><div><h2>Meus Holerites</h2><p>Importe, visualize e gerencie seus documentos salariais em um único lugar.</p></div></div>
      <div className="payslip-tabs" role="tablist" aria-label="Áreas de Meus Holerites">
-      <button type="button" role="tab" aria-selected={payslipTab==='import'} className={payslipTab==='import'?'active':''} onClick={()=>setPayslipTab('import')}><Upload size={17}/> Importar</button>
       <button type="button" role="tab" aria-selected={payslipTab==='documents'} className={payslipTab==='documents'?'active':''} onClick={()=>setPayslipTab('documents')}><FileText size={17}/> Meus documentos <span className="payslip-tab-count">{statements.length}</span></button>
+      <button type="button" role="tab" aria-selected={payslipTab==='import'} className={payslipTab==='import'?'active':''} onClick={()=>setPayslipTab('import')}><Upload size={17}/> Importar</button>
      </div>
      {payslipTab==='import'?<div className="stack"><div className="page-intro"><div><h2>Importação inteligente de PDFs</h2><p>Reconhece folhas mensais, PPR, férias e 13º salário da Accenture. Os recibos de férias são opcionais; o recibo de 13º comprova os impostos exclusivos e é conciliado com adiantamentos anteriores.</p></div></div><Panel title="Selecionar holerites"><div className="dropzone"><Upload size={30}/><strong>Envie PDFs antigos ou novos</strong><p>É possível selecionar vários arquivos e importar documentos com várias páginas. Cada holerite identificado será salvo em um PDF individual.</p><label className="primary file-button">Selecionar PDFs<input multiple type="file" accept="application/pdf,.pdf" onChange={e=>{const files=Array.from(e.target.files||[]);if(files.length)previewFiles(files)}}/></label></div><div className="detail-hint"><ShieldCheck size={16}/>A leitura ocorre no navegador. O envio ao armazenamento privado acontece somente após você confirmar.</div></Panel>{previews.length>0&&<Panel title={'Prévia: '+previews.length+' competência(s)'} extra={<button className="secondary" onClick={()=>previewFiles(importFiles)}><RefreshCw size={15}/> Reler</button>}><div className="table-scroll"><table><thead><tr><th>Importar</th><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Formato</th><th>Proventos</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Férias/13º antecipados</th><th>Líquido financeiro estimado</th><th>Resultado</th></tr></thead><tbody>{previews.map(s=>{const key=s.sourceFile+'#'+s.page;return <tr key={key}><td><input type="checkbox" checked={importSelected.includes(key)} onChange={e=>setImportSelected(v=>e.target.checked?[...v,key]:v.filter(x=>x!==key))}/></td><td>{s.sourceFile} (p. {s.page})</td><td>{s.period||'Não encontrada'}</td><td>{s.documentType==='ppr'?<span className="pill">PPR</span>:s.documentType==='vacation'?<span className="pill">Férias</span>:s.documentType==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.format==='old'?'Antigo':'Novo'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.documentType==='thirteenth'?brl(s.thirteenthAdvance):s.documentType==='vacation'?'—':s.salaryAdvance===null?'A conferir':brl(s.salaryAdvance)}</td>
     <td>{s.documentType==='monthly'?brl(vacationAdvanceFromLines(s.lines)):'—'}</td>
@@ -531,7 +531,7 @@ export default function App(){
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>
-     {nav.filter(n=>n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {nav.filter(n=>n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{if(n.id==='imports')setPayslipTab('documents');setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
      {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
      {isAdmin&&nav.filter(n=>n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
     </nav>
