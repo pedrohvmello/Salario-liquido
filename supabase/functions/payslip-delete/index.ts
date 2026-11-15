@@ -53,11 +53,15 @@ Deno.serve(async(req:Request)=>{
   .delete().eq('id',id).eq('user_id',user.id).select('id')
  if(deleteError||removed?.length!==1)
   return reply({error:'Não foi possível excluir o holerite. Confira sua autenticação.'},409)
+ // If a source document that introduced a salary change is removed, the next
+ // remaining document may become the earliest observation. Reconcile the
+ // linked event timeline while leaving manual events untouched.
+ const {error:eventsError}=await userClient.rpc('sync_my_monthly_salary_events',{p_use_competence_end:false})
  const {count,error:countError}=await admin.from('statements')
   .select('id',{head:true,count:'exact'}).eq('storage_key',expected)
  if(countError)return reply({deleted:true,fileDeleted:false,cleanupPending:true,message:'Registro removido. A limpeza do PDF precisa ser revisada.'})
  if((count??0)>0)return reply({deleted:true,fileDeleted:false,remainingRecords:count})
  const {error:storageError}=await admin.storage.from('payslips').remove([expected])
  if(storageError)return reply({deleted:true,fileDeleted:false,cleanupPending:true,message:'Registro removido. A limpeza do PDF precisa ser revisada.'})
- return reply({deleted:true,fileDeleted:true})
+ return reply({deleted:true,fileDeleted:true,...(eventsError?{eventsSyncPending:true,cleanupPending:true,message:'Holerite removido, mas a atualização da linha do tempo de eventos precisa ser revisada.'}:{})})
 })
