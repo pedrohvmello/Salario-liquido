@@ -1,4 +1,5 @@
 import {createClient, type SupabaseClient} from '@supabase/supabase-js'
+import {PDFDocument} from 'pdf-lib'
 import type {ParsedStatement} from './parse'
 import {makePprEvent} from './ppr'
 import {validateThirteenthPay} from './thirteenth'
@@ -111,15 +112,20 @@ export async function downloadPayslipPdf(statementId:string):Promise<{blob:Blob;
  if(!db)throw new Error('Banco não configurado')
  const userId=await identity()
  const {data:statement,error:readError}=await db.from('statements')
-  .select('storage_key,source_page,source_file,source_sha256').eq('user_id',userId).eq('id',statementId).single()
+  .select('storage_key,source_page,source_file,source_sha256,period,document_type').eq('user_id',userId).eq('id',statementId).single()
  if(readError||!statement)throw new Error('Documento não encontrado ou sessão sem permissão de leitura.')
- const expected=userId+'/'+statement.source_sha256+'.pdf'
- if(!/^[0-9a-f]{64}$/i.test(statement.source_sha256||'')||statement.storage_key!==expected)
+ const sharedKey=userId+'/'+statement.source_sha256+'.pdf'
+ const individualKey=userId+'/'+statement.source_sha256+'-p'+statement.source_page+'.pdf'
+ if(!/^[0-9a-f]{64}$/i.test(statement.source_sha256||'')||![sharedKey,individualKey].includes(statement.storage_key))
   throw new Error('Referência do PDF inconsistente. O acesso foi bloqueado.')
  const {data,error}=await db.storage.from('payslips').download(statement.storage_key)
  if(error||!data)throw new Error(error?.message||'Não foi possível abrir o PDF privado.')
- const filename=(statement.source_file||'holerite.pdf').replace(/[/\\\\\x00-\x1f]/g,'_').slice(0,150)
- return {blob:data,page:Number(statement.source_page)||1,filename:filename.toLowerCase().endsWith('.pdf')?filename:filename+'.pdf'}
+ const single=statement.storage_key===individualKey
+ const source=String(statement.source_file||'holerite.pdf').replace(/[\/\\\x00-\x1f]/g,'_').slice(0,150)
+ const name=single
+  ? (statement.document_type==='monthly'?'Holerite':statement.document_type==='thirteenth'?'13o Salario':statement.document_type==='vacation'?'Ferias':'PPR')+' - '+statement.period+'.pdf'
+  :source
+ return {blob:data,page:single?1:Number(statement.source_page)||1,filename:name.toLowerCase().endsWith('.pdf')?name:name+'.pdf'}
 }
 export async function deletePayslipStatement(statementId:string):Promise<{deleted:boolean;fileDeleted:boolean;remainingRecords?:number;cleanupPending?:boolean;message?:string}>{
  if(!db)throw new Error('Banco não configurado')
