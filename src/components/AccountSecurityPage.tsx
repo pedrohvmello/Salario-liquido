@@ -9,7 +9,7 @@ import {TotpSettings} from './TotpSettings'
 import {PasskeySettings} from './PasskeySettings'
 import {passkeyFeatureEnabled} from '../lib/passkey'
 
-export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
+export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBack:()=>void;onPayrollReset:()=>Promise<void>}){
  const [resetBusy,setResetBusy]=useState(false)
  const [resetMessage,setResetMessage]=useState('')
  const [resetError,setResetError]=useState('')
@@ -21,6 +21,13 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
  const [acknowledged,setAcknowledged]=useState(false)
  const [deleteBusy,setDeleteBusy]=useState(false)
  const [deleteError,setDeleteError]=useState('')
+ const [dataDeleting,setDataDeleting]=useState(false)
+ const [dataDeleteText,setDataDeleteText]=useState('')
+ const [dataDeleteAcknowledged,setDataDeleteAcknowledged]=useState(false)
+ const [dataDeleteBusy,setDataDeleteBusy]=useState(false)
+ const [dataDeleteError,setDataDeleteError]=useState('')
+ const [dataDeleteMessage,setDataDeleteMessage]=useState('')
+ const [dataDeleteWarning,setDataDeleteWarning]=useState('')
  const hml=isHomologationHost(window.location.hostname)
  const endOtherSessions=async()=>{
   if(!db)return
@@ -41,6 +48,31 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
    setResetMessage('Se a conta estiver apta, você receberá um link de redefinição por e-mail.')
   }catch(e){setResetError(e instanceof Error?e.message:'Não foi possível solicitar a redefinição.')}
   finally{setResetBusy(false)}
+ }
+ const clearPayroll=async()=>{
+  if(!canConfirmDeletion(dataDeleteText,dataDeleteAcknowledged)||!db){
+   setDataDeleteError('Digite EXCLUIR e marque a confirmação para continuar.')
+   return
+  }
+  setDataDeleteBusy(true);setDataDeleteError('');setDataDeleteMessage('');setDataDeleteWarning('')
+  try{
+   const {data:{session},error:sessionError}=await db.auth.getSession()
+   if(sessionError||!session)throw Error('Faça login novamente.')
+   const {data,error}=await db.functions.invoke('payslip-reset',{
+    body:{confirmation:'EXCLUIR'},
+    headers:{Authorization:'Bearer '+session.access_token}
+   })
+   if(error){
+    const payload=error && 'context' in error ? await (error as {context?:Response}).context?.json().catch(()=>null) : null
+    throw Error((payload as {error?:string}|null)?.error||'Não foi possível excluir os dados financeiros. Tente novamente.')
+   }
+   if(data?.reset!==true)throw Error(data?.error||'A exclusão não foi confirmada.')
+   await onPayrollReset()
+   setDataDeleting(false);setDataDeleteText('');setDataDeleteAcknowledged(false)
+   if(data.cleanupPending)setDataDeleteWarning('Dados financeiros excluídos, mas a limpeza de alguns PDFs precisa de revisão pelo suporte.')
+   else setDataDeleteMessage('Holerites, eventos e dados salariais excluídos. Seu cadastro, perfil, segurança e assinatura foram preservados.')
+  }catch(e){setDataDeleteError(e instanceof Error?e.message:'Falha ao excluir seus dados.')}
+  finally{setDataDeleteBusy(false)}
  }
  const deleteAccount=async()=>{
   if(hml){setDeleteError('Exclusão indisponível em HML: a função de exclusão ainda precisa ser publicada e validada no novo Supabase.');return}
@@ -84,6 +116,29 @@ export function AccountSecurityPage({user,onBack}:{user:User;onBack:()=>void}){
     {sessionsMessage&&<div className="notice success" role="status">{sessionsMessage}</div>}
     {sessionsError&&<div className="notice danger" role="alert">{sessionsError}</div>}
    </div>
+  </section>
+  <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir meus dados</h2></div>
+   <p className="subtle">Reinicie seus dados financeiros sem excluir sua conta. Esta ação é permanente e não pode ser desfeita.</p>
+   {dataDeleteMessage&&<div role="status" className="notice success">{dataDeleteMessage}</div>}
+   {dataDeleteWarning&&<div role="alert" className="notice danger">{dataDeleteWarning}</div>}
+   {!dataDeleting?
+    <button type="button" className="secondary profile-destructive" onClick={()=>{setDataDeleteError('');setDataDeleteMessage('');setDataDeleteWarning('');setDataDeleting(true)}}>
+     <Trash2 size={15}/> Excluir meus holerites
+    </button>:
+    <div className="profile-delete-confirm">
+     <strong>Confirmação de exclusão dos dados financeiros</strong>
+     <p>Serão excluídos permanentemente todos os seus holerites e PDFs armazenados, rubricas, eventos e vigências, registros de horas, comparações de imposto de renda, base e parâmetros de remuneração e da Visão Geral.</p>
+     <p><strong>Serão preservados:</strong> seu cadastro, nome e dados do perfil, login, senha, autenticação em dois fatores, passkeys/biometria, assinatura e histórico de suporte. Sua conta continuará ativa.</p>
+     <label>Digite EXCLUIR para confirmar
+      <input type="text" autoComplete="off" value={dataDeleteText} onChange={e=>setDataDeleteText(e.target.value)} placeholder="EXCLUIR" disabled={dataDeleteBusy}/>
+     </label>
+     <label className="checkbox-label"><input type="checkbox" checked={dataDeleteAcknowledged} onChange={e=>setDataDeleteAcknowledged(e.target.checked)} disabled={dataDeleteBusy}/> Entendo que todos os dados financeiros serão removidos permanentemente, mas minha conta continuará ativa.</label>
+     <div className="profile-delete-buttons">
+      <button className="secondary" type="button" disabled={dataDeleteBusy} onClick={()=>{setDataDeleting(false);setDataDeleteText('');setDataDeleteAcknowledged(false);setDataDeleteError('')}}>Cancelar</button>
+      <button className="profile-delete-submit" type="button" disabled={dataDeleteBusy||!canConfirmDeletion(dataDeleteText,dataDeleteAcknowledged)} onClick={()=>void clearPayroll()}>{dataDeleteBusy?'Excluindo...':'Excluir meus dados permanentemente'}</button>
+     </div>
+     {dataDeleteError&&<p role="alert" className="error">{dataDeleteError}</p>}
+    </div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
    <p className="subtle">Exclusão permanente da conta e dados vinculados. Não é possível desfazer.</p>
