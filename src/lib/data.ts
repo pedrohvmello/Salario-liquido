@@ -231,32 +231,48 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
 }
 export type MonthlyEventSyncResult={
  synced:boolean;changedEvents:number;missingDateDocuments:number;
- provisionalDateDocuments:number;confirmedProvisional:number
+ provisionalDateDocuments:number;confirmedProvisional:number;unreadableDocuments?:number
 }
 export async function syncStoredMonthlyEvents(statements:SavedStatement[],useCompetenceDate:boolean):Promise<MonthlyEventSyncResult>{
  if(!db)throw new Error('Banco não configurado.')
  const user_id=await identity()
- // Re-read the user's existing PDFs in their own browser. For older imported
- // documents the monthly payment date was previously discarded by the parser.
+ // Re-read in the browser. Cached by source object to avoid parsing a legacy
+ // shared annual PDF once per month, which is costly on mobile devices.
  const {parsePdf}=await import('./parse')
+ const parseCache=new Map<string,Promise<Awaited<ReturnType<typeof parsePdf>>>>()
+ let unreadable=0
  for(const source of statements.filter(s=>s.document_type==='monthly'&&!s.payment_date)){
-  const pdf=await downloadPayslipPdf(source.id)
-  const filename=pdf.filename.toLowerCase().endsWith('.pdf')?pdf.filename:pdf.filename+'.pdf'
-  const file=new File([pdf.blob],filename,{type:'application/pdf'})
-  const parsed=(await parsePdf(file)).find(p=>p.page===pdf.page&&p.documentType==='monthly'&&p.period===source.period)
-  if(!parsed)continue
-  const update:Record<string,unknown>={}
-  if(parsed.paymentDate)update.payment_date=parsed.paymentDate
-  if(parsed.dependentsIrrf!==null&&parsed.dependentsIrrf!==undefined)update.dependents_irrf=parsed.dependentsIrrf
-  if(Object.keys(update).length){
-   const {error}=await db.from('statements').update(update).eq('user_id',user_id).eq('id',source.id)
-   if(error)throw new Error('Não foi possível atualizar os dados extraídos de '+source.period+': '+error.message)
+  try{
+   let parsedPages=parseCache.get(source.storage_key)
+   if(!parsedPages){
+    parsedPages=(async()=>{
+     const pdf=await downloadPayslipPdf(source.id)
+     const file=new File([pdf.blob],pdf.filename.toLowerCase().endsWith('.pdf')?pdf.filename:pdf.filename+'.pdf',{type:'application/pdf'})
+     return parsePdf(file)
+    })()
+    parseCache.set(source.storage_key,parsedPages)
+   }
+   const page=source.storage_key.endsWith('-p'+source.source_page+'.pdf')?1:source.source_page
+   const parsed=(await parsedPages).find(p=>p.page===page&&p.documentType==='monthly'&&p.period===source.period)
+   if(!parsed){unreadable++;continue}
+   const update:Record<string,unknown>={}
+   if(parsed.paymentDate)update.payment_date=parsed.paymentDate
+   if(parsed.dependentsIrrf!==null&&parsed.dependentsIrrf!==undefined)update.dependents_irrf=parsed.dependentsIrrf
+   if(Object.keys(update).length){
+    const {error}=await db.from('statements').update(update).eq('user_id',user_id).eq('id',source.id)
+    if(error)throw new Error('Não foi possível atualizar o holerite '+source.period+': '+error.message)
+   }
+  }catch(e){
+   // A read/parse failure must not silently pretend a payment date was found.
+   // Preserve a known database mutation failure as a visible blocking error.
+   if(e instanceof Error&&e.message.startsWith('Não foi possível atualizar'))throw e
+   unreadable++
   }
  }
  const {data,error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate})
  if(error)throw new Error('Falha ao sincronizar eventos: '+error.message)
  if(!data?.synced)throw new Error('A sincronização dos eventos não foi confirmada.')
- return data as MonthlyEventSyncResult
+ return {...data,unreadableDocuments:unreadable} as MonthlyEventSyncResult
 }
 export function effectiveParams(base:SalaryParameters,events:SalaryEvent[],month:string):SalaryParameters{
   const params={...base,pensionMethod:'none' as SalaryParameters['pensionMethod'],pensionPercent:0,fixedPension:0}
