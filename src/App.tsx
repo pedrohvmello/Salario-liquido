@@ -35,6 +35,7 @@ import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
 import {AdminSupportTickets} from './components/AdminSupportTickets'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
+import {PayrepConfirmDialog} from './components/PayrepConfirmDialog'
 import {SupportPage} from './components/SupportPage'
 import {MfaGate} from './components/MfaGate'
 import {TotpSettings} from './components/TotpSettings'
@@ -134,6 +135,9 @@ export default function App(){
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
  const [accessDecision,setAccessDecision]=useState<AccessDecision|null>(null)
  const [accessRetry,setAccessRetry]=useState(0)
+ const [reactivationDialog,setReactivationDialog]=useState(false)
+ const [reactivationBusy,setReactivationBusy]=useState(false)
+ const [reactivationError,setReactivationError]=useState('')
  const [isAdmin,setIsAdmin]=useState(false)
  const [error,setError]=useState('')
  const [notice,setNotice]=useState('')
@@ -273,6 +277,18 @@ export default function App(){
  // User metadata updates (e.g. saving a profile) must not unmount the active screen.
  // Only changes of account identity or MFA assurance require rechecking access.
  },[user?.id,mfaState,accessRetry])
+ const requestReactivation=async()=>{
+  if(!db||reactivationBusy)return
+  setReactivationBusy(true);setReactivationError('')
+  try{
+   const {data,error}=await db.rpc('request_my_reactivation',{p_confirmation:'REATIVAR'})
+   if(error)throw Error(error.message)
+   if(!data||!['pending','approved'].includes(data.status))throw Error('A solicitação não foi confirmada.')
+   setReactivationDialog(false)
+   setAccessRetry(n=>n+1)
+  }catch(e){setReactivationError(e instanceof Error?e.message:'Não foi possível solicitar a reativação.')}
+  finally{setReactivationBusy(false)}
+ }
  const task=async(fn:()=>Promise<void>,success:string)=>{
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
@@ -421,7 +437,14 @@ export default function App(){
   <p className="subtle">Cadastre também um autenticador de reserva em outro dispositivo.</p>
   <button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair da conta</button>
  </div></div>
- if(db&&user&&accessScreen!=='approved')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={34}/><h1>{accessScreen==='suspended'?'Acesso suspenso':accessScreen==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1><p>{accessScreen==='suspended'?'O administrador suspendeu o acesso desta conta.':accessScreen==='rejected'?'Seu cadastro não foi aprovado pelo administrador.':'Seu cadastro foi recebido e aguarda aprovação do administrador.'} Seus dados financeiros não estão acessíveis no momento. Entre em contato com o administrador para obter mais informações.</p><button onClick={()=>void db?.auth.signOut({scope:'local'})} className="secondary">Sair</button></div></div>
+ if(db&&user&&accessScreen!=='approved')return <div className="auth-background"><div className="auth-card payrep-suspended-gate"><ShieldCheck size={34}/><h1>{accessScreen==='suspended'?'Conta suspensa':accessScreen==='rejected'?'Cadastro não aprovado':'Conta aguardando liberação'}</h1>
+  <p>{accessScreen==='suspended'?'O acesso desta conta está suspenso. Você pode solicitar a reativação. Dependendo da política de cadastro ou do motivo da suspensão, a autorização do administrador será necessária. Os dados financeiros apagados anteriormente não serão recuperados.':accessScreen==='rejected'?'Seu cadastro não foi aprovado pelo administrador. Entre em contato com o suporte para obter informações.':'Seu cadastro foi recebido e aguarda aprovação do administrador. Os dados financeiros permanecem protegidos.'}</p>
+  {accessScreen==='suspended'&&<button type="button" className="primary" onClick={()=>{setReactivationError('');setReactivationDialog(true)}}>Solicitar reativação</button>}
+  <button type="button" onClick={()=>void db?.auth.signOut({scope:'local'})} className="secondary">Sair</button>
+  {reactivationDialog&&accessScreen==='suspended'&&<PayrepConfirmDialog title="Reativar sua conta?" description="Deseja solicitar a reativação? A conta permanecerá sem acesso até ser aprovada, quando a política exigir. Os dados financeiros anteriormente excluídos não serão restaurados." confirmLabel="Confirmar reativação" busy={reactivationBusy} onClose={()=>setReactivationDialog(false)} onConfirm={()=>void requestReactivation()}>
+   {reactivationError&&<p role="alert" className="error payrep-confirm-error">{reactivationError}</p>}
+  </PayrepConfirmDialog>}
+ </div></div>
  const metricRows=[
   ['Salário-base',brl(effective.salary)],['Triênio',brl(effective.trienio)],
   ...(monthHours.h60>0?[['Horas extras 60%',brl(extraParts.p60)] as [string,string]]:[]),
