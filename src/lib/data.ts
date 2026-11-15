@@ -15,7 +15,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 // Fail closed on HML if its published URL or key is accidentally changed to PRD.
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
-export type SavedStatement={id:string;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -138,7 +138,7 @@ export async function deletePayslipStatement(statementId:string):Promise<{delete
  if(!data||data.deleted!==true)throw new Error(data?.error||'Não foi possível confirmar a exclusão.')
  return data
 }
-export async function saveStatements(pages:ParsedStatement[],files:File[],selected:string[]){
+export async function saveStatements(pages:ParsedStatement[],files:File[],selected:string[],useCompetenceDate=false){
   if(!db)throw new Error('Banco não configurado')
   const user_id=await identity()
   const chosen=pages.filter(p=>selected.includes(p.sourceFile+'#'+p.page))
@@ -213,7 +213,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       thirteenth_gross:s.thirteenthGross,thirteenth_advance:s.thirteenthAdvance,
       thirteenth_inss:s.thirteenthInss,thirteenth_irrf:s.thirteenthIrrf,
       thirteenth_pension:s.thirteenthPension,
-      salary_contract:s.salaryContract,trienio:s.trienio,
+      salary_contract:s.salaryContract,trienio:s.trienio,dependents_irrf:s.dependentsIrrf??null,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
     }).select('id').single()
     if(error)throw new Error('Falha ao registrar o holerite '+s.period+': '+error.message+'. Verifique os documentos importados antes de tentar novamente.')
@@ -221,7 +221,42 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       const added=await db.from('statement_lines').insert(s.lines.map((l,i)=>({...l,user_id,statement_id:statement.id,ordinal:i})))
       if(added.error)throw new Error('O holerite '+s.period+' foi salvo, mas a gravação de algumas rubricas falhou: '+added.error.message)
     }
+   }
+  if(chosen.some(s=>s.documentType==='monthly')){
+   // A database RPC atomically reconciles source-linked events. Missing actual
+   // payment dates are not silently invented. Provisional dates require opt-in.
+   const {error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate})
+   if(error)throw new Error('Holerites salvos, mas a sincronização dos eventos falhou: '+error.message+'. Use Gerar eventos em Meus documentos para corrigir.')
   }
+}
+export type MonthlyEventSyncResult={
+ synced:boolean;changedEvents:number;missingDateDocuments:number;
+ provisionalDateDocuments:number;confirmedProvisional:number
+}
+export async function syncStoredMonthlyEvents(statements:SavedStatement[],useCompetenceDate:boolean):Promise<MonthlyEventSyncResult>{
+ if(!db)throw new Error('Banco não configurado.')
+ const user_id=await identity()
+ // Re-read the user's existing PDFs in their own browser. For older imported
+ // documents the monthly payment date was previously discarded by the parser.
+ const {parsePdf}=await import('./parse')
+ for(const source of statements.filter(s=>s.document_type==='monthly'&&!s.payment_date)){
+  const pdf=await downloadPayslipPdf(source.id)
+  const filename=pdf.filename.toLowerCase().endsWith('.pdf')?pdf.filename:pdf.filename+'.pdf'
+  const file=new File([pdf.blob],filename,{type:'application/pdf'})
+  const parsed=(await parsePdf(file)).find(p=>p.page===pdf.page&&p.documentType==='monthly'&&p.period===source.period)
+  if(!parsed)continue
+  const update:Record<string,unknown>={}
+  if(parsed.paymentDate)update.payment_date=parsed.paymentDate
+  if(parsed.dependentsIrrf!==null&&parsed.dependentsIrrf!==undefined)update.dependents_irrf=parsed.dependentsIrrf
+  if(Object.keys(update).length){
+   const {error}=await db.from('statements').update(update).eq('user_id',user_id).eq('id',source.id)
+   if(error)throw new Error('Não foi possível atualizar os dados extraídos de '+source.period+': '+error.message)
+  }
+ }
+ const {data,error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate})
+ if(error)throw new Error('Falha ao sincronizar eventos: '+error.message)
+ if(!data?.synced)throw new Error('A sincronização dos eventos não foi confirmada.')
+ return data as MonthlyEventSyncResult
 }
 export function effectiveParams(base:SalaryParameters,events:SalaryEvent[],month:string):SalaryParameters{
   const params={...base,pensionMethod:'none' as SalaryParameters['pensionMethod'],pensionPercent:0,fixedPension:0}
