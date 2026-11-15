@@ -573,7 +573,7 @@ export default function App(){
     menuOpen={menu}
     navigationKey={section}
     onOpenMenu={()=>setMenu(true)}
-    onNavigate={view=>{setSection(view);setMenu(false);setNotice('');setError('')}}
+    onNavigate={view=>{if(view==='imports')setPayslipTab('documents');setSection(view);setMenu(false);setNotice('');setError('')}}
     renderView={view=>renderPageBody(view)}
    >{renderPageBody(section)}</PayrepMobileNavigationSurface>
   </main>
