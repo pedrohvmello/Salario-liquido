@@ -40,12 +40,14 @@ Deno.serve(async(req:Request)=>{
   return reply({error:'Conta sem permissão de acesso.'},403)
  // The RLS SELECT policy checks ownership, current session, and enrolled MFA.
  const {data:document,error:readError}=await userClient.from('statements')
-  .select('id,user_id,source_sha256,storage_key').eq('id',id).eq('user_id',user.id).maybeSingle()
+  .select('id,user_id,source_sha256,source_page,storage_key').eq('id',id).eq('user_id',user.id).maybeSingle()
  if(readError)return reply({error:'Não foi possível verificar o documento.'},500)
  if(!document)return reply({error:'Documento não encontrado ou segurança de sessão pendente.'},404)
- const expected=user.id+'/'+document.source_sha256+'.pdf'
- if(!/^[0-9a-f]{64}$/i.test(document.source_sha256||'')||document.storage_key!==expected)
+ const sharedKey=user.id+'/'+document.source_sha256+'.pdf'
+ const individualKey=user.id+'/'+document.source_sha256+'-p'+document.source_page+'.pdf'
+ if(!/^[0-9a-f]{64}$/i.test(document.source_sha256||'')||![sharedKey,individualKey].includes(document.storage_key))
   return reply({error:'Referência do PDF inconsistente. A exclusão foi bloqueada.'},409)
+ const expected=document.storage_key
  // Deleting the statement cascades only to its own rubric lines and linked events.
  const {data:removed,error:deleteError}=await userClient.from('statements')
   .delete().eq('id',id).eq('user_id',user.id).select('id')
