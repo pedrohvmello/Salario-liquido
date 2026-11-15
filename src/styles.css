@@ -1251,3 +1251,58 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .auth-public-footer{font-size:11px;gap:4px}
  .auth-public-footer nav{gap:6px 12px}
 }
+
+/* Meus Holerites: private document library and import workflow. */
+.payslip-tabs{display:flex;gap:10px;border-bottom:1px solid #e7d6f3;padding-bottom:10px;flex-wrap:wrap}
+.payslip-tabs button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 19px;border:1px solid #e0d1ef;background:#fff;color:#654980;border-radius:12px;font-size:13px;font-weight:750;cursor:pointer}
+.payslip-tabs button.active{color:#fff;background:linear-gradient(115deg,#8900df,#5b0aa4);border-color:#790ec6}
+.payslip-tabs button:focus-visible{outline:3px solid #b96cf5;outline-offset:2px}
+.payslip-tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:23px;padding:2px 6px;border-radius:20px;background:#eee2fa;color:#6821a0;font-size:11px}
+.payslip-tabs button.active .payslip-tab-count{background:rgba(255,255,255,.22);color:#fff}
+.payslip-documents{display:flex;flex-direction:column;gap:16px}
+.payslip-documents .page-intro h2{font-size:20px}
+.payslip-documents-panel{padding:24px}
+.payslip-filters{display:flex;align-items:end;gap:12px 14px;flex-wrap:wrap;margin-bottom:19px}
+.payslip-filters label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:700;color:#6a5284;min-width:155px;flex:1}
+.payslip-filters select{min-height:40px;max-width:100%;border-color:#ddcbe9}
+.payslip-doc-count{font-size:12px;color:#7a678b;padding:0 0 11px}
+.payslip-doc-list{display:flex;flex-direction:column;gap:0}
+.payslip-doc-row{display:grid;grid-template-columns:45px minmax(0,1fr) auto;gap:14px;align-items:center;padding:17px 0;border-top:1px solid #ecdfef}
+.payslip-doc-icon{width:43px;height:43px;display:grid;place-items:center;background:#f1e5fb;color:#6921af;border-radius:12px}
+.payslip-doc-details{min-width:0;display:flex;flex-direction:column;gap:4px}
+.payslip-doc-details strong{font-size:13px;color:#36184e}
+.payslip-doc-details small{font-size:11px;color:#80708b;white-space:normal;overflow-wrap:anywhere}
+.payslip-doc-actions{display:flex;gap:7px;align-items:center}
+.payslip-doc-actions button{min-height:36px;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;font-size:12px}
+.payslip-doc-actions .payslip-doc-delete{color:#ac3152;border-color:#eccbd5}
+.payslip-doc-count,.payslip-doc-empty{font-variant-numeric:tabular-nums}
+.payslip-doc-empty{padding:36px 15px;display:grid;place-items:center;text-align:center;color:#907a9c;gap:10px}
+.payslip-documents-panel .detail-hint{margin-top:13px}
+.payslip-modal-backdrop{position:fixed;z-index:20000;inset:0;background:rgba(19,7,39,.75);display:flex;align-items:center;justify-content:center;padding:18px}
+.payslip-viewer-dialog,.payslip-confirm-dialog{width:min(100%,1000px);max-height:calc(100dvh - 36px);background:#fff;border:1px solid #e7d7ed;border-radius:18px;box-shadow:0 22px 80px #17072c75;overflow:hidden}
+.payslip-viewer-dialog{display:flex;flex-direction:column;height:min(90dvh,900px)}
+.payslip-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid #eadef0}
+.payslip-dialog-heading strong{font-size:15px;color:#36164f}
+.payslip-dialog-heading button{display:grid;place-items:center;min-width:38px;min-height:38px}
+.payslip-pdf-frame{width:100%;height:100%;flex:1;border:0;background:#f5f3f7}
+.payslip-viewer-dialog>p{font-size:11px;margin:10px 16px 14px;color:#746085}
+.payslip-confirm-dialog{max-width:525px;padding:26px 28px}
+.payslip-confirm-dialog h3{font-size:20px;color:#35164d;margin:0 0 13px}
+.payslip-confirm-dialog p{font-size:13px;line-height:1.7;color:#665675}
+.payslip-confirm-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;flex-wrap:wrap}
+.payslip-confirm-actions button{display:inline-flex;align-items:center;gap:8px;min-height:41px}
+.payslip-confirm-delete{background:#a51e47!important}
+.payslip-shared-info{display:flex;align-items:flex-start;gap:9px;padding:13px;border-radius:10px;background:#f5eff9;margin-top:15px}
+.payslip-shared-info svg{flex-shrink:0;margin-top:2px}
+@media(max-width:700px){
+ .payslip-documents-panel{padding:14px}
+ .payslip-filters{gap:10px}
+ .payslip-filters label{min-width:calc(50% - 7px)}
+ .payslip-doc-row{grid-template-columns:40px minmax(0,1fr);gap:10px;padding:16px 0}
+ .payslip-doc-icon{width:39px;height:39px}
+ .payslip-doc-actions{grid-column:2;flex-wrap:wrap}
+ .payslip-doc-actions button{flex:1;justify-content:center;min-width:65px}
+ .payslip-viewer-dialog{height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}
+ .payslip-modal-backdrop{padding:12px}
+ .payslip-confirm-dialog{padding:22px 18px}
+}
