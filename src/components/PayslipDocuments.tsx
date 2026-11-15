@@ -1,11 +1,12 @@
-import {useEffect,useMemo,useRef,useState} from 'react'
+import {useEffect,useMemo,useState} from 'react'
 import {Download,Eye,FileText,FolderOpen,Trash2,X,ShieldCheck,Info} from 'lucide-react'
 import {deletePayslipStatement,downloadPayslipPdf,type SavedStatement} from '../lib/data'
+import {PayslipPdfViewer} from './PayslipPdfViewer'
 
 const typeLabels:Record<SavedStatement['document_type'],string>={
  monthly:'Holerite mensal',thirteenth:'13º salário',vacation:'Férias',ppr:'PPR'
 }
-type Viewer={url:string;title:string;page:number}
+type Viewer={blob:Blob;title:string;page:number;filename:string}
 
 export function PayslipDocuments({statements,onRemoved}:{statements:SavedStatement[];onRemoved:()=>Promise<void>}){
  const [kind,setKind]=useState('all')
@@ -16,7 +17,6 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
  const [notice,setNotice]=useState('')
  const [confirming,setConfirming]=useState<SavedStatement|null>(null)
  const [viewer,setViewer]=useState<Viewer|null>(null)
- const urlRef=useRef<string|null>(null)
  const years=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const months=useMemo(()=>[...new Set(statements.filter(s=>year==='all'||s.period.startsWith(year)).map(s=>s.period.slice(5,7)))].sort(),[statements,year])
  const filtered=useMemo(()=>statements.filter(s=>
@@ -25,11 +25,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
   (month==='all'||s.period.slice(5,7)===month)
  ).sort((a,b)=>b.period.localeCompare(a.period)||a.document_type.localeCompare(b.document_type)||a.source_page-b.source_page),[statements,kind,year,month])
  const periodLabel=(period:string)=>{const [y,m]=period.split('-');return m+'/'+y}
- const closeViewer=()=>{
-  if(urlRef.current){URL.revokeObjectURL(urlRef.current);urlRef.current=null}
-  setViewer(null)
- }
- useEffect(()=>()=>{if(urlRef.current)URL.revokeObjectURL(urlRef.current)},[])
+ const closeViewer=()=>setViewer(null)
  useEffect(()=>{
   if(!viewer&&!confirming)return
   const handle=(e:KeyboardEvent)=>{if(e.key==='Escape'){setConfirming(null);closeViewer()}}
@@ -41,9 +37,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
   try{
    const pdf=await downloadPayslipPdf(s.id)
    closeViewer()
-   const url=URL.createObjectURL(new Blob([pdf.blob],{type:'application/pdf'}))
-   urlRef.current=url
-   setViewer({url,title:typeLabels[s.document_type]+' · '+periodLabel(s.period),page:pdf.page})
+   setViewer({blob:pdf.blob,title:typeLabels[s.document_type]+' · '+periodLabel(s.period),page:pdf.page,filename:pdf.filename})
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível abrir o documento.')}
   finally{setBusyId(null)}
  }
@@ -123,8 +117,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
   {viewer&&<div className="payslip-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeViewer()}}>
    <section className="payslip-viewer-dialog" role="dialog" aria-modal="true" aria-label={viewer.title}>
     <div className="payslip-dialog-heading"><strong>{viewer.title}</strong><button type="button" className="secondary" onClick={closeViewer} aria-label="Fechar visualização"><X size={19}/></button></div>
-    <iframe title={viewer.title} src={viewer.url+'#page='+viewer.page+'&zoom=page-width'} className="payslip-pdf-frame"/>
-    <p className="subtle">Se o arquivo tiver várias páginas, a visualização tentará abrir diretamente a página correspondente. O controle de páginas depende do leitor PDF do navegador.</p>
+    <PayslipPdfViewer blob={viewer.blob} initialPage={viewer.page} filename={viewer.filename}/>
    </section>
   </div>}
   {confirming&&<div className="payslip-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busyId)setConfirming(null)}}>
