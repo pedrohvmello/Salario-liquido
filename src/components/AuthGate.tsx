@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
-import {ChevronRight, LockKeyhole} from 'lucide-react'
+import {ChevronRight, LockKeyhole, UserRound} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
@@ -101,7 +101,7 @@ export function AuthGate(){
       {mode==='signup'&&password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
       {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check" placeholder="Digite a senha novamente"/></label>}
       {mode==='signup'&&<small id="signup-password-check" className={confirmation.length===0?'password-confirm-hint':password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">{confirmation.length===0?'Repita a mesma senha para confirmar.':password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}</small>}
-      <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
+      <button className="primary" disabled={busy} type="submit">{mode==='login'&&<UserRound size={17} aria-hidden="true"/>}{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
