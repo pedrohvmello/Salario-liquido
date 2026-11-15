@@ -14,7 +14,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 // Fail closed on HML if its published URL or key is accidentally changed to PRD.
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
-export type SavedStatement={id:string;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -106,6 +106,31 @@ export async function removeTimeEntry(id:string){
   if(!db)throw new Error('Banco não configurado')
   const {error}=await db.from('time_entries').delete().eq('id',id).eq('user_id',await identity())
   if(error)throw new Error(error.message)
+}
+export async function downloadPayslipPdf(statementId:string):Promise<{blob:Blob;page:number;filename:string}>{
+ if(!db)throw new Error('Banco não configurado')
+ const userId=await identity()
+ const {data:statement,error:readError}=await db.from('statements')
+  .select('storage_key,source_page,source_file,source_sha256').eq('user_id',userId).eq('id',statementId).single()
+ if(readError||!statement)throw new Error('Documento não encontrado ou sessão sem permissão de leitura.')
+ const expected=userId+'/'+statement.source_sha256+'.pdf'
+ if(!/^[0-9a-f]{64}$/i.test(statement.source_sha256||'')||statement.storage_key!==expected)
+  throw new Error('Referência do PDF inconsistente. O acesso foi bloqueado.')
+ const {data,error}=await db.storage.from('payslips').download(statement.storage_key)
+ if(error||!data)throw new Error(error?.message||'Não foi possível abrir o PDF privado.')
+ const filename=(statement.source_file||'holerite.pdf').replace(/[/\\\\\x00-\x1f]/g,'_').slice(0,150)
+ return {blob:data,page:Number(statement.source_page)||1,filename:filename.toLowerCase().endsWith('.pdf')?filename:filename+'.pdf'}
+}
+export async function deletePayslipStatement(statementId:string):Promise<{deleted:boolean;fileDeleted:boolean;remainingRecords?:number;cleanupPending?:boolean;message?:string}>{
+ if(!db)throw new Error('Banco não configurado')
+ const {data,error}=await db.functions.invoke('payslip-delete',{body:{id:statementId}})
+ if(error){
+  const context=error && 'context' in error ? (error as {context?:Response}).context : undefined
+  const detail=context?await context.json().catch(()=>null):null
+  throw new Error((detail as {error?:string}|null)?.error||error.message||'Não foi possível excluir o holerite.')
+ }
+ if(!data||data.deleted!==true)throw new Error(data?.error||'Não foi possível confirmar a exclusão.')
+ return data
 }
 export async function saveStatements(pages:ParsedStatement[],files:File[],selected:string[]){
   if(!db)throw new Error('Banco não configurado');const user_id=await identity()
