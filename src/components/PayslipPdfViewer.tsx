@@ -21,15 +21,24 @@ export function PayslipPdfViewer({blob,initialPage,filename}:{blob:Blob;initialP
  useEffect(()=>{
   let active=true
   setPdf(null);setPage(Math.max(1,initialPage));setZoom(1);setError('');setLoading(true)
-  const task=pdfjs.getDocument({data:blob.arrayBuffer().then(buf=>new Uint8Array(buf))})
-  task.promise.then(doc=>{
-   if(!active)return void doc.destroy()
-   setPdf(doc)
-   setPage(Math.min(doc.numPages,Math.max(1,initialPage)))
-  }).catch(err=>{if(active){setError('Não foi possível processar o PDF. Tente baixar o arquivo.');setLoading(false);console.error('PDF viewer:',err)}})
+  let task:ReturnType<typeof pdfjs.getDocument>|null=null
+  const load=async()=>{
+   try{
+    const bytes=await blob.arrayBuffer()
+    if(!active)return
+    task=pdfjs.getDocument({data:new Uint8Array(bytes)})
+    const doc=await task.promise
+    if(!active){void doc.destroy();return}
+    setPdf(doc)
+    setPage(Math.min(doc.numPages,Math.max(1,initialPage)))
+   }catch(err){
+    if(active){setError('Não foi possível processar o PDF. Tente baixar o arquivo.');setLoading(false);console.error('PDF viewer:',err)}
+   }
+  }
+  void load()
   return ()=>{
    active=false
-   void task.destroy()
+   void task?.destroy()
   }
  },[blob,initialPage])
 
