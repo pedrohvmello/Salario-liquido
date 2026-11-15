@@ -82,7 +82,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
      const single=await PDFDocument.create()
      const [page]=await single.copyPages(document,[pdf.page-1])
      single.addPage(page)
-     const name=typeLabels[statement.document_type].normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-zA-Z0-9 ]/g,'').trim().replace(/\\s+/g,'-')+'-'+statement.period+'-'+String(index+1).padStart(2,'0')+'.pdf'
+     const name=typeLabels[statement.document_type].normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9 ]/g,'').trim().replace(/\s+/g,'-')+'-'+statement.period+'-'+String(index+1).padStart(2,'0')+'.pdf'
      separate.push({id:statement.id,filename:name,blob:new Blob([new Uint8Array(await single.save())],{type:'application/pdf'})})
     }
    }
