@@ -1,9 +1,8 @@
 import {useEffect,useMemo,useState} from 'react'
-import {Download,Eye,FileText,FolderOpen,Trash2,X,ShieldCheck,Info,Files,RefreshCw} from 'lucide-react'
-import {deletePayslipStatement,downloadPayslipPdf,syncStoredMonthlyEvents,type SavedStatement} from '../lib/data'
+import {Download,Eye,FileText,FolderOpen,Trash2,X,ShieldCheck,Info,Files} from 'lucide-react'
+import {deletePayslipStatement,downloadPayslipPdf,type SavedStatement} from '../lib/data'
 import {PayslipPdfViewer} from './PayslipPdfViewer'
 import {PayrepSelect} from './PayrepSelect'
-import {PayrepConfirmDialog} from './PayrepConfirmDialog'
 
 const typeLabels:Record<SavedStatement['document_type'],string>={
  monthly:'Holerite mensal',thirteenth:'13º salário',vacation:'Férias',ppr:'PPR'
@@ -11,7 +10,7 @@ const typeLabels:Record<SavedStatement['document_type'],string>={
 type Viewer={blob:Blob;title:string;page:number;filename:string}
 type PreparedPdf={id:string;blob:Blob;filename:string}
 
-export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statements:SavedStatement[];onRemoved:()=>Promise<void>;onEventsSynced:()=>Promise<void>}){
+export function PayslipDocuments({statements,onRemoved}:{statements:SavedStatement[];onRemoved:()=>Promise<void>}){
  const [kind,setKind]=useState('all')
  const [year,setYear]=useState('all')
  const [month,setMonth]=useState('all')
@@ -27,12 +26,6 @@ export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statemen
  const [batchError,setBatchError]=useState('')
  const [batchNotice,setBatchNotice]=useState('')
  const [preparedPdfs,setPreparedPdfs]=useState<PreparedPdf[]>([])
- const [eventDialog,setEventDialog]=useState(false)
- const [eventUseReference,setEventUseReference]=useState(false)
- const [eventBusy,setEventBusy]=useState(false)
- const [eventError,setEventError]=useState('')
- const monthlyStatements=useMemo(()=>statements.filter(s=>s.document_type==='monthly'),[statements])
- const noPaymentDate=monthlyStatements.filter(s=>!s.payment_date).length
  const years=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const months=useMemo(()=>[...new Set(statements.filter(s=>year==='all'||s.period.startsWith(year)).map(s=>s.period.slice(5,7)))].sort(),[statements,year])
  const filtered=useMemo(()=>statements.filter(s=>
@@ -109,30 +102,13 @@ export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statemen
    setBatchError(e instanceof Error?e.message:'Não foi possível preparar os PDFs. Nenhum documento foi removido.')
   }finally{setBatchBusy(false)}
  }
- const syncEvents=async()=>{
-  if(eventBusy)return
-  setEventBusy(true);setEventError('');setError('');setNotice('')
-  try{
-   const result=await syncStoredMonthlyEvents(statements,eventUseReference)
-   await onEventsSynced()
-   setEventDialog(false);setEventUseReference(false)
-   setNotice('Eventos salariais sincronizados. '+result.changedEvents+' evento(s) criado(s) ou atualizado(s). '+
-    (result.missingDateDocuments>0
-     ?result.missingDateDocuments+' holerite(s) ainda sem data de referência. Confirme a data provisória para incluí-los.'
-     :result.provisionalDateDocuments>0
-      ?result.provisionalDateDocuments+' holerite(s) utilizaram uma data provisória claramente sinalizada nos eventos.'
-      :'As datas de pagamento identificadas foram utilizadas.')+
-    (result.unreadableDocuments?' Atenção: '+result.unreadableDocuments+' documento(s) não puderam ser relidos; confira esses PDFs.':''))
-  }catch(e){setEventError(e instanceof Error?e.message:'Não foi possível sincronizar os eventos.')}
-  finally{setEventBusy(false)}
- }
  const closeViewer=()=>setViewer(null)
  useEffect(()=>{
-  if(!viewer&&!confirming&&!batchDialog&&!eventDialog)return
-  const handle=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!batchBusy&&!eventBusy){setConfirming(null);closeViewer();closeBatch();setEventDialog(false)}}
+  if(!viewer&&!confirming&&!batchDialog)return
+  const handle=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!batchBusy){setConfirming(null);closeViewer();closeBatch()}}
   document.addEventListener('keydown',handle)
   return ()=>document.removeEventListener('keydown',handle)
- },[viewer,confirming,batchDialog,batchBusy,eventDialog,eventBusy])
+ },[viewer,confirming,batchDialog,batchBusy])
  const openDocument=async(s:SavedStatement)=>{
   setError('');setNotice('');setBusyId(s.id)
   try{
@@ -214,16 +190,6 @@ export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statemen
      </button>
     </div>
    </div>
-   {monthlyStatements.length>0&&<div className="payslip-events-toolbar">
-    <div><strong>Eventos salariais automáticos</strong>
-     <small>Salário, triênio, previdência, ESPP e dependentes, apenas quando os dados estiverem disponíveis no holerite.</small>
-     {noPaymentDate>0&&<small>{noPaymentDate} holerite(s) ainda não possuem data de pagamento registrada. Uma data provisória só será usada com sua confirmação.</small>}
-    </div>
-    <button type="button" className="secondary" disabled={!!busyId||eventBusy||batchBusy}
-     onClick={()=>{setEventDialog(true);setEventUseReference(false);setEventError('')}}>
-     <RefreshCw size={17}/> Gerar eventos dos holerites
-    </button>
-   </div>}
    {error&&<div className="notice error" role="alert">{error}</div>}
    {notice&&<div className="notice success" role="status">{notice}</div>}
    {filtered.length===0?<div className="payslip-doc-empty"><FolderOpen size={30}/><p>Nenhum documento para os filtros selecionados.</p></div>:
@@ -249,23 +215,6 @@ export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statemen
    </div>}
    <div className="detail-hint"><ShieldCheck size={16}/>O arquivo original só é removido quando nenhum outro holerite importado depende dele.</div>
   </section>
-  {eventDialog&&<PayrepConfirmDialog
-   title="Gerar eventos salariais?"
-   description={'O Payrep vai reler seus '+monthlyStatements.length+' holerites mensais, tentar recuperar datas de pagamento e reconciliar as mudanças identificadas. Eventos manuais serão preservados, e nenhum PDF será excluído.'}
-   confirmLabel="Gerar eventos"
-   busy={eventBusy}
-   onClose={()=>{if(!eventBusy){setEventDialog(false);setEventError('')}}}
-   onConfirm={()=>void syncEvents()}>
-   {noPaymentDate>0&&<div className="payslip-event-date-review">
-    <p><strong>{noPaymentDate} documento(s) sem data de pagamento registrada.</strong> O Payrep tentará recuperar a data diretamente dos PDFs. Caso não consiga, poderá utilizar o último dia de cada competência como data de referência provisória.</p>
-    <label className="checkbox-label">
-     <input type="checkbox" checked={eventUseReference} disabled={eventBusy} onChange={e=>setEventUseReference(e.target.checked)}/>
-     Autorizo a usar o último dia da competência como data provisória quando o PDF não informar a data de pagamento.
-    </label>
-    <small>Essa data será identificada nos eventos como estimativa, não como data real de pagamento.</small>
-   </div>}
-   {eventError&&<p className="error" role="alert">{eventError}</p>}
-  </PayrepConfirmDialog>}
   {batchDialog&&<div className="payslip-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeBatch()}}>
    <section className="payslip-confirm-dialog payslip-download-dialog" role="dialog" aria-modal="true"
     aria-labelledby="payslip-download-title" aria-describedby="payslip-download-description">
