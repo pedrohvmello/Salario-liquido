@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
-import {ChevronRight, LockKeyhole} from 'lucide-react'
+import {ChevronRight, LockKeyhole, UserRound} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
@@ -88,7 +88,7 @@ export function AuthGate(){
       if(error)throw error
     }catch(e){setError(e instanceof Error?e.message:'Falha ao iniciar o login Google.');setBusy(false)}
   }
-  return <div className="auth-background"><div className="auth-card">
+  return <div className="auth-background"><div className="auth-shell"><div className="auth-card">
     <div className="brand auth-brand brand--wordmark">
       <img className="brand-full-logo" src="/brand/payrep-logo.svg" alt="Payrep" width="290" height="87"/>
     </div>
@@ -101,7 +101,7 @@ export function AuthGate(){
       {mode==='signup'&&password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
       {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check" placeholder="Digite a senha novamente"/></label>}
       {mode==='signup'&&<small id="signup-password-check" className={confirmation.length===0?'password-confirm-hint':password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">{confirmation.length===0?'Repita a mesma senha para confirmar.':password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}</small>}
-      <button className="primary" disabled={busy} type="submit">{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
+      <button className="primary" disabled={busy} type="submit">{mode==='login'&&<UserRound size={17} aria-hidden="true"/>}{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
@@ -112,6 +112,15 @@ export function AuthGate(){
         <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
       </button>
     </div>
+  </div>
+  <footer className="auth-public-footer" aria-label="Navegação institucional">
+    <span>© 2026 Payrep</span>
+    <nav aria-label="Links institucionais">
+      <a href="/home">Home</a>
+      <a href="/privacidade">Política de Privacidade</a>
+      <a href="/termos">Termos de Uso</a>
+    </nav>
+  </footer>
   </div></div>
 }
 
