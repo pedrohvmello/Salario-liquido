@@ -1235,3 +1235,18 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
 .payrep-ai-bubble-assistant{align-items:center}
 .pep-chat-reply-avatar{background:#fff;align-self:center;border:1px solid #f2eafb;overflow:hidden}
 .pep-chat-reply-avatar > img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#fff}
+
+/* Guest entry: consistent legal footer on desktop, phones, signup and reset. */
+.auth-shell{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:stretch;gap:18px}
+.auth-shell>.auth-card{max-width:none;width:100%;flex:0 0 auto}
+.auth-public-footer{color:#f4e9ff;font-size:12px;line-height:1.65;text-align:center;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px 16px}
+.auth-public-footer nav{display:flex;justify-content:center;gap:8px 16px;flex-wrap:wrap}
+.auth-public-footer a{color:#fff;text-decoration:none;text-underline-offset:3px}
+.auth-public-footer a:hover,.auth-public-footer a:focus-visible{text-decoration:underline}
+@media(max-width:520px){
+ .auth-background{min-height:100dvh;padding:18px 14px}
+ .auth-shell{gap:18px}
+ .auth-shell>.auth-card{padding:26px 22px}
+ .auth-public-footer{font-size:11px;gap:4px 12px}
+ .auth-public-footer nav{gap:6px 12px}
+}
