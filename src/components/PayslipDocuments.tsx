@@ -102,7 +102,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
      <div className="payslip-doc-icon"><FileText size={24}/></div>
      <div className="payslip-doc-details">
       <strong>{typeLabels[s.document_type]} · {periodLabel(s.period)}</strong>
-      <small title={s.source_file}>{s.source_file} · página {s.source_page}</small>
+      <small title={s.source_file}>{s.source_file} · {s.storage_key.endsWith('-p'+s.source_page+'.pdf')?'PDF individual':'página '+s.source_page+' do PDF original'}</small>
       {s.payment_date&&<small>Pagamento: {s.payment_date.split('-').reverse().join('/')}</small>}
      </div>
      <div className="payslip-doc-actions">
