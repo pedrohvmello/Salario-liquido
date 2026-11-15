@@ -1,5 +1,5 @@
 import {createClient, type SupabaseClient} from '@supabase/supabase-js'
-import {PDFDocument} from 'pdf-lib'
+import type {PDFDocument as PdfDocument} from 'pdf-lib'
 import type {ParsedStatement} from './parse'
 import {makePprEvent} from './ppr'
 import {validateThirteenthPay} from './thirteenth'
@@ -163,13 +163,14 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
         throw new Error('Recibo de férias incompleto. Verifique datas e totais antes de importar.')
     }
   }
-  const originals=new Map<string,{hash:string;document:PDFDocument}>()
+  const {PDFDocument}=await import('pdf-lib')
+  const originals=new Map<string,{hash:string;document:PdfDocument}>()
   for(const name of new Set(chosen.map(x=>x.sourceFile))){
     const file=fileByName.get(name)
     if(!file)throw new Error('Arquivo original ausente: '+name)
     const buffer=await file.arrayBuffer()
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer))).map(x=>x.toString(16).padStart(2,'0')).join('')
-    let document:PDFDocument
+    let document:PdfDocument
     try{document=await PDFDocument.load(buffer)}
     catch{throw new Error('Não foi possível separar o PDF '+name+'. O arquivo pode estar protegido ou danificado.')}
     originals.set(name,{hash,document})
