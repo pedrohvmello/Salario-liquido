@@ -139,9 +139,20 @@ export async function deletePayslipStatement(statementId:string):Promise<{delete
  return data
 }
 export async function saveStatements(pages:ParsedStatement[],files:File[],selected:string[]){
-  if(!db)throw new Error('Banco não configurado');const user_id=await identity()
+  if(!db)throw new Error('Banco não configurado')
+  const user_id=await identity()
   const chosen=pages.filter(p=>selected.includes(p.sourceFile+'#'+p.page))
-  // Validate all PPR documents BEFORE any file or database write.
+  if(!chosen.length)throw new Error('Selecione ao menos um holerite.')
+  if(files.length!==new Set(files.map(f=>f.name)).size)
+    throw new Error('Foram selecionados PDFs com nomes iguais. Renomeie os arquivos antes de importar.')
+  const fileByName=new Map(files.map(f=>[f.name,f]))
+  // A page without an identified competence may be the continuation of the
+  // preceding receipt. Do not silently drop such a page when splitting.
+  for(const name of fileByName.keys()){
+    if(!chosen.some(p=>p.sourceFile===name))continue
+    if(pages.some(p=>p.sourceFile===name&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(p.period)))
+      throw new Error('O PDF '+name+' contém páginas sem competência reconhecida. Revise ou separe esse arquivo antes de importar, para não descartar páginas de um holerite.')
+  }
   for(const s of chosen){
     if(s.documentType==='ppr')makePprEvent(s)
     if(s.documentType==='thirteenth')validateThirteenthPay(s)
@@ -152,27 +163,49 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
         throw new Error('Recibo de férias incompleto. Verifique datas e totais antes de importar.')
     }
   }
-  for(const s of chosen){
-    const file=files.find(f=>f.name===s.sourceFile)
-    if(!file)throw new Error('Arquivo original ausente: '+s.sourceFile)
-    // No public object ACL. Object names never contain a person's real name.
+  const originals=new Map<string,{hash:string;document:PDFDocument}>()
+  for(const name of new Set(chosen.map(x=>x.sourceFile))){
+    const file=fileByName.get(name)
+    if(!file)throw new Error('Arquivo original ausente: '+name)
     const buffer=await file.arrayBuffer()
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',buffer))).map(x=>x.toString(16).padStart(2,'0')).join('')
-    // Reject distinct sources for a year that already has a 13º receipt.
-    // A same-source reimport still uses the original SHA+page upsert.
+    let document:PDFDocument
+    try{document=await PDFDocument.load(buffer)}
+    catch{throw new Error('Não foi possível separar o PDF '+name+'. O arquivo pode estar protegido ou danificado.')}
+    originals.set(name,{hash,document})
+  }
+  // Validate all new records before starting uploads.
+  for(const s of chosen){
+    const original=originals.get(s.sourceFile)
+    if(!original||!Number.isInteger(s.page)||s.page<1||s.page>original.document.getPageCount())
+      throw new Error('Página de origem inválida para '+s.sourceFile)
+    const {data:existing,error:existingError}=await db.from('statements')
+      .select('id').eq('user_id',user_id).eq('source_sha256',original.hash).eq('source_page',s.page).maybeSingle()
+    if(existingError)throw new Error(existingError.message)
+    if(existing)throw new Error('O holerite '+s.period+' já foi importado deste arquivo. Exclua o registro antes de importar novamente.')
     if(s.documentType==='thirteenth'){
-      const {data:existing,error:existingError}=await db.from('statements')
-        .select('source_sha256,source_page').eq('user_id',user_id)
-        .eq('document_type','thirteenth').eq('period',s.period).maybeSingle()
-      if(existingError)throw new Error(existingError.message)
-      if(existing&&(existing.source_sha256!==hash||existing.source_page!==s.page))
-        throw new Error('Já existe um recibo de 13º para '+s.period+'. Verifique a duplicidade antes de substituí-lo.')
+      const {data:other,error:otherError}=await db.from('statements')
+        .select('id').eq('user_id',user_id).eq('document_type','thirteenth').eq('period',s.period).maybeSingle()
+      if(otherError)throw new Error(otherError.message)
+      if(other)throw new Error('Já existe recibo de 13º para '+s.period+'. Exclua o anterior antes de importar.')
     }
-    const key=user_id+'/'+hash+'.pdf'
-    const uploaded=await db.storage.from('payslips').upload(key,file,{upsert:false,contentType:'application/pdf'})
-    if(uploaded.error&&!/already exists|duplicate/i.test(uploaded.error.message))throw new Error(uploaded.error.message)
-    const {data:statement,error}=await db.from('statements').upsert({
-      user_id,period:s.period,source_sha256:hash,source_page:s.page,source_file:s.sourceFile,
+  }
+  // One original page => one PDF => one statement. The original document
+  // hash + page remains the deduplication identity; only the stored object
+  // name changes from <hash>.pdf to <hash>-pN.pdf.
+  for(const s of chosen){
+    const original=originals.get(s.sourceFile)!
+    const destination=await PDFDocument.create()
+    const [page]=await destination.copyPages(original.document,[s.page-1])
+    destination.addPage(page)
+    const bytes=await destination.save()
+    const pdf=new Blob([new Uint8Array(bytes)],{type:'application/pdf'})
+    const key=user_id+'/'+original.hash+'-p'+s.page+'.pdf'
+    const uploaded=await db.storage.from('payslips').upload(key,pdf,{upsert:false,contentType:'application/pdf'})
+    if(uploaded.error&&!/already exists|duplicate/i.test(uploaded.error.message))
+      throw new Error('Falha ao salvar o PDF individual de '+s.period+': '+uploaded.error.message)
+    const {data:statement,error}=await db.from('statements').insert({
+      user_id,period:s.period,source_sha256:original.hash,source_page:s.page,source_file:s.sourceFile,
       storage_key:key,format:s.format,document_type:s.documentType,payment_date:s.paymentDate,
       vacation_start:s.vacationStart,vacation_end:s.vacationEnd,
       gross_ppr:s.grossPpr,ppr_income_tax:s.pprIncomeTax,ppr_union_contribution:s.pprUnionContribution,
@@ -181,13 +214,11 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       thirteenth_pension:s.thirteenthPension,
       salary_contract:s.salaryContract,trienio:s.trienio,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
-    },{onConflict:'user_id,source_sha256,source_page'}).select('id').single()
-    if(error)throw new Error(error.message)
-    const removed=await db.from('statement_lines').delete().eq('statement_id',statement.id)
-    if(removed.error)throw new Error(removed.error.message)
+    }).select('id').single()
+    if(error)throw new Error('Falha ao registrar o holerite '+s.period+': '+error.message+'. Verifique os documentos importados antes de tentar novamente.')
     if(s.lines.length){
       const added=await db.from('statement_lines').insert(s.lines.map((l,i)=>({...l,user_id,statement_id:statement.id,ordinal:i})))
-      if(added.error)throw new Error(added.error.message)
+      if(added.error)throw new Error('O holerite '+s.period+' foi salvo, mas a gravação de algumas rubricas falhou: '+added.error.message)
     }
   }
 }
