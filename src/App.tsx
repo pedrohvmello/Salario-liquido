@@ -86,6 +86,28 @@ const pensionMethods:Record<SalaryParameters['pensionMethod'],string>={
  none:'Sem pensão'
 }
 
+/**
+ * Desktop guests see the public Home first. Keep the direct sign-in experience
+ * on phones and at /login; never redirect OAuth callbacks or recovery links.
+ */
+function GuestEntry(){
+ const [desktop,setDesktop]=useState(()=>window.matchMedia('(min-width: 821px)').matches)
+ useEffect(()=>{
+  const media=window.matchMedia('(min-width: 821px)')
+  const update=()=>setDesktop(media.matches)
+  media.addEventListener('change',update)
+  return ()=>media.removeEventListener('change',update)
+ },[])
+ const path=window.location.pathname
+ const plainRoot=path==='/'&&!window.location.search&&!window.location.hash&&!window.__salaryAuthIntent
+ const showHome=desktop&&plainRoot
+ useEffect(()=>{
+  if(showHome)window.location.replace('/home')
+ },[showHome])
+ if(showHome)return <div className="centered" aria-live="polite"><div className="spinner"/>Abrindo a Home...</div>
+ return <AuthGate/>
+}
+
 export default function App(){
  const [section,setSection]=useState<Section>('overview')
  const [menu,setMenu]=useState(false)
@@ -381,7 +403,7 @@ export default function App(){
  },'Jornada salva')
  const isDemo=!db
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
- if(db&&!user)return <AuthGate/>
+ if(db&&!user)return <GuestEntry/>
  if(db&&user&&mfaEnabled&&mfaState==='checking')return <div className="centered"><div className="spinner"/>Verificando segurança da sessão...</div>
  if(db&&user&&mfaEnabled&&mfaState==='error')return <div className="auth-background"><div className="auth-card"><ShieldCheck size={32}/><h1>Verificação de segurança indisponível</h1><p>Não foi possível confirmar a proteção da sessão. Nenhum dado financeiro será carregado até a verificação.</p><button className="secondary" type="button" onClick={()=>setMfaRetry(v=>v+1)}>Tentar novamente</button><button type="button" className="text-button" onClick={()=>void db?.auth.signOut({scope:'local'})}>Sair</button></div></div>
  if(db&&user&&mfaEnabled&&mfaState==='challenge')return <MfaGate onVerified={()=>setMfaState('ready')}/>
