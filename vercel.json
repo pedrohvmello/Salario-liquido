@@ -1,7 +1,24 @@
 {
   "rewrites": [
-    {"source": "/sobre", "destination": "/sobre.html"},
-    {"source": "/privacidade", "destination": "/privacidade.html"},
-    {"source": "/termos", "destination": "/termos.html"}
+    {
+      "source": "/home",
+      "destination": "/home.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sobre",
+      "destination": "/sobre.html"
+    },
+    {
+      "source": "/privacidade",
+      "destination": "/privacidade.html"
+    },
+    {
+      "source": "/termos",
+      "destination": "/termos.html"
+    }
   ]
 }
