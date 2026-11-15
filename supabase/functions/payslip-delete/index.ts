@@ -56,7 +56,7 @@ Deno.serve(async(req:Request)=>{
  // If a source document that introduced a salary change is removed, the next
  // remaining document may become the earliest observation. Reconcile the
  // linked event timeline while leaving manual events untouched.
- const {error:eventsError}=await userClient.rpc('sync_my_monthly_salary_events',{p_use_competence_end:false})
+ const {error:eventsError}=await userClient.rpc('sync_my_monthly_salary_events',{p_use_competence_end:false,p_document_ids:null})
  const {count,error:countError}=await admin.from('statements')
   .select('id',{head:true,count:'exact'}).eq('storage_key',expected)
  if(countError)return reply({deleted:true,fileDeleted:false,cleanupPending:true,message:'Registro removido. A limpeza do PDF precisa ser revisada.'})
