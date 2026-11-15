@@ -47,7 +47,7 @@ Deno.serve(async(req:Request)=>{
   const {data:items,error:listError}=await admin.storage.from('payslips').list(user.id,{limit:1000,offset})
   if(listError)return respond({error:'Não foi possível consultar seus arquivos. Nenhum dado foi apagado.'},503)
   for(const file of items||[]){
-   if(!/^[0-9a-f]{64}\.pdf$/i.test(file.name))
+   if(!/^[0-9a-f]{64}(?:-p[1-9]\d*)?\.pdf$/i.test(file.name))
     return respond({error:'Um PDF precisa de revisão antes da exclusão. Nenhum dado foi apagado.'},409)
    pdfKeys.push(user.id+'/'+file.name)
   }
