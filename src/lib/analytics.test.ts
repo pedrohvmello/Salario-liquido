@@ -3,7 +3,7 @@ import {classifyPayrollLine,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthC
 import type {SavedStatement} from './data'
 import type {StatementRubric} from './vacation'
 const monthly=(id:string,period:string,fgts:number|null):SavedStatement=>({
- id,period,document_type:'monthly',fgts,format:'old',
+ id,period,storage_key:'test/'+id+'.pdf',source_page:1,document_type:'monthly',fgts,format:'old',
  vacation_start:null,vacation_end:null,payment_date:null,gross_ppr:null,
  ppr_income_tax:0,ppr_union_contribution:0,thirteenth_gross:null,thirteenth_advance:0,
  thirteenth_inss:0,thirteenth_irrf:0,thirteenth_pension:0,
