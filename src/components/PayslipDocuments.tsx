@@ -121,7 +121,8 @@ export function PayslipDocuments({statements,onRemoved,onEventsSynced}:{statemen
      ?result.missingDateDocuments+' holerite(s) ainda sem data de referência. Confirme a data provisória para incluí-los.'
      :result.provisionalDateDocuments>0
       ?result.provisionalDateDocuments+' holerite(s) utilizaram uma data provisória claramente sinalizada nos eventos.'
-      :'As datas de pagamento identificadas foram utilizadas.'))
+      :'As datas de pagamento identificadas foram utilizadas.')+
+    (result.unreadableDocuments?' Atenção: '+result.unreadableDocuments+' documento(s) não puderam ser relidos; confira esses PDFs.':''))
   }catch(e){setEventError(e instanceof Error?e.message:'Não foi possível sincronizar os eventos.')}
   finally{setEventBusy(false)}
  }
