@@ -27,8 +27,14 @@ Deno.serve(async(req:Request)=>{
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return respond({error:'Faça login novamente.'},401)
  let confirmation=''
- try{const payload=await req.json();confirmation=payload?.confirmation||''}
- catch{return respond({error:'Solicitação inválida.'},400)}
+ let mode:'payroll'|'account'='payroll'
+ try{
+  const payload=await req.json()
+  confirmation=payload?.confirmation||''
+  if(payload?.mode!==undefined&&payload.mode!=='payroll'&&payload.mode!=='account')
+   return respond({error:'Operação inválida.'},400)
+  mode=payload?.mode==='account'?'account':'payroll'
+ }catch{return respond({error:'Solicitação inválida.'},400)}
  if(confirmation!=='EXCLUIR')return respond({error:'Digite EXCLUIR para confirmar.'},400)
 
  const userClient=createClient(url,anon,{global:{headers:{Authorization:'Bearer '+token}},auth:{persistSession:false,autoRefreshToken:false}})
@@ -57,7 +63,9 @@ Deno.serve(async(req:Request)=>{
 
  // The RPC enforces auth.uid(), approved membership and active MFA session.
  // Deletions of all payroll tables are atomic inside PostgreSQL.
- const {data:result,error:resetError}=await userClient.rpc('clear_my_payroll_data',{confirmation})
+ const action=mode==='account'?'close_my_account':'clear_my_payroll_data'
+ const {data:result,error:resetError}=await userClient.rpc(action,
+  mode==='account'?{p_confirmation:confirmation}:{confirmation})
  if(resetError||result?.reset!==true)
   return respond({error:'A exclusão foi bloqueada: '+(resetError?.message||'verificação de segurança pendente')},409)
 
@@ -82,11 +90,12 @@ Deno.serve(async(req:Request)=>{
  const dbClean=Object.values(counts).every(v=>v===0)
  return respond({
   reset:dbClean,
+  accountSuspended:mode==='account'&&result?.accountSuspended===true,
   cleanupPending:missing||!dbClean,
   pdfFilesRemoved:filesRemoved,
   removed:result,
   message:dbClean&&!missing
-   ?'Dados salariais excluídos. Seu cadastro e configurações de segurança foram preservados.'
+   ?(mode==='account'?'Dados financeiros apagados e conta suspensa. A reativação poderá exigir aprovação.':'Dados salariais excluídos. Seu cadastro e configurações de segurança foram preservados.')
    :'Os dados financeiros foram limpos, mas parte da verificação ou limpeza dos PDFs precisa ser revisada.',
   ...(missing?{storageVerificationPending:true}:{}),
   ...(!dbClean?{error:'Ainda existem dados financeiros associados à conta.'}:{})
