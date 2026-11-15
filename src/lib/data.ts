@@ -191,6 +191,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       if(other)throw new Error('Já existe recibo de 13º para '+s.period+'. Exclua o anterior antes de importar.')
     }
   }
+  const importedIds:string[]=[]
   // One original page => one PDF => one statement. The original document
   // hash + page remains the deduplication identity; only the stored object
   // name changes from <hash>.pdf to <hash>-pN.pdf.
@@ -221,11 +222,12 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       const added=await db.from('statement_lines').insert(s.lines.map((l,i)=>({...l,user_id,statement_id:statement.id,ordinal:i})))
       if(added.error)throw new Error('O holerite '+s.period+' foi salvo, mas a gravação de algumas rubricas falhou: '+added.error.message)
     }
+    importedIds.push(statement.id)
    }
   if(chosen.some(s=>s.documentType==='monthly')){
    // A database RPC atomically reconciles source-linked events. Missing actual
    // payment dates are not silently invented. Provisional dates require opt-in.
-   const {error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate})
+   const {error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate,p_document_ids:importedIds})
    if(error)throw new Error('Holerites salvos, mas a sincronização dos eventos falhou: '+error.message+'. Use Gerar eventos em Meus documentos para corrigir.')
   }
 }
@@ -269,7 +271,7 @@ export async function syncStoredMonthlyEvents(statements:SavedStatement[],useCom
    unreadable++
   }
  }
- const {data,error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate})
+ const {data,error}=await db.rpc('sync_my_monthly_salary_events',{p_use_competence_end:useCompetenceDate,p_document_ids:null})
  if(error)throw new Error('Falha ao sincronizar eventos: '+error.message)
  if(!data?.synced)throw new Error('A sincronização dos eventos não foi confirmada.')
  return {...data,unreadableDocuments:unreadable} as MonthlyEventSyncResult
