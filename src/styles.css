@@ -1306,3 +1306,22 @@ input[type=checkbox],input[type=radio]{accent-color:#7a00e4}
  .payslip-modal-backdrop{padding:12px}
  .payslip-confirm-dialog{padding:22px 18px}
 }
+
+/* Mobile-compatible, first-party PDF.js payslip reader. Never embed private
+   PDF blob URLs in iframes: Chrome Android exposes an inert "Abrir" overlay. */
+.payslip-canvas-viewer{display:flex;flex-direction:column;flex:1;min-height:0;background:#f6f2fb}
+.payslip-canvas-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e9dbf4;flex-wrap:wrap}
+.payslip-canvas-pages,.payslip-canvas-actions{display:flex;align-items:center;justify-content:center;gap:8px}
+.payslip-canvas-pages span{color:#52336f;font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.payslip-canvas-toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:36px;min-height:36px;padding:7px 10px}
+.payslip-canvas-scroll{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:14px 12px;text-align:center}
+.payslip-canvas-page{display:block;margin:0 auto;max-width:none;background:white;box-shadow:0 3px 23px #3213482c}
+.payslip-canvas-loading,.payslip-canvas-error{font-size:13px;color:#6b507e;margin:20px auto;text-align:center}
+.payslip-canvas-error{color:#a5254f}
+@media(max-width:560px){
+ .payslip-canvas-toolbar{justify-content:center;gap:7px;padding:8px 6px}
+ .payslip-canvas-toolbar button{min-height:40px;min-width:40px;padding:7px}
+ .payslip-canvas-toolbar .payslip-pdf-download{padding:7px 10px}
+ .payslip-canvas-scroll{padding:8px 6px}
+ .payslip-viewer-dialog{border-radius:14px}
+}
