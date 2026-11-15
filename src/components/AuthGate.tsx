@@ -88,7 +88,7 @@ export function AuthGate(){
       if(error)throw error
     }catch(e){setError(e instanceof Error?e.message:'Falha ao iniciar o login Google.');setBusy(false)}
   }
-  return <div className="auth-background"><div className="auth-card">
+  return <div className="auth-background"><div className="auth-shell"><div className="auth-card">
     <div className="brand auth-brand brand--wordmark">
       <img className="brand-full-logo" src="/brand/payrep-logo.svg" alt="Payrep" width="290" height="87"/>
     </div>
@@ -112,6 +112,15 @@ export function AuthGate(){
         <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
       </button>
     </div>
+  </div>
+  <footer className="auth-public-footer" aria-label="Navegação institucional">
+    <span>© 2026 Payrep</span>
+    <nav aria-label="Links institucionais">
+      <a href="/home">Home</a>
+      <a href="/privacidade">Política de Privacidade</a>
+      <a href="/termos">Termos de Uso</a>
+    </nav>
+  </footer>
   </div></div>
 }
 
