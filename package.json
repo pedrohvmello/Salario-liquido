@@ -8,8 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "predev": "node scripts/generate-icons.cjs",
-    "prebuild": "node scripts/generate-icons.cjs"
+    "predev": "node scripts/audit-ui-controls.cjs && node scripts/generate-icons.cjs",
+    "prebuild": "node scripts/audit-ui-controls.cjs && node scripts/generate-icons.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",
