@@ -13,7 +13,7 @@ type Props={
  children?:ReactNode
 }
 
-/** Branded, keyboard-accessible confirmation. Never use window.confirm(). */
+/** Branded, keyboard-accessible confirmation without native blocking dialogs. */
 export function PayrepConfirmDialog({title,description,confirmLabel,onClose,onConfirm,busy=false,destructive=false,children}:Props){
  const close=()=>{if(!busy)onClose()}
  return <PayrepPickerDialog title={title} description={description} onClose={close} className="payrep-confirm-dialog">
