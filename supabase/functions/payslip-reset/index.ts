@@ -46,6 +46,19 @@ Deno.serve(async(req:Request)=>{
  if(memberError||membership?.active!==true||membership?.status!=='approved')
   return respond({error:'Conta não autorizada.'},403)
 
+ if(mode==='account'){
+  const {data:billing,error:billingError}=await userClient.rpc('get_my_account_closure_status')
+  if(billingError)return respond({error:'Não foi possível verificar a situação da assinatura. Nenhum dado foi apagado.'},409)
+  if(!billing?.allowed){
+   const messages:Record<string,string>={
+    renewal_active:'Existe uma assinatura paga com renovação ativa. Cancele a renovação antes de encerrar a conta.',
+    payment_pending:'Existe uma cobrança pendente. Regularize a cobrança ou contate o suporte antes de encerrar a conta.',
+    billing_review:'A situação da assinatura precisa de revisão pelo suporte antes do encerramento.'
+   }
+   return respond({error:messages[billing?.reason]||'Não é possível encerrar a conta.',code:billing?.reason||'billing_review',subscriptionBlocked:true},409)
+  }
+ }
+
  // Establish a storage snapshot before clearing DB metadata. Never sweep a
  // different user's folder or newly created files uploaded after this snapshot.
  const pdfKeys:string[]=[]
