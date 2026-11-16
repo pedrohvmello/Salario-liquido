@@ -127,7 +127,8 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
- const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
+ const pepAssistantEnabled=import.meta.env.VITE_ENABLE_PEP_ASSISTANT==='true'||Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
+ const isHomologation=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
  const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
  const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'local'|'ready'>('checking')
  const [cachedPepVideo,setCachedPepVideo]=useState<Blob|null>(null)
@@ -147,7 +148,7 @@ export function SupportPage({user}:{user:User}){
  }
  useEffect(()=>{
   let cancelled=false
-  if(!db||!hmlAiEnabled)return
+  if(!db||!pepAssistantEnabled)return
   const client=db
   const load=async()=>{
    const {data:membership}=await client.from('app_members').select('role,active,status').eq('user_id',user.id).maybeSingle()
@@ -181,7 +182,7 @@ export function SupportPage({user}:{user:User}){
   }
   void load()
   return ()=>{cancelled=true;if(localVideoUrl.current){URL.revokeObjectURL(localVideoUrl.current);localVideoUrl.current=null}}
- },[user.id,hmlAiEnabled])
+ },[user.id,pepAssistantEnabled])
  const uploadPepVideo=async(file:Blob)=>{
   if(!db||!isAdmin||uploadingPepVideo)return
   if(file.type!=='video/mp4'||file.size<1000||file.size>15_000_000){
@@ -206,15 +207,15 @@ export function SupportPage({user}:{user:User}){
  }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
- if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
+ if(inAi&&pepAssistantEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
-  {hmlAiEnabled&&<section className="panel help-ai-entry">
+  {pepAssistantEnabled&&<section className="panel help-ai-entry">
    <div className="help-ai-entry-content">
     <div className="panel-heading"><h2><Sparkles size={19}/> Pergunte ao Pep</h2></div>
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
     <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
-    <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
+    <p className="subtle">{isHomologation?'Em homologação. ':''}Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
     {isAdmin&&<details className="pep-admin-media">
      <summary>Gerenciar animação do Pep</summary>
      <p className="subtle">Publicação definitiva em homologação. O vídeo ficará disponível para todos os usuários deste ambiente.</p>
