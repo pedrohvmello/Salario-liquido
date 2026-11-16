@@ -45,8 +45,10 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    <p>Consulte solicitações, responda às mensagens, filtre chamados por status e ano e finalize os atendimentos.</p>
    <button type="button" className="primary" onClick={()=>onNavigate('admin-support')}><LifeBuoy size={17}/> Gerenciar chamados</button>
   </section>
-  <AdminSupportAiLimits/>
-  <AdminAiNeurons/>
+  {(import.meta.env.VITE_ENABLE_PEP_ASSISTANT==='true'||Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF))&&<>
+   <AdminSupportAiLimits/>
+   <AdminAiNeurons/>
+  </>}
   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={18}/> Política de cadastro</h2></div>
    <label className="admin-switch"><input type="checkbox" checked={approval} disabled={loading||busy} onChange={e=>setApproval(e.target.checked)}/><span><strong>Exigir aprovação administrativa</strong><small>{approval?'Novos usuários precisam ser aprovados para acessar dados financeiros.':'Novos usuários poderão ser aprovados automaticamente após autenticação.'}</small></span></label>
    <div className="admin-settings-actions"><button type="button" className="primary" disabled={loading||busy||approval===savedApproval} onClick={()=>void save()}><Save size={16}/> Salvar política</button>
@@ -61,8 +63,8 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
     {policyLabels.map(({key,label})=><label key={key} className="password-policy-toggle"><span>{label}</span><input type="checkbox" checked={policy[key]} readOnly disabled/></label>)}
    </div>
    <div className="detail-hint"><Info size={16}/>O padrão está disponível na interface. Para torná-lo obrigatório também na API, configure os mesmos requisitos no Supabase Auth. Até lá, os controles administrativos ficam bloqueados para não criar divergência entre cliente e servidor.</div>
-   <p className="subtle">No Supabase HML, configure mínimo de 12 caracteres e os quatro grupos: minúsculas, maiúsculas, números e símbolos. Habilite a exigência de senha atual na troca de senha, se disponível.</p>
-   <a className="secondary" href="https://supabase.com/dashboard/project/nrpqcrhschztdwbfgnyo/auth/providers?provider=Email" target="_blank" rel="noopener noreferrer">Abrir configurações de senha no Supabase HML</a>
+   <p className="subtle">No Supabase do ambiente correspondente, configure mínimo de 12 caracteres e os quatro grupos: minúsculas, maiúsculas, números e símbolos. Habilite a exigência de senha atual na troca de senha, se disponível.</p>
+   <a className="secondary" href="https://supabase.com/dashboard/project/klvurrcmfrwetmynscjc/auth/providers?provider=Email" target="_blank" rel="noopener noreferrer">Abrir configurações de senha no Supabase PRD</a>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
