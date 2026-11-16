@@ -4,7 +4,6 @@ import {ArrowLeft,KeyRound,ShieldCheck,Fingerprint,Trash2,Info,LockKeyhole} from
 import {ChangePassword} from './AuthGate'
 import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
-import {isHomologationHost} from '../lib/overviewPreview'
 import {TotpSettings} from './TotpSettings'
 import {PasskeySettings} from './PasskeySettings'
 import {passkeyFeatureEnabled} from '../lib/passkey'
@@ -28,7 +27,6 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
  const [dataDeleteError,setDataDeleteError]=useState('')
  const [dataDeleteMessage,setDataDeleteMessage]=useState('')
  const [dataDeleteWarning,setDataDeleteWarning]=useState('')
- const hml=isHomologationHost(window.location.hostname)
  const endOtherSessions=async()=>{
   if(!db)return
   setSessionsBusy(true);setSessionsError('');setSessionsMessage('')
@@ -80,21 +78,16 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
   try{
    const {data:{session},error:sessionError}=await db.auth.getSession()
    if(sessionError||!session)throw Error('Faça login novamente.')
-   if(hml){
-    const {data,error}=await db.functions.invoke('payslip-reset',{
-     body:{confirmation:'EXCLUIR',mode:'account'},headers:{Authorization:'Bearer '+session.access_token}
-    })
-    if(error){
-     const context=error&&'context' in error?(error as {context?:Response}).context:undefined
-     const payload=context?await context.json().catch(()=>null):null
-     throw Error((payload as {error?:string}|null)?.error||'A suspensão não foi concluída. Confira sua sessão e tente novamente.')
-    }
-    if(data?.reset!==true||data?.accountSuspended!==true)
-     throw Error(data?.error||'Não foi possível confirmar a suspensão e a exclusão dos dados.')
-   }else{
-    const {error}=await db.functions.invoke('delete-my-account',{body:{confirmation:'EXCLUIR'},headers:{Authorization:'Bearer '+session.access_token}})
-    if(error)throw Error('Não foi possível excluir a conta. Verifique sua sessão.')
+   const {data,error}=await db.functions.invoke('payslip-reset',{
+    body:{confirmation:'EXCLUIR',mode:'account'},headers:{Authorization:'Bearer '+session.access_token}
+   })
+   if(error){
+    const context=error&&'context' in error?(error as {context?:Response}).context:undefined
+    const payload=context?await context.json().catch(()=>null):null
+    throw Error((payload as {error?:string}|null)?.error||'A suspensão não foi concluída. Confira sua sessão e tente novamente.')
    }
+   if(data?.reset!==true||data?.accountSuspended!==true)
+    throw Error(data?.error||'Não foi possível confirmar a suspensão e a exclusão dos dados.')
    const {error:logoutError}=await db.auth.signOut({scope:'local'})
    if(logoutError)throw logoutError
   }catch(e){setDeleteError(e instanceof Error?e.message:'Falha ao encerrar a conta.')}
@@ -153,12 +146,12 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
     </div>}
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
-   <p className="subtle">{hml?'Apague seus dados financeiros e suspenda o acesso. O cadastro e as credenciais serão preservados para eventual reativação, que poderá exigir aprovação administrativa. Os dados apagados não serão recuperados.':'Exclusão permanente da conta e dos dados vinculados. Não é possível desfazer.'}</p>
+   <p className="subtle">Apague seus dados financeiros e suspenda o acesso. O cadastro e as credenciais serão preservados para eventual reativação, que poderá exigir aprovação administrativa. Os dados apagados não serão recuperados.</p>
    {!deleting?<button type="button" className="secondary profile-destructive" onClick={()=>setDeleting(true)}><Trash2 size={15}/> Excluir minha conta</button>:<>
-    <div className="profile-delete-confirm"><strong>{hml?'Confirmação de encerramento e suspensão':'Confirmação de exclusão permanente'}</strong><p>{hml?'Todos os holerites, eventos, registros de horas, parâmetros salariais e PDFs serão apagados. Sua conta ficará suspensa e não poderá acessar o Payrep até solicitar reativação. O cadastro, login, autenticação, assinatura e histórico de suporte serão preservados. A reativação não recupera os dados apagados.':'Essa ação remove dados financeiros, holerites e a conta do Supabase.'}</p>
+    <div className="profile-delete-confirm"><strong>Confirmação de encerramento e suspensão</strong><p>Todos os holerites, eventos, registros de horas, parâmetros salariais e PDFs serão apagados. Sua conta ficará suspensa e não poderá acessar o Payrep até solicitar reativação. O cadastro, login, autenticação, assinatura e histórico de suporte serão preservados. A reativação não recupera os dados apagados.</p>
      <label>Digite EXCLUIR para confirmar<input type="text" autoComplete="off" value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="EXCLUIR"/></label>
-     <label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}/> {hml?'Entendo que meus dados financeiros serão perdidos e a conta ficará suspensa.':'Entendo que a exclusão é permanente.'}</label>
-     <div className="profile-delete-buttons"><button className="secondary" type="button" onClick={()=>setDeleting(false)}>Cancelar</button><button className="profile-delete-submit" type="button" disabled={deleteBusy||!canConfirmDeletion(deleteText,acknowledged)} onClick={()=>void deleteAccount()}>{deleteBusy?'Processando...':hml?'Apagar dados e suspender conta':'Excluir permanentemente'}</button></div>
+     <label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}/> Entendo que meus dados financeiros serão perdidos e a conta ficará suspensa.</label>
+     <div className="profile-delete-buttons"><button className="secondary" type="button" onClick={()=>setDeleting(false)}>Cancelar</button><button className="profile-delete-submit" type="button" disabled={deleteBusy||!canConfirmDeletion(deleteText,acknowledged)} onClick={()=>void deleteAccount()}>{deleteBusy?'Processando...':'Apagar dados e suspender conta'}</button></div>
      {deleteError&&<p role="alert" className="error">{deleteError}</p>}
     </div>
    </>}
