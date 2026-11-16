@@ -19,7 +19,14 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{names[current.plan_code]||'Free'}</span></div>
     <div className="subscription-current"><strong>Plano {names[current.plan_code]||'Free'}</strong><span>{current.plan_code==='free'?'Gratuito. Nenhuma cobrança ativa.':current.status==='active'?'Assinatura ativa': 'Situação: '+current.status}</span></div>
     {current.current_period_end&&<p className="subtle">Fim do período atual: {date(current.current_period_end)}</p>}
-    <div className="detail-hint"><Info size={16}/>A cobrança recorrente ainda não foi ativada no Payrep. Os planos Basic e Full estão em preparação; não há checkout nem preço definido.</div>
+    {current.plan_code!=='free'&&<div className="payrep-billing-help">
+     <strong>Gerenciamento e cancelamento da assinatura</strong>
+     <p>{current.cancel_at_period_end||current.status==='canceled'
+      ?'A renovação está registrada como cancelada. Se ainda existir período pago, você poderá continuar utilizando o plano até o fim da vigência, salvo se optar por encerrar a conta.'
+      :'O Payrep registra uma assinatura paga. Para cancelar a renovação, utilize o canal pelo qual contratou ou solicite atendimento ao suporte. A exclusão da conta será bloqueada enquanto a renovação estiver ativa.'}</p>
+     <a href="mailto:suporte@payrep.com.br?subject=Cancelamento%20de%20assinatura%20Payrep">Solicitar orientação de cancelamento</a>
+    </div>}
+    <div className="detail-hint"><Info size={16}/>A contratação e o cancelamento recorrente pelo próprio aplicativo ainda não estão disponíveis. Os planos Basic e Full estão em preparação. A situação exibida corresponde aos registros disponíveis no Payrep.</div>
    </section>
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
