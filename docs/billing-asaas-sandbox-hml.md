@@ -5,8 +5,9 @@
 - Checkout hospedado para recorrência mensal em cartão de crédito.
 - O Payrep nunca recebe números ou CVV de cartões.
 - As tabelas `billing_checkout_intents` e `billing_webhook_events` são isoladas por RLS e privilégios.
-- Os planos Basic e Full permanecem com `available_for_checkout=false` e preço nulo.
-- Nenhum pagamento, cliente ou assinatura é criado enquanto o Sandbox não estiver habilitado.
+- Em 16/11/2026, Basic e Full foram habilitados exclusivamente no banco HML para teste de checkout com preço **temporário R$ 1,00/mês em ambos**, sem alterar os preços comerciais da futura produção.
+- Os três nomes de secrets (`ASAAS_SANDBOX_API_KEY`, `ASAAS_SANDBOX_WEBHOOK_TOKEN` e `PAYREP_ASAAS_SANDBOX_ENABLED`) constam na configuração de HML, mas os valores e a comunicação não foram validados ponta a ponta.
+- A liberação no banco não implica confirmação de pagamento, criação de assinatura ou ativação de benefícios; tudo depende de checkout autenticado e dos eventos do provedor.
 - A liberação de recursos pagos por evento financeiro ainda **não** foi habilitada.
 
 ## Contrato técnico
@@ -28,7 +29,7 @@
    - Autenticação: `asaas-access-token` igual ao segredo armazenado.
    - Eventos `CHECKOUT_*`, `SUBSCRIPTION_*` e `PAYMENT_*` relevantes.
    - HTTP 200 confirma persistência, não necessariamente ativação de benefícios.
-4. Aprovar preços e limites Basic/Full e habilitar `available_for_checkout` no banco somente após o teste do pipeline.
+4. Os valores simbólicos HML servem somente ao teste; definir preços comerciais e limites reais Basic/Full antes da produção.
 5. Testar primeiro checkout, pagamento, duplicidade de webhook, atraso, cancelamento, estorno, chargeback, indisponibilidade e conciliação por ID.
 6. Implementar e provar conciliação de `SUBSCRIPTION_CREATED` + `PAYMENT_CONFIRMED` ou `PAYMENT_RECEIVED` com a conta/checkout originários **antes** de conceder acesso pago.
 7. Implementar cancelamento no provedor, atualizações de cartão, tratamento de inadimplência, uma rotina de auditoria de divergências e preservação de registros fiscais independentes de `auth.users`.
