@@ -1,11 +1,12 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
-// HML only. A user's own JWT is verified by Supabase Auth. Row deletion
+// PRD only. A user's own JWT is verified by Supabase Auth. Row deletion
 // is executed under the user's RLS/MFA policies, NOT the service role.
-const allowedOrigin='https://payrep-hml.vercel.app'
-const projectRef='nrpqcrhschztdwbfgnyo'
+const allowedOrigins=new Set(['https://payrep.com.br','https://www.payrep.com.br','https://payrep.vercel.app'])
+const primaryOrigin='https://payrep.com.br'
+const projectRef='klvurrcmfrwetmynscjc'
 const cors={
- 'Access-Control-Allow-Origin':allowedOrigin,
+ 'Access-Control-Allow-Origin':primaryOrigin,
  'Access-Control-Allow-Headers':'authorization,apikey,x-client-info,content-type',
  'Access-Control-Allow-Methods':'POST,OPTIONS',
  'Vary':'Origin'
@@ -14,13 +15,16 @@ const reply=(data:Record<string,unknown>,status=200)=>
  new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}})
 
 Deno.serve(async(req:Request)=>{
- if(req.headers.get('origin')!==allowedOrigin)return reply({error:'Origem não autorizada.'},403)
+ const requestOrigin=req.headers.get('origin')||primaryOrigin
+ if(!allowedOrigins.has(requestOrigin))return reply({error:'Origem não autorizada.'},403)
+ // Restrict CORS to the exact allowlisted caller, never echo arbitrary origins.
+ cors['Access-Control-Allow-Origin']=requestOrigin
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
  if(req.method!=='POST')return reply({error:'Método não permitido.'},405)
  const url=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const role=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
- if(url!==`https://${projectRef}.supabase.co`||!anon||!role)return reply({error:'Ambiente HML indisponível.'},503)
+ if(url!==`https://${projectRef}.supabase.co`||!anon||!role)return reply({error:'Ambiente de produção indisponível.'},503)
  const bearer=req.headers.get('authorization')||''
  const token=/^Bearer (.+)$/i.exec(bearer)?.[1]||''
  if(!token)return reply({error:'Faça login novamente.'},401)
