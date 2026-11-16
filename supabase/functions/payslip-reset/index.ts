@@ -1,11 +1,12 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
-// HML only. Reset runs as the authenticated user in a transaction. The service
+// PRD only. Reset runs as the authenticated user in a transaction. The service
 // role is used exclusively to remove private PDF objects belonging to this UID.
-const origin='https://payrep-hml.vercel.app'
-const projectRef='nrpqcrhschztdwbfgnyo'
+const allowedOrigins=new Set(['https://payrep.com.br','https://www.payrep.com.br','https://payrep.vercel.app'])
+const primaryOrigin='https://payrep.com.br'
+const projectRef='klvurrcmfrwetmynscjc'
 const cors={
- 'Access-Control-Allow-Origin':origin,
+ 'Access-Control-Allow-Origin':primaryOrigin,
  'Access-Control-Allow-Headers':'authorization,apikey,x-client-info,content-type',
  'Access-Control-Allow-Methods':'POST,OPTIONS',
  'Vary':'Origin'
@@ -14,7 +15,10 @@ const respond=(payload:Record<string,unknown>,status=200)=>
  new Response(JSON.stringify(payload),{status,headers:{...cors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}})
 
 Deno.serve(async(req:Request)=>{
- if(req.headers.get('origin')!==origin)return respond({error:'Origem não autorizada.'},403)
+ const requestOrigin=req.headers.get('origin')||primaryOrigin
+ if(!allowedOrigins.has(requestOrigin))return respond({error:'Origem não autorizada.'},403)
+ // Restrict CORS to the exact allowlisted caller, never echo arbitrary origins.
+ cors['Access-Control-Allow-Origin']=requestOrigin
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
  if(req.method!=='POST')return respond({error:'Método não permitido.'},405)
 
@@ -22,7 +26,7 @@ Deno.serve(async(req:Request)=>{
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
  if(url!==`https://${projectRef}.supabase.co`||!anon||!serviceKey)
-  return respond({error:'Configuração do HML indisponível.'},503)
+  return respond({error:'Configuração de produção indisponível.'},503)
 
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return respond({error:'Faça login novamente.'},401)
