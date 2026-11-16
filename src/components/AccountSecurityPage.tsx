@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,KeyRound,ShieldCheck,Fingerprint,Trash2,Info,LockKeyhole} from 'lucide-react'
+import {ArrowLeft,KeyRound,ShieldCheck,Fingerprint,Trash2,Info,LockKeyhole,CreditCard} from 'lucide-react'
 import {ChangePassword} from './AuthGate'
 import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
@@ -9,7 +9,12 @@ import {TotpSettings} from './TotpSettings'
 import {PasskeySettings} from './PasskeySettings'
 import {passkeyFeatureEnabled} from '../lib/passkey'
 
-export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBack:()=>void;onPayrollReset:()=>Promise<void>}){
+type ClosureAssessment={
+ allowed:boolean;reason:'eligible'|'renewal_active'|'payment_pending'|'billing_review';
+ plan:string;subscriptionStatus:string;cancelAtPeriodEnd:boolean;
+ periodEnd:string|null;paidTimeRemaining:boolean
+}
+export function AccountSecurityPage({user,onBack,onPayrollReset,onNavigateSubscription}:{user:User;onBack:()=>void;onPayrollReset:()=>Promise<void>;onNavigateSubscription:()=>void}){
  const [resetBusy,setResetBusy]=useState(false)
  const [resetMessage,setResetMessage]=useState('')
  const [resetError,setResetError]=useState('')
@@ -21,6 +26,9 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
  const [acknowledged,setAcknowledged]=useState(false)
  const [deleteBusy,setDeleteBusy]=useState(false)
  const [deleteError,setDeleteError]=useState('')
+ const [closureChecking,setClosureChecking]=useState(false)
+ const [closureBlocked,setClosureBlocked]=useState<ClosureAssessment|null>(null)
+ const [closureEligibility,setClosureEligibility]=useState<ClosureAssessment|null>(null)
  const [dataDeleting,setDataDeleting]=useState(false)
  const [dataDeleteText,setDataDeleteText]=useState('')
  const [dataDeleteAcknowledged,setDataDeleteAcknowledged]=useState(false)
@@ -74,6 +82,28 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
   }catch(e){setDataDeleteError(e instanceof Error?e.message:'Falha ao excluir seus dados.')}
   finally{setDataDeleteBusy(false)}
  }
+ const beginAccountClosure=async()=>{
+  if(!db||closureChecking)return
+  setClosureChecking(true);setDeleteError('');setClosureBlocked(null);setClosureEligibility(null)
+  setDeleting(false);setDeleteText('');setAcknowledged(false)
+  try{
+   const {data,error}=await db.rpc('get_my_account_closure_status')
+   if(error)throw Error('Não foi possível confirmar a situação da assinatura. '+error.message)
+   if(!data||typeof data.allowed!=='boolean')throw Error('Não foi possível confirmar a situação da assinatura. Tente novamente.')
+   if(!data.allowed){
+    setClosureBlocked(data as ClosureAssessment)
+    return
+   }
+   setClosureEligibility(data as ClosureAssessment)
+   setDeleting(true)
+  }catch(e){setDeleteError(e instanceof Error?e.message:'Falha ao consultar a assinatura.')}
+  finally{setClosureChecking(false)}
+ }
+ const closureMessage=closureBlocked?.reason==='renewal_active'
+  ?'Você possui uma assinatura paga com renovação automática. Cancele a renovação antes de encerrar sua conta.'
+  :closureBlocked?.reason==='payment_pending'
+   ?'Existe uma cobrança pendente. Regularize a cobrança ou procure o suporte antes de solicitar o encerramento.'
+   :'Não foi possível confirmar que sua assinatura está encerrada ou sem renovação. Solicite uma revisão ao suporte antes de excluir a conta.'
  const deleteAccount=async()=>{
   if(!canConfirmDeletion(deleteText,acknowledged)||!db){setDeleteError('Confirme o encerramento da conta.');return}
   setDeleteBusy(true);setDeleteError('')
@@ -154,11 +184,22 @@ export function AccountSecurityPage({user,onBack,onPayrollReset}:{user:User;onBa
   </section>
   <section className="panel"><div className="panel-heading"><h2><Trash2 size={17}/> Excluir minha conta</h2></div>
    <p className="subtle">{hml?'Apague seus dados financeiros e suspenda o acesso. O cadastro e as credenciais serão preservados para eventual reativação, que poderá exigir aprovação administrativa. Os dados apagados não serão recuperados.':'Exclusão permanente da conta e dos dados vinculados. Não é possível desfazer.'}</p>
-   {!deleting?<button type="button" className="secondary profile-destructive" onClick={()=>setDeleting(true)}><Trash2 size={15}/> Excluir minha conta</button>:<>
-    <div className="profile-delete-confirm"><strong>{hml?'Confirmação de encerramento e suspensão':'Confirmação de exclusão permanente'}</strong><p>{hml?'Todos os holerites, eventos, registros de horas, parâmetros salariais e PDFs serão apagados. Sua conta ficará suspensa e não poderá acessar o Payrep até solicitar reativação. O cadastro, login, autenticação, assinatura e histórico de suporte serão preservados. A reativação não recupera os dados apagados.':'Essa ação remove dados financeiros, holerites e a conta do Supabase.'}</p>
+   {closureBlocked&&<div className="payrep-billing-block" role="alert">
+    <div className="payrep-billing-block-title"><CreditCard size={19}/><strong>Não é possível encerrar sua conta</strong></div>
+    <p>{closureMessage}</p>
+    <p>Depois de cancelar a renovação, você poderá solicitar o encerramento mesmo que ainda existam dias pagos. O histórico de pagamentos e documentos fiscais sujeitos à retenção continuará protegido.</p>
+    <div className="payrep-billing-block-actions">
+     <button type="button" className="primary" onClick={onNavigateSubscription}><CreditCard size={16}/> Consultar assinatura</button>
+     <a href="mailto:suporte@payrep.com.br?subject=Cancelamento%20de%20assinatura%20Payrep">Contatar suporte</a>
+    </div>
+   </div>}
+   {deleteError&&!deleting&&<div className="notice danger" role="alert">{deleteError}</div>}
+   {!deleting?<button type="button" className="secondary profile-destructive" disabled={closureChecking} onClick={()=>void beginAccountClosure()}><Trash2 size={15}/>{closureChecking?'Conferindo assinatura...':'Excluir minha conta'}</button>:<>
+    <div className="profile-delete-confirm"><strong>{hml?'Confirmação de encerramento e suspensão':'Confirmação de exclusão permanente'}</strong>
+     {closureEligibility?.paidTimeRemaining&&<div className="notice warning" role="status"><Info size={16}/> A renovação da sua assinatura já foi cancelada, mas ainda existe período pago. Se prosseguir, você perderá o acesso imediatamente e o período restante não será automaticamente reembolsado. Verifique as condições da contratação.</div>}<p>{hml?'Todos os holerites, eventos, registros de horas, parâmetros salariais e PDFs serão apagados. Sua conta ficará suspensa e não poderá acessar o Payrep até solicitar reativação. O cadastro, login, autenticação, assinatura e histórico de suporte serão preservados. A reativação não recupera os dados apagados.':'Essa ação remove dados financeiros, holerites e a conta do Supabase.'}</p>
      <label>Digite EXCLUIR para confirmar<input type="text" autoComplete="off" value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="EXCLUIR"/></label>
      <label className="checkbox-label"><input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}/> {hml?'Entendo que meus dados financeiros serão perdidos e a conta ficará suspensa.':'Entendo que a exclusão é permanente.'}</label>
-     <div className="profile-delete-buttons"><button className="secondary" type="button" onClick={()=>setDeleting(false)}>Cancelar</button><button className="profile-delete-submit" type="button" disabled={deleteBusy||!canConfirmDeletion(deleteText,acknowledged)} onClick={()=>void deleteAccount()}>{deleteBusy?'Processando...':hml?'Apagar dados e suspender conta':'Excluir permanentemente'}</button></div>
+     <div className="profile-delete-buttons"><button className="secondary" type="button" disabled={deleteBusy} onClick={()=>{setDeleting(false);setClosureEligibility(null);setDeleteText('');setAcknowledged(false);setDeleteError('')}}>Cancelar</button><button className="profile-delete-submit" type="button" disabled={deleteBusy||!canConfirmDeletion(deleteText,acknowledged)} onClick={()=>void deleteAccount()}>{deleteBusy?'Processando...':hml?'Apagar dados e suspender conta':'Excluir permanentemente'}</button></div>
      {deleteError&&<p role="alert" className="error">{deleteError}</p>}
     </div>
    </>}
