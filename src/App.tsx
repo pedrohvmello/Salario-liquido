@@ -523,7 +523,7 @@ export default function App(){
     {section==='admin-settings'&&isAdmin&&<AdminSettingsPage onNavigate={view=>setSection(view)}/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
     {section==='subscription'&&user&&<SubscriptionPage onBack={()=>setSection('overview')}/>}
-    {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')} onPayrollReset={async()=>{
+    {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')} onNavigateSubscription={()=>setSection('subscription')} onPayrollReset={async()=>{
       await refresh()
       setSelectedStmt(null);setStatementLines([])
       setPreviews([]);setImportFiles([]);setImportSelected([])
