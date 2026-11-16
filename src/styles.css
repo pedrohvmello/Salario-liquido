@@ -1451,3 +1451,20 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .payslip-vacation-reconcile{margin-top:22px!important;margin-bottom:22px!important}
  .payslip-import-confirm{margin-top:22px!important}
 }
+
+/* Subscription-aware account closure. Uses Payrep surfaces, never native dialogs. */
+.payrep-billing-block{display:flex;flex-direction:column;gap:12px;padding:18px 19px;margin:15px 0;border:1px solid #f0c9d6;border-radius:14px;background:linear-gradient(135deg,#fff7fa,#fff);box-shadow:0 2px 12px rgba(95,31,97,.04)}
+.payrep-billing-block-title{display:flex;align-items:center;gap:9px;color:#9b244f;font-size:14px}
+.payrep-billing-block-title svg{flex-shrink:0}
+.payrep-billing-block p{font-size:12px;line-height:1.65;color:#64446f;margin:0}
+.payrep-billing-block-actions{display:flex;align-items:center;flex-wrap:wrap;gap:13px;margin-top:3px}
+.payrep-billing-block-actions button{display:inline-flex;align-items:center;gap:7px;min-height:42px}
+.payrep-billing-block-actions a,.payrep-billing-help a{font-size:12px;color:#791bb9;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.payrep-billing-help{display:flex;flex-direction:column;align-items:flex-start;gap:9px;margin:15px 0;padding:15px;border:1px solid #e5cef4;background:#fbf7fe;border-radius:12px}
+.payrep-billing-help strong{font-size:13px;color:#4f2372}
+.payrep-billing-help p{font-size:12px;line-height:1.65;color:#695479;margin:0}
+@media(max-width:590px){
+ .payrep-billing-block{padding:15px 14px}
+ .payrep-billing-block-actions{align-items:stretch;flex-direction:column}
+ .payrep-billing-block-actions button{justify-content:center;width:100%}
+}
