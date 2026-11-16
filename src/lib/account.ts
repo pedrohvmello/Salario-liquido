@@ -20,6 +20,38 @@ export type BillingPlan={
  code:PlanCode;label:string;monthly_price_cents:number|null;
  currency:string;available_for_checkout:boolean
 }
+export type BillingCheckoutIntent={
+ id:string;plan_code:'basic'|'full';amount_cents:number;currency:string;
+ status:'pending'|'checkout_created'|'paid'|'canceled'|'expired'|'failed';
+ created_at:string;expires_at:string
+}
+export async function loadMyCheckoutIntents():Promise<BillingCheckoutIntent[]>{
+ const user=await identity()
+ const {data,error}=await db!.from('billing_checkout_intents')
+  .select('id,plan_code,amount_cents,currency,status,created_at,expires_at')
+  .eq('user_id',user.id).order('created_at',{ascending:false}).limit(5)
+ if(error)throw Error(error.message)
+ return (data||[]) as BillingCheckoutIntent[]
+}
+export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<string>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data:{session},error:sessionError}=await db.auth.getSession()
+ if(sessionError||!session)throw Error('Faça login novamente.')
+ const {data,error}=await db.functions.invoke('billing-checkout-asaas',{
+  body:{plan},headers:{Authorization:'Bearer '+session.access_token}
+ })
+ if(error){
+  const context=error&&'context' in error?(error as {context?:Response}).context:undefined
+  const payload=context?await context.json().catch(()=>null):null
+  throw Error((payload as {error?:string}|null)?.error||'Checkout indisponível no Sandbox Asaas.')
+ }
+ if(data?.mode!=='sandbox'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
+ const dest=new URL(data.checkoutUrl)
+ if(dest.protocol!=='https:'||dest.hostname!=='asaas.com'||dest.pathname!=='/checkoutSession/show')
+  throw Error('Destino de pagamento não autorizado.')
+ return dest.toString()
+}
+
 export const blankProfile=(user?:User|null):PayrepProfile=>({
  display_name:profileDisplayName(user||null),
  phone:'',postal_code:'',street:'',street_number:'',complement:'',
