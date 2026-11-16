@@ -11,15 +11,13 @@ const cors={
  'Access-Control-Allow-Methods':'POST,OPTIONS',
  'Vary':'Origin'
 }
-const reply=(data:Record<string,unknown>,status=200)=>
- new Response(JSON.stringify(data),{status,headers:{...cors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}})
-
 Deno.serve(async(req:Request)=>{
  const requestOrigin=req.headers.get('origin')||primaryOrigin
+ const requestCors={...cors,'Access-Control-Allow-Origin':allowedOrigins.has(requestOrigin)?requestOrigin:primaryOrigin}
+ const reply=(data:Record<string,unknown>,status=200)=>
+  new Response(JSON.stringify(data),{status,headers:{...requestCors,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}})
  if(!allowedOrigins.has(requestOrigin))return reply({error:'Origem não autorizada.'},403)
- // Restrict CORS to the exact allowlisted caller, never echo arbitrary origins.
- cors['Access-Control-Allow-Origin']=requestOrigin
- if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:requestCors})
  if(req.method!=='POST')return reply({error:'Método não permitido.'},405)
  const url=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
