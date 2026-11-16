@@ -43,7 +43,7 @@ export function AdminAiNeurons(){
   </>}
   {usage?.status==='not_configured'&&<div className="notice">
    <strong>Leitura de Neurons não configurada.</strong>
-   <p>Adicione um token Cloudflare com permissão <strong>Account Analytics: Read</strong> no secret <code>CLOUDFLARE_AI_USAGE_API_TOKEN</code> do Supabase HML.</p>
+   <p>Adicione um token Cloudflare com permissão <strong>Account Analytics: Read</strong> no secret <code>CLOUDFLARE_AI_USAGE_API_TOKEN</code> do Supabase PRD.</p>
   </div>}
   {usage?.status==='unavailable'&&<div className="notice">
    <strong>Consumo da Cloudflare indisponível.</strong>
