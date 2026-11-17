@@ -1468,3 +1468,17 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .payrep-billing-block-actions{align-items:stretch;flex-direction:column}
  .payrep-billing-block-actions button{justify-content:center;width:100%}
 }
+
+
+/* HML administrative billing: read-only finance and no-card Full trial management. */
+.admin-finance-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.admin-finance-kpis>.stat{min-width:0;background:#fff;border:1px solid #e7dcf4;border-radius:13px;padding:17px;display:flex;flex-direction:column;gap:9px}
+.admin-finance-kpis>.stat>span{display:flex;align-items:center;gap:7px;color:#72548b;font-size:12px}
+.admin-finance-kpis>.stat>strong{font-size:22px;color:#341354;font-variant-numeric:tabular-nums}
+.admin-finance-kpis>.stat>small{font-size:11px;line-height:1.5;color:#867496}
+.admin-trial-controls{display:grid;grid-template-columns:minmax(230px,2fr) minmax(150px,1fr) auto;align-items:end;gap:12px;margin:18px 0}
+.admin-trial-controls>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.admin-control-label{font-size:12px;font-weight:700;color:#63447c}
+.admin-trial-controls .payrep-select-trigger{width:100%}
+.admin-trial-controls>button{min-height:42px}
+@media(max-width:780px){.admin-finance-kpis{grid-template-columns:1fr}.admin-trial-controls{grid-template-columns:1fr}}
