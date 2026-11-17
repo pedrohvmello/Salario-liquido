@@ -18,8 +18,8 @@ type PayerProfile={
  street?:string|null;street_number?:string|null;complement?:string|null;
  neighborhood?:string|null;country?:string|null
 }
-function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined):Record<string,string>{
- const data:Record<string,string>={}
+function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined,cpf:string):Record<string,string>{
+ const data:Record<string,string>={cpfCnpj:cpf}
  const clean=(value:unknown,max:number)=>typeof value==='string'?value.trim().slice(0,max):''
  const name=clean(profile?.display_name,100)
  if(name.length>=2)data.name=name
@@ -42,7 +42,7 @@ function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined):
  if(province)data.province=province
  // Payrep stores city as free text, while Asaas expects a numeric city ID.
  // Never invent a municipality code. The buyer can confirm the city in checkout.
- // Payrep also does not store CPF/CNPJ in user_profiles.
+ // The CPF is read separately from private.payrep_billing_identity.
  return data
 }
 // Use the exact hosted checkout URL returned by Asaas Sandbox, never a manually built production URL.
@@ -87,6 +87,16 @@ Deno.serve(async(req:Request)=>{
   .select('active,status').eq('user_id',user.id).maybeSingle()
  if(memberError||!member||member.active!==true||member.status!=='approved')
   return reply({error:'Conta não autorizada para contratar ou retomar checkout.'},403)
+ // A CPF is optional at signup. It becomes necessary only for a paid checkout.
+ // Read it from the authenticated user's private identity, never from the
+ // request body. Reject before creating any billing intent or provider charge.
+ const {data:identity,error:identityError}=await admin.rpc('billing_identity_for_asaas',{
+  p_user_id:user.id
+ })
+ if(identityError)return reply({error:'Não foi possível validar o CPF cadastrado.'},503)
+ const cpf=typeof identity?.cpf==='string'?identity.cpf:''
+ if(!/^[0-9]{11}$/.test(cpf))
+  return reply({code:'CPF_REQUIRED',error:'Informe seu CPF para iniciar uma assinatura. O CPF será salvo em seu cadastro.'},422)
  // Fetch the authenticated account's payer data on the server; never accept
  // arbitrary customer IDs or personal details from the checkout request body.
  const [{data:profile,error:profileError},{data:billing,error:billingError}]=await Promise.all([
@@ -102,7 +112,23 @@ Deno.serve(async(req:Request)=>{
   &&typeof billing.provider_customer_id==='string'
   &&/^cus_[A-Za-z0-9_]{5,80}$/.test(billing.provider_customer_id)
   ?billing.provider_customer_id:null
- const customerData=knownCustomer?null:checkoutCustomerData(profile,user.email)
+ const customerData=knownCustomer?null:checkoutCustomerData(profile,user.email,cpf)
+ // Reusing an Asaas customer is safe only if its CPF matches the user's
+ // newly confirmed CPF. Otherwise do not create or update a payer by guess.
+ if(knownCustomer){
+  let savedCustomer:Record<string,unknown>|null=null
+  try{
+   const response=await fetch('https://api-sandbox.asaas.com/v3/customers/'+encodeURIComponent(knownCustomer),{
+    method:'GET',headers:{access_token:key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'},
+    signal:AbortSignal.timeout(12000)
+   })
+   if(response.ok)savedCustomer=await response.json()
+  }catch{}
+  const customerCpf=typeof savedCustomer?.cpfCnpj==='string'
+   ?savedCustomer.cpfCnpj.replace(/\\D/g,''):''
+  if(!savedCustomer||savedCustomer.id!==knownCustomer||customerCpf!==cpf)
+   return reply({error:'O CPF do cadastro não corresponde ao cliente vinculado no Asaas ou não pôde ser verificado. Contate o suporte antes de contratar.'},409)
+ }
  // A prior checkout may already exist even if the user saw a 404 on the old redirect.
  // Read only the authenticated user's RLS-protected attempts to avoid duplicate billing.
  const {data:existing,error:existingError}=await userClient.from('billing_checkout_intents')
@@ -144,7 +170,7 @@ Deno.serve(async(req:Request)=>{
    quantity:1,value:intent.amountCents/100}],
   subscription:{cycle:'MONTHLY',nextDueDate},
   // Asaas supports either an existing linked customer OR prefilled payer data.
-  // Never send both. Missing CPF or city must be completed on the hosted page.
+  // Never send both. CPF always comes from the server-side verified identity.
   ...(knownCustomer?{customer:knownCustomer}
    :customerData&&Object.keys(customerData).length>0?{customerData}:{})
  }
