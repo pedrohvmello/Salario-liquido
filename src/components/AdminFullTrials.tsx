@@ -24,7 +24,7 @@ export function AdminFullTrials(){
   ])
   if(records.error)throw records.error
   setUsers(dashboard.users)
-  setTrials(Array.isArray(records.data)?records.data as Trial:[])
+  setTrials(Array.isArray(records.data)?records.data as Trial[]:[])
  },[])
  useEffect(()=>{let active=true
   void (async()=>{
