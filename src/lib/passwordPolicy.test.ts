@@ -15,7 +15,8 @@ describe('Supabase-synchronized password requirements',()=>{
   expect(validatePasswordPolicy({minLength:8,preset:'letters_numbers'})).toBeNull()
   expect(validatePasswordPolicy({minLength:10,preset:'mixed_case_numbers'})).toBeNull()
   expect(validatePasswordPolicy({minLength:14,preset:'mixed_case_numbers_symbols'})).toBeNull()
-  expect(validatePasswordPolicy({minLength:7,preset:'none'})).not.toBeNull()
+  expect(validatePasswordPolicy({minLength:5,preset:'none'})).not.toBeNull()
+  expect(validatePasswordPolicy({minLength:6,preset:'none'})).toBeNull()
   expect(isPasswordPolicy({minLength:8,preset:'symbols_only'})).toBe(false)
  })
  it('validates all four groups for the strongest preset',()=>{
