@@ -1,5 +1,6 @@
 import {db} from './data'
 import {profileDisplayName} from './profile'
+import {checkoutInvokeErrorMessage} from './checkoutError'
 import type {User} from '@supabase/supabase-js'
 
 export type PayrepProfile={
@@ -41,9 +42,7 @@ export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<str
   body:{plan},headers:{Authorization:'Bearer '+session.access_token}
  })
  if(error){
-  const context=error&&'context' in error?(error as {context?:Response}).context:undefined
-  const payload=context?await context.json().catch(()=>null):null
-  throw Error((payload as {error?:string}|null)?.error||'Checkout indisponível no Sandbox Asaas.')
+  throw Error(await checkoutInvokeErrorMessage(error))
  }
  if(data?.mode!=='sandbox'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
  const dest=new URL(data.checkoutUrl)
