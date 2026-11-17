@@ -18,6 +18,8 @@ const SYSTEM=`Você é o assistente de suporte do Payrep. Responda na língua do
 
 DOCUMENTAÇÃO OFICIAL:
 ${PAYREP_SUPPORT_KNOWLEDGE}`
+const HELP_RULES='MODO AJUDA: responda somente dúvidas sobre como utilizar o Payrep. Não consulte, deduza, calcule ou divulgue valores financeiros pessoais. Perguntas pessoais devem ser direcionadas ao menu Pergunte ao Pep. Não afirme que consultou dados individuais.'
+const PERSONAL_RULES='MODO CONSULTA PESSOAL: responda perguntas financeiras somente usando o resumo financeiro autorizado do usuário autenticado. Distingua parâmetros configurados, eventos manuais, projeções e valores comprovados em documentos. Quando faltarem dados, declare explicitamente. No plano Basic não há acesso aos holerites armazenados; no Full é possível consultar informações resumidas desses documentos. Não invente rubricas, números ou comprovação.'
 
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
@@ -68,24 +70,46 @@ Deno.serve(async req=>{
   auth:{persistSession:false,autoRefreshToken:false}
  })
 
- // Only a deliberate opt-in may trigger a user-scoped financial read.
- // Revalidate ownership with the signed-in JWT and RLS; never use service_role
- // for payroll or payslip data. Do not send names, files, IDs or arbitrary notes.
+ // Plan entitlement and counters are server-sourced, not accepted from the client.
+ // RLS/verified user JWT protects the personal quota snapshot.
+ const {data:entitlement,error:entitlementError}=await scoped.rpc('get_my_pep_usage')
+ if(entitlementError||!entitlement)return reply({error:'quota_unavailable'},503)
+ const mode=input.value.mode
+ const paidPlan=entitlement.effectivePlan as 'free'|'basic'|'full'
+ if(mode==='personal'&&paidPlan==='free'&&!verifiedAdmin)
+  return reply({error:'plan_required'},403)
+
+ // Reserving atomically on the backend protects total and per-mode quotas.
+ // Basic and Full share the SAME personal count; Help has its own count.
+ if(!verifiedAdmin){
+  const {data:quota,error:quotaError}=await db.rpc('reserve_pep_request',{
+   p_user_id:user.id,p_mode:mode
+  })
+  if(quotaError)return reply({error:'quota_unavailable'},503)
+  if(quota!=='ok')return reply({error:quota==='plan_required'?'plan_required':quota==='global_limit'?'global_limit':'daily_limit'},quota==='plan_required'?403:429)
+ }
+
+ // Help is documentation only and NEVER performs any financial query, even if
+ // someone tampers with the request body. Personal queries are strictly scoped
+ // by signed-in JWT and RLS, with document-level data restricted to Full.
  let context:{facts:string;sourceLabels:string[]}|null=null
- if(input.value.useFinancialData&&financialTopic(input.value.question,input.value.history)){
+ const personalQuestion=mode==='personal'&&financialTopic(input.value.question,input.value.history)
+ if(personalQuestion){
+  const canReadPayslips=paidPlan==='full'
   const [docs,events,settings]=await Promise.all([
-   scoped.from('statements').select(
+   canReadPayslips?scoped.from('statements').select(
     'id,period,document_type,credits,debits,net,net_received,salary_advance,ir_base,fgts,salary_contract,trienio,gross_ppr,ppr_income_tax,thirteenth_gross,thirteenth_irrf,thirteenth_inss,thirteenth_pension,thirteenth_advance,payment_date')
-    .eq('user_id',user.id).order('period',{ascending:false}).limit(120),
+    .eq('user_id',user.id).order('period',{ascending:false}).limit(120)
+    :Promise.resolve({data:[] as FinancialStatement[],error:null}),
    scoped.from('salary_events').select('kind,effective_date,value')
     .eq('user_id',user.id).order('effective_date',{ascending:false}).limit(50),
    scoped.from('user_settings').select('parameters').eq('user_id',user.id).maybeSingle()
   ])
   if(docs.error||events.error||settings.error)return reply({error:'financial_data_unavailable'},503)
   const statementRows=(docs.data||[]) as FinancialStatement[]
-  const selected=selectFinancialStatements(input.value.question,statementRows,input.value.history)
+  const selected=canReadPayslips?selectFinancialStatements(input.value.question,statementRows,input.value.history):[]
   let rubrics:Rubric[]=[]
-  if(selected.length){
+  if(canReadPayslips&&selected.length){
    const lineQuery=await scoped.from('statement_lines').select('statement_id,side,description,code,amount')
     .eq('user_id',user.id).in('statement_id',selected.map(x=>x.id))
     .order('ordinal',{ascending:true}).limit(160)
@@ -99,17 +123,9 @@ Deno.serve(async req=>{
   })
  }
 
- // Active, approved administrators do not consume user quotas or cooldown.
- // Administrative settings continue to require MFA separately.
- // The Cloudflare Free-plan capacity remains a separate external limit.
- if(!verifiedAdmin){
-  const {data:quota,error:quotaError}=await db.rpc('reserve_support_ai_request',{p_user_id:user.id})
-  if(quotaError)return reply({error:'quota_unavailable'},503)
-  if(quota!=='ok')return reply({error:'daily_limit'},429)
- }
-
  const messages=[
   {role:'system',content:SYSTEM},
+  {role:'system',content:mode==='help'?HELP_RULES:PERSONAL_RULES},
   ...(context?[{role:'system',content:
    'RESUMO FINANCEIRO AUTORIZADO, dados somente leitura, sem documentos originais: '+context.facts+
    '. Estes valores vêm de registros do usuário autenticado; não crie nem estime dados ausentes. Se a competência pedida não tiver documento, informe explicitamente.'}]:[]),
@@ -131,7 +147,8 @@ Deno.serve(async req=>{
   const result:unknown=await response.json()
   const answer=parseCloudflareAnswer(result)
   if(!answer)return reply({error:'ai_invalid_response'},502)
-  return reply({answer,model:'Gemma 4 26B',sources:context?.sourceLabels||[],usedFinancialData:Boolean(context)})
+  return reply({answer,model:'Gemma 4 26B',sources:context?.sourceLabels||[],
+   usedFinancialData:Boolean(context),mode})
  }catch(err){
   console.warn('Payrep AI request failed by category',err instanceof Error?err.name:'unknown')
   return reply({error:'ai_unavailable'},503)
