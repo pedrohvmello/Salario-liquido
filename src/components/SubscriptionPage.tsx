@@ -28,6 +28,7 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
   }catch(e){setCheckoutError(e instanceof Error?e.message:'Checkout de homologação indisponível.');setCheckoutBusy(null)}
  }
  const current=data.subscription
+ const paidCheckoutPending=current.plan_code==='free'&&checkoutHistory.some(intent=>intent.status==='paid')
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
@@ -45,6 +46,9 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
     </div>}
     <div className="detail-hint"><Info size={16}/>A infraestrutura de checkout Asaas está preparada exclusivamente para testes no HML. A contratação depende de preços aprovados, habilitação administrativa e credenciais do Sandbox. Não há pagamentos reais nem cancelamento integrado nesta etapa.</div>
    </section>
+   {paidCheckoutPending&&<div className="notice" role="status">
+    O checkout de teste foi pago no Asaas Sandbox. A assinatura está aguardando conciliação no Payrep. Não inicie outra contratação.
+   </div>}
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
@@ -52,7 +56,7 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
       <small>{current.plan_code===code?'Plano atual':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
-      {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&
+      {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
        <button type="button" className="secondary" disabled={checkoutBusy!==null}
         onClick={()=>void checkout(code)}>
         {checkoutBusy===code?'Preparando checkout...':'Testar checkout no Asaas'}
