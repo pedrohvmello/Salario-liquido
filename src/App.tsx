@@ -28,6 +28,7 @@ import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,rem
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {PayslipDocuments} from './components/PayslipDocuments'
 import {requiresPasswordSetup} from './lib/authRedirect'
+import {billingReturnFromUrl,withoutBillingReturn,type BillingReturn} from './lib/billingReturn'
 import {pathnameWithoutEmptyFragment} from './lib/urlFragment'
 import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
@@ -112,6 +113,7 @@ function GuestEntry(){
 
 export default function App(){
  const [section,setSection]=useState<Section>('overview')
+ const [billingReturn,setBillingReturn]=useState<BillingReturn|null>(()=>billingReturnFromUrl(window.location.href))
  const [menu,setMenu]=useState(false)
  useEffect(()=>{
   if(!menu)return
@@ -122,6 +124,19 @@ export default function App(){
  const [user,setUser]=useState<User|null>(null)
  const authUserIdRef=useRef<string|null>(null)
  const [authReady,setAuthReady]=useState(!db)
+ useEffect(()=>{
+  // Route only after authentication, MFA and account approval. The callback
+  // is never used as proof of payment or to grant plan entitlements.
+  if(!user||!authReady||accessDecision?.userId!==user.id||accessDecision.state!=='approved'
+   ||(mfaEnabled&&mfaState!=='ready')||passwordSetup)return
+  const returned=billingReturnFromUrl(window.location.href)
+  if(returned){
+   setBillingReturn(returned)
+   setSection('subscription')
+   window.history.replaceState(window.history.state,'',withoutBillingReturn(window.location.href))
+  }
+ },[authReady,user?.id,accessDecision?.userId,accessDecision?.state,mfaState,passwordSetup])
+
  useEffect(()=>{
   if(!authReady)return
   const path=pathnameWithoutEmptyFragment(window.location.href)
@@ -522,7 +537,7 @@ export default function App(){
     {section==='admin-support'&&isAdmin&&<AdminSupportTickets onBack={()=>setSection('admin-settings')}/>}
     {section==='admin-settings'&&isAdmin&&<AdminSettingsPage onNavigate={view=>setSection(view)}/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
-    {section==='subscription'&&user&&<SubscriptionPage onBack={()=>setSection('overview')}/>}
+    {section==='subscription'&&user&&<SubscriptionPage billingReturn={billingReturn} onBack={()=>{setBillingReturn(null);setSection('overview')}}/>}
     {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')} onNavigateSubscription={()=>setSection('subscription')} onPayrollReset={async()=>{
       await refresh()
       setSelectedStmt(null);setStatementLines([])
