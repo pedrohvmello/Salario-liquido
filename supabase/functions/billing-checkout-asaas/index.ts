@@ -125,7 +125,7 @@ Deno.serve(async(req:Request)=>{
    if(response.ok)savedCustomer=await response.json()
   }catch{}
   const customerCpf=typeof savedCustomer?.cpfCnpj==='string'
-   ?savedCustomer.cpfCnpj.replace(/\\D/g,''):''
+   ?savedCustomer.cpfCnpj.replace(/\D/g,''):''
   if(!savedCustomer||savedCustomer.id!==knownCustomer||customerCpf!==cpf)
    return reply({error:'O CPF do cadastro não corresponde ao cliente vinculado no Asaas ou não pôde ser verificado. Contate o suporte antes de contratar.'},409)
  }
