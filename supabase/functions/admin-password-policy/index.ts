@@ -22,7 +22,7 @@ const reply=(status:number,body:Record<string,unknown>)=>new Response(JSON.strin
 const isPolicy=(x:unknown):x is Policy=>{
  if(!x||typeof x!=='object')return false
  const p=x as Record<string,unknown>
- return Number.isInteger(p.minLength)&&Number(p.minLength)>=8&&Number(p.minLength)<=128
+ return Number.isInteger(p.minLength)&&Number(p.minLength)>=6&&Number(p.minLength)<=128
   &&typeof p.preset==='string'&&Object.prototype.hasOwnProperty.call(CHARSETS,p.preset)
 }
 // Management API versions can serialize supported character requirements as
