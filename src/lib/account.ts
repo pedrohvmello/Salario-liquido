@@ -69,6 +69,14 @@ export async function reconcileMyAsaasSandboxBilling():Promise<BillingReconcilia
  return data as BillingReconciliationResult
 }
 
+export async function cancelMyAsaasSandboxRenewal():Promise<{canceledRenewal:boolean;accessUntil?:string}>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data,error}=await db.functions.invoke('billing-cancel-asaas',{body:{}})
+ if(error)throw Error(await checkoutInvokeErrorMessage(error))
+ if(data?.canceledRenewal!==true)throw Error('Cancelamento não confirmado pelo Asaas.')
+ return data as {canceledRenewal:boolean;accessUntil?:string}
+}
+
 export const blankProfile=(user?:User|null):PayrepProfile=>({
  display_name:profileDisplayName(user||null),
  phone:'',postal_code:'',street:'',street_number:'',complement:'',
