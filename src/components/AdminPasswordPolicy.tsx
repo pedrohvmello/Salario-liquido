@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
 import {LockKeyhole,RefreshCw,Save} from 'lucide-react'
+import {PayrepSelect} from './PayrepSelect'
 import {
  callAuthPasswordPolicy,passwordPolicyDefaults,passwordPresetOptions,
  validatePasswordPolicy,type PasswordPolicy,type PasswordPreset
@@ -53,10 +54,11 @@ export function AdminPasswordPolicy(){
      aria-label="Mínimo de caracteres"/>
    </label>
    <label className="password-policy-length">Requisitos de composição
-    <select value={policy.preset} disabled={!saved||loading||saving}
-     onChange={e=>setPolicy(old=>({...old,preset:e.target.value as PasswordPreset}))}>
+    <PayrepSelect value={policy.preset} disabled={!saved||loading||saving}
+     title="Requisitos de composição"
+     onChange={value=>setPolicy(old=>({...old,preset:value as PasswordPreset}))}>
      {passwordPresetOptions.map(opt=><option key={opt.value} value={opt.value}>{opt.label}</option>)}
-    </select>
+    </PayrepSelect>
    </label>
   </div>
   <p className="subtle">As combinações seguem exatamente as opções suportadas pelo Supabase.
