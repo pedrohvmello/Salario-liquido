@@ -5,6 +5,7 @@ import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 import {autoPromptPreferred,passkeyAutoPromptEnabled,supportsWebAuthn} from '../lib/passkey'
 import {cancelPasskeyCeremony,rememberedCredentialId,signInWithDevicePasskey} from '../lib/devicePasskeys'
+import {isUnconfirmedEmailError} from '../lib/authEmailConfirmation'
 
 /** Official-style multicolor Google G mark for the OAuth button. */
 function GoogleGIcon(){
@@ -22,6 +23,7 @@ export function AuthGate(){
   const [password,setPassword]=useState('')
   const [confirmation,setConfirmation]=useState('')
   const [signupResult,setSignupResult]=useState<'email'|'ready'|null>(null)
+  const [unconfirmedEmail,setUnconfirmedEmail]=useState(false)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
@@ -38,7 +40,7 @@ export function AuthGate(){
   ]
   const backToLogin=()=>{
    stopPasskeyAttempt();setMode('login');setPassword('');setConfirmation('')
-   setSignupResult(null);setError('');setMessage('')
+   setSignupResult(null);setUnconfirmedEmail(false);setError('');setMessage('')
   }
   const autoPasskey=autoPromptPreferred()
   const automaticStarted=useRef(false)
@@ -93,7 +95,12 @@ export function AuthGate(){
         const {error}=await db.auth.signInWithPassword({email:email.trim(),password})
         if(error)throw error
       }
-    }catch(e){setError(e instanceof Error?e.message:'Não foi possível concluir a solicitação.')}
+    }catch(e){
+     if(mode==='login'&&isUnconfirmedEmailError(e)){
+      setUnconfirmedEmail(true)
+      setPassword('')
+     }else setError(e instanceof Error?e.message:'Não foi possível concluir a solicitação.')
+    }
     finally{setBusy(false)}
   }
   const googleEnabled=import.meta.env.VITE_ENABLE_GOOGLE_OAUTH==='true'
@@ -110,17 +117,19 @@ export function AuthGate(){
     <div className="brand auth-brand brand--wordmark">
       <img className="brand-full-logo" src="/brand/payrep-logo.svg" alt="Payrep" width="290" height="87"/>
     </div>
-    <h1>{signupResult?(signupResult==='email'?'Verifique seu e-mail':'Cadastro concluído'):mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
-    <p>{signupResult?(signupResult==='email'
+    <h1>{unconfirmedEmail?'E-mail pendente de confirmação':signupResult?(signupResult==='email'?'Verifique seu e-mail':'Cadastro concluído'):mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
+    <p>{unconfirmedEmail?'Para acessar o Payrep, você precisa confirmar seu endereço de e-mail.':signupResult?(signupResult==='email'
        ?'Para continuar, confirme seu endereço de e-mail. A liberação da conta poderá depender de aprovação administrativa.'
        :'Sua solicitação de acesso foi recebida. O Payrep verificará a autorização da conta.')
       :mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.'
       :mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.'
       :'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>
-    {signupResult?
+    {(signupResult||unconfirmedEmail)?
      <div className="signup-confirmation-screen" role="status">
       <div className="signup-confirmation-icon"><MailCheck size={29} aria-hidden="true"/></div>
-      <p>{signupResult==='email'
+      <p>{unconfirmedEmail
+       ?'Seu endereço ainda não foi confirmado. Acesse a caixa de entrada do e-mail cadastrado e clique em “Confirmar meu e-mail” na mensagem do Payrep. Confira também as pastas Spam e Promoções. Depois, volte e faça login.'
+       :signupResult==='email'
        ?'Se o cadastro foi aceito, o e-mail de confirmação foi enviado para '+email.trim()+'. Confira também Spam e Promoções. O link valida o endereço de e-mail, não a senha.'
        :'A conta foi criada. Se houver aprovação administrativa, aguarde a liberação para entrar.'}</p>
       <button type="button" className="primary" onClick={backToLogin}>
