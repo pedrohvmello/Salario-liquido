@@ -1,7 +1,8 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
+import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
 function date(raw:string|null){return raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'}
@@ -14,6 +15,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
+ const [cpfPlan,setCpfPlan]=useState<'basic'|'full'|null>(null)
+ const [cpfDraft,setCpfDraft]=useState('')
+ const [cpfError,setCpfError]=useState('')
+ const cpfInputRef=useRef<HTMLInputElement>(null)
+ useEffect(()=>{if(cpfPlan)cpfInputRef.current?.focus()},[cpfPlan])
  const [cancelConfirm,setCancelConfirm]=useState(false)
  const [cancelBusy,setCancelBusy]=useState(false)
  const [cancelMessage,setCancelMessage]=useState('')
@@ -62,11 +68,42 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  },[])
  const checkout=async(plan:'basic'|'full')=>{
   if(checkoutBusy)return
-  setCheckoutBusy(plan);setCheckoutError('')
+  setCheckoutBusy(plan);setCheckoutError('');setCpfError('')
   try{
+   if(!await hasMyCheckoutCpf()){
+    setCpfDraft('');setCpfPlan(plan);setCheckoutBusy(null)
+    return
+   }
    const url=await startAsaasSandboxCheckout(plan)
    window.location.assign(url)
-  }catch(e){setCheckoutError(e instanceof Error?e.message:'Checkout de homologação indisponível.');setCheckoutBusy(null)}
+  }catch(e){
+   const message=e instanceof Error?e.message:'Checkout de homologação indisponível.'
+   if(message.includes('CPF_REQUIRED')||message.includes('Informe seu CPF')){
+    setCpfPlan(plan);setCpfDraft('')
+   }else setCheckoutError(message)
+   setCheckoutBusy(null)
+  }
+ }
+ const confirmCpfAndCheckout=async()=>{
+  if(!cpfPlan||checkoutBusy)return
+  if(!isValidCpf(cpfDraft)){
+   setCpfError('CPF inválido. Confira os 11 dígitos informados.')
+   return
+  }
+  const plan=cpfPlan
+  setCheckoutBusy(plan);setCpfError('');setCheckoutError('')
+  let saved=false
+  try{
+   await confirmMyCheckoutCpf(cpfDraft)
+   saved=true
+   setCpfPlan(null);setCpfDraft('')
+   const url=await startAsaasSandboxCheckout(plan)
+   window.location.assign(url)
+  }catch(e){
+   const message=e instanceof Error?e.message:'Não foi possível concluir o cadastro para pagamento.'
+   if(saved)setCheckoutError('CPF salvo no seu cadastro. '+message)
+   else setCpfError(message)
+  }finally{setCheckoutBusy(null)}
  }
  const cancelRenewal=async()=>{
   if(cancelBusy)return
@@ -151,6 +188,29 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      </div>
     })}</div>
    </section>
+   {cpfPlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-cpf-title">
+    <div className="panel-heading"><h2 id="checkout-cpf-title">Informe seu CPF para contratar o {names[cpfPlan]}</h2></div>
+    <p className="subtle">O CPF é opcional no cadastro do Payrep, mas necessário para contratar uma assinatura. Após confirmar, ele será salvo no seu cadastro e enviado ao Asaas para preparar o checkout. Não solicitamos dados de cartão nesta etapa.</p>
+    <form className="subscription-cpf-form" onSubmit={e=>{e.preventDefault();void confirmCpfAndCheckout()}}>
+     <label htmlFor="checkout-cpf-input">CPF
+      <input id="checkout-cpf-input" ref={cpfInputRef} type="text" inputMode="numeric"
+       autoComplete="off" placeholder="000.000.000-00" maxLength={14}
+       value={cpfDraft} onChange={e=>{setCpfDraft(formatCpf(e.target.value));setCpfError('')}}
+       aria-invalid={cpfDigits(cpfDraft).length===11&&!isValidCpf(cpfDraft)||Boolean(cpfError)}
+       aria-describedby={cpfError?'checkout-cpf-error':'checkout-cpf-help'}/>
+     </label>
+     <small id="checkout-cpf-help" className="subtle">O CPF deve conter 11 dígitos válidos. A data de nascimento não é exigida para contratar.</small>
+     {cpfError&&<p id="checkout-cpf-error" className="error" role="alert">{cpfError}</p>}
+     <div className="row">
+      <button type="button" className="secondary" disabled={checkoutBusy!==null}
+       onClick={()=>{setCpfPlan(null);setCpfDraft('');setCpfError('')}}>Cancelar</button>
+      <button type="submit" className="primary"
+       disabled={checkoutBusy!==null||!isValidCpf(cpfDraft)}>
+       {checkoutBusy===cpfPlan?'Salvando CPF...':'Confirmar CPF e continuar no Asaas'}
+      </button>
+     </div>
+    </form>
+   </section>}
    {checkoutError&&<div className="notice danger" role="alert">{checkoutError}</div>}
    {checkoutHistory.length>0&&<section className="panel">
     <div className="panel-heading"><h2>Checkouts de homologação</h2></div>
