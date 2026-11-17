@@ -11,6 +11,40 @@ const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store','Vary':'Origin'
 }
+// Only reuse data belonging to the authenticated user. These fields are sent
+// server-to-server to Asaas; do not log, return, or store this payload in an intent.
+type PayerProfile={
+ display_name?:string|null;phone?:string|null;postal_code?:string|null;
+ street?:string|null;street_number?:string|null;complement?:string|null;
+ neighborhood?:string|null;country?:string|null
+}
+function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined):Record<string,string>{
+ const data:Record<string,string>={}
+ const clean=(value:unknown,max:number)=>typeof value==='string'?value.trim().slice(0,max):''
+ const name=clean(profile?.display_name,100)
+ if(name.length>=2)data.name=name
+ const authEmail=clean(email,254)
+ if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail))data.email=authEmail
+ const number=clean(profile?.phone,30).replace(/\D/g,'')
+ const localPhone=number.length===13&&number.startsWith('55')?number.slice(2):number
+ if(/^\d{10,11}$/.test(localPhone))data.phone=localPhone
+ if(!profile||!['brasil','brazil','br'].includes(clean(profile.country,80).toLowerCase()))
+  return data
+ const postal=clean(profile.postal_code,20).replace(/\D/g,'')
+ if(/^\d{8}$/.test(postal))data.postalCode=postal
+ const address=clean(profile.street,160)
+ const addressNumber=clean(profile.street_number,24)
+ const complement=clean(profile.complement,100)
+ const province=clean(profile.neighborhood,100)
+ if(address)data.address=address
+ if(addressNumber)data.addressNumber=addressNumber
+ if(complement)data.complement=complement
+ if(province)data.province=province
+ // Payrep stores city as free text, while Asaas expects a numeric city ID.
+ // Never invent a municipality code. The buyer can confirm the city in checkout.
+ // Payrep also does not store CPF/CNPJ in user_profiles.
+ return data
+}
 // Use the exact hosted checkout URL returned by Asaas Sandbox, never a manually built production URL.
 const sandboxCheckoutUrl=(candidate:unknown,id:string):string|null=>{
  if(typeof candidate!=='string'||candidate.length>400)return null
@@ -53,6 +87,22 @@ Deno.serve(async(req:Request)=>{
   .select('active,status').eq('user_id',user.id).maybeSingle()
  if(memberError||!member||member.active!==true||member.status!=='approved')
   return reply({error:'Conta não autorizada para contratar ou retomar checkout.'},403)
+ // Fetch the authenticated account's payer data on the server; never accept
+ // arbitrary customer IDs or personal details from the checkout request body.
+ const [{data:profile,error:profileError},{data:billing,error:billingError}]=await Promise.all([
+  admin.from('user_profiles')
+   .select('display_name,phone,postal_code,street,street_number,complement,neighborhood,country')
+   .eq('user_id',user.id).maybeSingle(),
+  admin.from('billing_subscriptions')
+   .select('provider,provider_customer_id')
+   .eq('user_id',user.id).maybeSingle()
+ ])
+ if(profileError||billingError)return reply({error:'Não foi possível consultar os dados do pagador.'},503)
+ const knownCustomer=billing?.provider==='asaas'
+  &&typeof billing.provider_customer_id==='string'
+  &&/^cus_[A-Za-z0-9_]{5,80}$/.test(billing.provider_customer_id)
+  ?billing.provider_customer_id:null
+ const customerData=knownCustomer?null:checkoutCustomerData(profile,user.email)
  // A prior checkout may already exist even if the user saw a 404 on the old redirect.
  // Read only the authenticated user's RLS-protected attempts to avoid duplicate billing.
  const {data:existing,error:existingError}=await userClient.from('billing_checkout_intents')
@@ -92,7 +142,11 @@ Deno.serve(async(req:Request)=>{
   items:[{name:'Payrep '+(plan==='basic'?'Basic':'Full'),
    description:'Assinatura mensal de teste. Sandbox sem movimentação financeira real.',
    quantity:1,value:intent.amountCents/100}],
-  subscription:{cycle:'MONTHLY',nextDueDate}
+  subscription:{cycle:'MONTHLY',nextDueDate},
+  // Asaas supports either an existing linked customer OR prefilled payer data.
+  // Never send both. Missing CPF or city must be completed on the hosted page.
+  ...(knownCustomer?{customer:knownCustomer}
+   :customerData&&Object.keys(customerData).length>0?{customerData}:{})
  }
  let response:Response
  try{
