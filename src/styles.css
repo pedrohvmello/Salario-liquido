@@ -1614,3 +1614,56 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .subscription-confirm-form .subscription-confirm-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:10px}
 .subscription-confirm-form .subscription-confirm-actions button{min-width:124px}
 @media(max-width:640px){.subscription-confirm-form .subscription-confirm-actions button{flex:1;min-width:0}}
+
+
+/* Desktop sidebar: hide the scrollbar but preserve mouse, touch, and keyboard scrolling. */
+.sidebar{
+ scrollbar-width:none;
+ -ms-overflow-style:none;
+}
+.sidebar::-webkit-scrollbar{width:0;height:0;display:none}
+.sidebar-brand-row{position:relative;flex:none}
+.sidebar-collapse-toggle{
+ position:absolute;right:-4px;top:3px;
+ display:flex;align-items:center;justify-content:center;
+ width:26px;height:26px;padding:3px;border:1px solid #ba85eb55;
+ background:#42136c;color:#e9d0ff;border-radius:8px;
+ opacity:.88;transition:opacity .18s,background .18s;z-index:2
+}
+.sidebar-collapse-toggle:hover{background:#64249c;color:white}
+.sidebar-collapse-toggle:focus-visible{outline:2px solid #e9b6ff;outline-offset:2px;opacity:1}
+.sidebar-item-tooltip{
+ position:fixed;z-index:350;pointer-events:none;
+ transform:translateY(-50%);
+ padding:9px 12px;border-radius:9px;
+ background:#28074c;color:#fff;box-shadow:0 8px 25px #23054550;
+ border:1px solid #ad75df66;
+ font-size:12px;font-weight:700;line-height:1.25;
+ max-width:240px;white-space:nowrap;
+}
+.sidebar-menu-label{min-width:0}
+@media(min-width:761px){
+ .sidebar{transition:width .2s ease,min-width .2s ease,padding .2s ease}
+ .sidebar--collapsed{width:80px;min-width:80px;padding:29px 12px 17px}
+ .sidebar--collapsed .brand--wordmark{justify-content:center;padding:0 0 30px}
+ .sidebar--collapsed .brand-type,
+ .sidebar--collapsed .nav-label,
+ .sidebar--collapsed .sidebar-menu-label,
+ .sidebar--collapsed .sidebar-footer,
+ .sidebar--collapsed .nav-dot,
+ .sidebar--collapsed .admin-nav-separator span{display:none}
+ .sidebar--collapsed .nav{justify-content:center;gap:0;min-height:46px;padding:12px 0}
+ .sidebar--collapsed .nav svg{flex:none;margin:0}
+ .sidebar--collapsed .admin-nav-separator{margin:16px 7px 12px;gap:0}
+ .sidebar--collapsed .admin-nav-separator:after{display:none}
+ .sidebar--collapsed .sidebar-collapse-toggle{
+  top:-18px;right:-12px;opacity:0;pointer-events:none;
+ }
+ .sidebar--collapsed:hover .sidebar-collapse-toggle,
+ .sidebar--collapsed .sidebar-collapse-toggle:focus-visible{
+  opacity:1;pointer-events:auto;
+ }
+}
+@media(max-width:760px){
+ .sidebar-collapse-toggle,.sidebar-item-tooltip{display:none}
+}
