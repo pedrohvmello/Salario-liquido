@@ -1671,3 +1671,22 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:760px){
  .sidebar-collapse-toggle,.sidebar-item-tooltip{display:none}
 }
+
+/* Supabase Auth verified password policy administration. */
+.password-policy-length select{
+ width:min(100%,480px);
+ max-width:100%;
+ min-height:43px;
+ padding:9px 14px;
+ border:1px solid #e2c9f3;
+ border-radius:10px;
+ background:#fff;
+ color:#3e175f;
+ font:inherit;
+}
+.password-policy-length select:disabled,
+.password-policy-length input:disabled{background:#f7f3fa;color:#8d7a9e;cursor:not-allowed}
+@media(max-width:680px){
+ .password-policy-length:has(select){align-items:stretch;flex-direction:column}
+ .password-policy-length select{width:100%}
+}
