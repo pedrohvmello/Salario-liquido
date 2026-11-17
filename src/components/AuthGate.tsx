@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {ChevronRight, CircleCheck, CircleX, LockKeyhole, MailCheck, UserRound} from 'lucide-react'
 import {db} from '../lib/data'
-import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
+import {checkPassword,passwordPolicyDefaults,loadPasswordPolicy,passwordRuleIndicators,passwordRequirements,type PasswordPolicy} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 import {autoPromptPreferred,passkeyAutoPromptEnabled,supportsWebAuthn} from '../lib/passkey'
 import {cancelPasskeyCeremony,rememberedCredentialId,signInWithDevicePasskey} from '../lib/devicePasskeys'
@@ -27,17 +27,19 @@ export function AuthGate(){
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
-  const signupPasswordMissing=checkPassword(password)
-  const signupPasswordRules=[
-    {id:'length',label:'Pelo menos '+passwordPolicyDefaults.minLength+' caracteres',
-      met:!signupPasswordMissing.some(item=>item.startsWith('mínimo de '))},
-    {id:'letters',label:'Letras maiúsculas e minúsculas',
-      met:!signupPasswordMissing.includes('letra maiúscula')&&!signupPasswordMissing.includes('letra minúscula')},
-    {id:'numbers',label:'Pelo menos um número',
-      met:!signupPasswordMissing.includes('número')},
-    {id:'symbols',label:'Pelo menos um caractere especial',
-      met:!signupPasswordMissing.includes('caractere especial')}
-  ]
+  const [passwordPolicy,setPasswordPolicy]=useState<PasswordPolicy>(passwordPolicyDefaults)
+  const [passwordPolicyReady,setPasswordPolicyReady]=useState(false)
+  const [passwordPolicyError,setPasswordPolicyError]=useState('')
+  useEffect(()=>{
+   let active=true
+   void loadPasswordPolicy().then(({policy})=>{
+    if(active){setPasswordPolicy(policy);setPasswordPolicyReady(true);setPasswordPolicyError('')}
+   }).catch(()=>{
+    if(active){setPasswordPolicyReady(false);setPasswordPolicyError('Não foi possível carregar os requisitos de senha. Atualize a página para tentar novamente.')}
+   })
+   return ()=>{active=false}
+  },[])
+  const signupPasswordRules=passwordRuleIndicators(password,passwordPolicy)
   const backToLogin=()=>{
    stopPasskeyAttempt();setMode('login');setPassword('');setConfirmation('')
    setSignupResult(null);setUnconfirmedEmail(false);setError('');setMessage('')
@@ -82,7 +84,8 @@ export function AuthGate(){
         if(error)throw error
         setMessage('Se a conta existir, você receberá instruções para recuperar a senha.')
       }else if(mode==='signup'){
-        const missing=checkPassword(password)
+        if(!passwordPolicyReady)throw Error('Os requisitos de senha não estão disponíveis. Recarregue a página.')
+        const missing=checkPassword(password,passwordPolicy)
         if(missing.length)throw Error('A senha precisa conter: '+missing.join(', ')+'.')
         if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
         const {data,error}=await db.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin}})
@@ -139,8 +142,8 @@ export function AuthGate(){
     :<>
     <form onSubmit={e=>{e.preventDefault();void act()}}>
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
-      {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?passwordPolicyDefaults.minLength:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 12 caracteres':'Sua senha'}/></label>}
-      {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={passwordPolicyDefaults.minLength} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check signup-password-rules" placeholder="Digite a senha novamente"/></label>}
+      {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?passwordPolicy.minLength:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de '+passwordPolicy.minLength+' caracteres':'Sua senha'}/></label>}
+      {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={passwordPolicy.minLength} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check signup-password-rules" placeholder="Digite a senha novamente"/></label>}
       {mode==='signup'&&<div id="signup-password-rules" className="signup-password-rules" aria-label="Requisitos de senha">
        {signupPasswordRules.map(rule=><div key={rule.id} className={'signup-password-rule '+(rule.met?'is-met':'is-missing')}>
         {rule.met?<CircleCheck size={15} aria-hidden="true"/>:<CircleX size={15} aria-hidden="true"/>}
@@ -150,7 +153,8 @@ export function AuthGate(){
       {mode==='signup'&&confirmation.length>0&&<small id="signup-password-check" className={password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">
        {password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}
       </small>}
-      <button className="primary" disabled={busy} type="submit">{mode==='login'&&<UserRound size={17} aria-hidden="true"/>}{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
+      {mode==='signup'&&passwordPolicyError&&<p className="error" role="alert">{passwordPolicyError}</p>}
+      <button className="primary" disabled={busy||(mode==='signup'&&!passwordPolicyReady)} type="submit">{mode==='login'&&<UserRound size={17} aria-hidden="true"/>}{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
     </form>
@@ -181,10 +185,19 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
+  const [policy,setPolicy]=useState<PasswordPolicy|null>(null)
+  const [policyLoadError,setPolicyLoadError]=useState('')
+  useEffect(()=>{
+   let active=true
+   void loadPasswordPolicy().then(({policy:loaded})=>{if(active){setPolicy(loaded);setPolicyLoadError('')}})
+    .catch(()=>{if(active){setPolicy(null);setPolicyLoadError('Não foi possível carregar os requisitos de senha.')}})
+   return ()=>{active=false}
+  },[])
   async function update(){
     if(!db)return
     setError('');setMessage('')
-    const missing=checkPassword(password)
+    if(!policy){setError('Não foi possível consultar os requisitos atuais. Atualize a página.');return}
+    const missing=checkPassword(password,policy)
     if(missing.length){setError('A senha precisa conter: '+missing.join(', ')+'.');return}
     if(password!==confirmation){setError('As senhas informadas são diferentes.');return}
     if(requireCurrent&&!currentPassword){setError('Informe a senha atual.');return}
@@ -202,13 +215,14 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
     finally{setBusy(false)}
   }
   return <form className="form" onSubmit={e=>{e.preventDefault();void update()}}>
-    <p className="subtle">A senha deve ter 12 caracteres ou mais, incluindo minúsculas, maiúsculas, números e símbolos.</p>
+    <p className="subtle">{policy?passwordRequirements(policy):'Consultando os requisitos atuais de senha...'}</p>
+    {policyLoadError&&<p className="error" role="alert">{policyLoadError}</p>
     {requireCurrent&&<label>Senha atual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>}
-    <label>Nova senha<input type="password" autoComplete="new-password" minLength={passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
-    {password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
+    <label>Nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
+    {password&&<small className="password-policy-status" role="status">{checkPassword(password,policy||passwordPolicyDefaults).length?'Faltam: '+checkPassword(password,policy||passwordPolicyDefaults).join(', '):'Senha atende aos requisitos atuais.'}</small>}
     {error&&<p role="alert" className="error">{error}</p>}
     {message&&<p role="status" className="auth-success">{message}</p>}
-    <button type="submit" disabled={!db||busy} className="primary"><LockKeyhole size={16}/> {requireCurrent?"Alterar senha":"Definir senha"}</button>
+    <button type="submit" disabled={!db||busy||!policy} className="primary"><LockKeyhole size={16}/> {requireCurrent?"Alterar senha":"Definir senha"}</button>
   </form>
 }
