@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import {ArrowLeft,CreditCard,Gift,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
 import {isValidCheckoutName} from '../lib/checkoutPayerName'
