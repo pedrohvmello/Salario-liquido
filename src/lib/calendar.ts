@@ -1,5 +1,5 @@
 import { roundMoney } from './money'
-export type DayEntry = { date:string; start:string; lunchStart:string; lunchEnd:string; end:string; holidayOverride: boolean | null }
+export type DayEntry = { date:string; start:string; lunchStart:string; lunchEnd:string; end:string; holidayOverride: boolean | null; additionalHours?:string; comments?:string }
 export type Overtime = { h60:number; h80:number; h100:number; total:number; payMonth:string }
 function easter(y:number) {
   const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3)
@@ -25,7 +25,11 @@ export function paidMonth(date:string) {
 export function classifyHours(entry:DayEntry,holidayDates?:ReadonlySet<string>):Overtime {
   const a=mins(entry.start),b=mins(entry.lunchStart),c=mins(entry.lunchEnd),d=mins(entry.end)
   if (![a,b,c,d].every(Number.isFinite) || !(a<=b&&b<=c&&c<=d)) throw new Error('Horários inválidos: entrada, almoço e saída devem estar em ordem')
-  const total = roundMoney(((b-a)+(d-c))/60)
+  const additional=entry.additionalHours?.trim()||''
+  const match=additional? /^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(additional):null
+  if(additional&&!match)throw new Error('Horas adicionais inválidas: use HH:MM')
+  const added=match?Number(match[1])*60+Number(match[2]):0
+  const total = roundMoney(((b-a)+(d-c)+added)/60)
   if (total>24) throw new Error('Jornada superior a 24 horas')
   const dow=new Date(entry.date+'T12:00:00Z').getUTCDay()
   const holiday=entry.holidayOverride??(holidayDates?holidayDates.has(entry.date):saoPauloHoliday(entry.date))

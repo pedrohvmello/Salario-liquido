@@ -56,7 +56,7 @@ export async function loadHolidayCatalog(base:BaseLocation,years:number[]):Promi
   }
  }
  let coverage:HolidayCatalog['coverage']=region?'regional':'partial'
- let message=region?'Feriados nacionais, estaduais e municipais cadastrados para esta cidade. Confirme exceções na prefeitura.':'Feriados nacionais e estaduais cadastrados. Verificando os feriados municipais...'
+ let message=region?'Feriados nacionais, estaduais e municipais cadastrados para esta cidade. Ajuste manualmente em caso de necessidade.':'Feriados nacionais e estaduais cadastrados. Verificando os feriados municipais...'
  if(!region&&uniqueYears.length){
   let allYearsSucceeded=true
   for(const year of uniqueYears){

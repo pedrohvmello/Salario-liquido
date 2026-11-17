@@ -9,7 +9,8 @@ import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
 import {BasePicker} from './components/BasePicker'
 import {PayrepSelect} from './components/PayrepSelect'
 import {PayrepDatePicker} from './components/PayrepDatePicker'
-import {PayrepTimePicker} from './components/PayrepTimePicker'
+import {FortnightTimesheet} from './components/FortnightTimesheet'
+import {todayInSaoPaulo} from './lib/fortnight'
 import {TaxPreview} from './components/TaxPreview'
 import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
@@ -24,7 +25,7 @@ import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
-import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,removeTimeEntry,saveEvent,saveBase,saveOverviewCards,saveStatements,saveTimeEntry,type SalaryEvent,type SavedStatement} from './lib/data'
+import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,saveEvent,saveBase,saveOverviewCards,saveStatements,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {PayslipDocuments} from './components/PayslipDocuments'
 import {requiresPasswordSetup} from './lib/authRedirect'
@@ -189,8 +190,7 @@ export default function App(){
  const [allLines,setAllLines]=useState<StatementRubric[]>([])
  const [events,setEvents]=useState<SalaryEvent[]>([])
  const [eventsYear,setEventsYear]=useState('all')
- const [hoursYear,setHoursYear]=useState('all')
- const [hoursMonth,setHoursMonth]=useState('all')
+ const [hoursAnchor,setHoursAnchor]=useState(todayInSaoPaulo)
  const [records,setRecords]=useState<TimeRecord[]>([])
  const [base,setBase]=useState<BaseLocation|null>(null)
  const [holidayCalendar,setHolidayCalendar]=useState<HolidayCatalog|null>(null)
@@ -220,8 +220,6 @@ export default function App(){
  const [eventNote,setEventNote]=useState('')
  const [pensionOptions,setPensionOptions]=useState<PensionRule>({...defaultPensionRule})
  const [overviewCards,setOverviewCards]=useState<OverviewCardId[]>([...defaultOverviewCards])
- const [entryId,setEntryId]=useState<string|undefined>()
- const [entry,setEntry]=useState<DayEntry>({date:today(),start:'09:00',lunchStart:'12:00',lunchEnd:'13:00',end:'18:00',holidayOverride:null})
 
  useEffect(()=>{
   const authClient=db
@@ -301,7 +299,15 @@ export default function App(){
   const d=await getData()
   if(!isCurrent())return
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
-  setRecords(d.entries.map(x=>({id:x.id,date:x.date,start:x.start_at.slice(0,5),lunchStart:x.lunch_start.slice(0,5),lunchEnd:x.lunch_end.slice(0,5),end:x.end_at.slice(0,5),holidayOverride:x.holiday_override})))
+  setRecords(d.entries.map(x=>({
+   id:x.id,date:x.date,
+   start:x.start_at?.slice(0,5)||'',lunchStart:x.lunch_start?.slice(0,5)||'',
+   lunchEnd:x.lunch_end?.slice(0,5)||'',end:x.end_at?.slice(0,5)||'',
+   holidayOverride:x.holiday_override,
+   additionalHours:x.additional_minutes
+    ?String(Math.floor(x.additional_minutes/60)).padStart(2,'0')+':'+String(x.additional_minutes%60).padStart(2,'0'):'',
+   comments:x.comments||''
+  })))
   setParams({...defaults,...d.settings})
   setOverviewCards(normalizeOverviewCards(d.overviewCards))
   setBase(d.base)
@@ -352,7 +358,7 @@ export default function App(){
   setOverviewCards(cards)
  }
  const benefitReferenceMonth=followingMonth(month)
- const holidayYears=useMemo(()=>[...new Set([Number(entry.date.slice(0,4)),Number(month.slice(0,4)),Number(benefitReferenceMonth.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,entry.date,month,benefitReferenceMonth])
+ const holidayYears=useMemo(()=>[...new Set([Number(hoursAnchor.slice(0,4)),Number(month.slice(0,4)),Number(benefitReferenceMonth.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,hoursAnchor,month,benefitReferenceMonth])
  const holidayYearsKey=holidayYears.join(',')
  useEffect(()=>{
   let active=true
@@ -366,8 +372,6 @@ export default function App(){
  const holidayDates=base&&holidayStatus==='ready'&&holidayCalendar?.baseKey===baseKey(base)?holidayCalendar.dates:null
  const computedHours=useMemo(()=>holidayDates?records.flatMap(r=>{try{return [{...r,calc:classifyHours(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates])
  const monthHours=useMemo(()=>computedHours.filter(x=>x.calc.payMonth===month).reduce((a,x)=>({h60:a.h60+x.calc.h60,h80:a.h80+x.calc.h80,h100:a.h100+x.calc.h100}),{h60:0,h80:0,h100:0}),[computedHours,month])
- const hoursYears=useMemo(()=>[...new Set(records.map(r=>r.date.slice(0,4)))].sort().reverse(),[records])
- const filteredHours=useMemo(()=>computedHours.filter(r=>(hoursYear==='all'||r.date.startsWith(hoursYear+'-'))&&(hoursMonth==='all'||r.date.slice(5,7)===hoursMonth)),[computedHours,hoursYear,hoursMonth])
  const holidayOverrides=useMemo(()=>new Map(records.filter(r=>r.holidayOverride!==null).map(r=>[r.date,r.holidayOverride as boolean])),[records])
  const effective=useMemo(()=>effectiveParams(params,events,month),[params,events,month])
  const latestPension=useMemo(()=>latestEffectiveEvent(events,'pensionPercent',month),[events,month])
@@ -465,13 +469,6 @@ export default function App(){
   await saveEvent({...(eventId?{id:eventId}:{}),kind:eventKind,value,effective_date:eventDate,notes})
   setEventId(undefined);setEventValue('');setEventNote('');setPensionOptions({...defaultPensionRule});await refresh()
  },'Evento salvo')
- const saveEntry=()=>task(async()=>{
-  if(!holidayDates)throw Error('Calendário de feriados ainda não disponível')
-  classifyHours(entry,holidayDates)
-  if(!db)throw Error('Conecte o banco para persistir horários')
-  await saveTimeEntry(entry,entryId)
-  setEntryId(undefined);await refresh()
- },'Jornada salva')
  const isDemo=!db
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
  if(db&&!user)return <GuestEntry/>
@@ -547,7 +544,23 @@ export default function App(){
        {vacationLedger.byMonth.get(s.period)?.vacationState&&<span className="pill vacation-status-pill">{vacationLedger.byMonth.get(s.period)?.vacationState==='reconciled'?'Férias conciliadas':'Férias estimadas ou pendentes'}</span>}</div>}
     </td><td>{s.warnings?.length?<span className="flag">Conferir</span>:<span className="ok">Conferido</span>}</td></tr>)}</tbody></table></div>:<Empty text="Não há holerites para este ano."/>}
     </Panel>{selectedStmt&&<Panel title={'Detalhes de '+(selectedStmt.document_type==='ppr'?'PPR · ':selectedStmt.document_type==='vacation'?'Férias · ':selectedStmt.document_type==='thirteenth'?'13º · ':'')+monthLabel(selectedStmt.period)} extra={<button className="secondary" onClick={()=>setSelectedStmt(null)}>Fechar</button>}>{selectedStmt.document_type==='thirteenth'?<div className="detail-hint">13º bruto: <strong>{selectedStmt.thirteenth_gross===null?'A conferir':brl(selectedStmt.thirteenth_gross)}</strong>; adiantamento descontado: {brl(selectedStmt.thirteenth_advance)}; INSS: {brl(selectedStmt.thirteenth_inss)}; IRRF: {brl(selectedStmt.thirteenth_irrf)}; pensão: {brl(selectedStmt.thirteenth_pension)}; líquido no fechamento: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. {thirteenthLedger.byYear.get(selectedStmt.period.slice(0,4))?.note}</div>:selectedStmt.document_type==='vacation'?<div className="detail-hint">Recibo complementar de férias: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Período: {selectedStmt.vacation_start?dateBR(selectedStmt.vacation_start):'Não identificado'} a {selectedStmt.vacation_end?dateBR(selectedStmt.vacation_end):'Não identificado'}. Pagamento efetivo: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificado'}. Este líquido substitui os adiantamentos já inferidos das folhas mensais correspondentes; não é somado novamente.</div>:selectedStmt.document_type==='ppr'?<div className="detail-hint">PPR bruto: <strong>{selectedStmt.gross_ppr===null?'A conferir':brl(selectedStmt.gross_ppr)}</strong>. IRRF PPR: <strong>{brl(selectedStmt.ppr_income_tax||0)}</strong>. Contribuição negocial: <strong>{brl(selectedStmt.ppr_union_contribution||0)}</strong>. Líquido pago: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Data de pagamento: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificada'}. Evento lançado separadamente.</div>:<div className="detail-hint">Líquido mensal: {selectedStmt.net===null?'A conferir':brl(selectedStmt.net)} (fechamento) + {selectedStmt.salary_advance===null?'A conferir':brl(selectedStmt.salary_advance)} (adiantamento salarial) = <strong>{selectedStmt.net_received===null?'A conferir':brl(selectedStmt.net_received)}</strong>. Férias identificadas na folha: {brl(vacationLedger.byMonth.get(selectedStmt.period)?.vacation??0)}. Total financeiro da competência: <strong>{vacationLedger.byMonth.get(selectedStmt.period)?.total===null?'A conferir':brl(vacationLedger.byMonth.get(selectedStmt.period)?.total??selectedStmt.net_received??0)}</strong>. O recibo complementar não duplica a contabilização.</div>}<div className="table-scroll"><table><thead><tr><th>Código</th><th>Rubrica original</th><th>Tipo</th><th>Valor</th></tr></thead><tbody>{statementLines.map((l,i)=><tr key={i}><td>{l.code}</td><td>{l.description}</td><td>{l.side==='credit'?'Provento':l.side==='debit'?'Desconto':'Revisar'}</td><td>{brl(Number(l.amount))}</td></tr>)}</tbody></table></div>{selectedStmt.warnings?.map((w,i)=><div className="detail-hint" key={i}><AlertTriangle size={15}/>{w}</div>)}</Panel>}<VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
-    {section==='hours'&&<div className="stack"><div className="page-intro"><div><h2>Jornada e horas extras</h2><p>Até 8h em dias úteis, duas primeiras horas extras a 60%, excedente a 80% e domingos/feriados a 100%. <strong>Base · {base?baseLabel(base):'Não configurada'}.</strong></p></div></div>{holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>Configure sua Base em Definições antes de registrar horários e calcular feriados.</div>}{holidayCalendar&&<div className={holidayCalendar.coverage==='partial'?'notice warning':'notice subtle-notice'}><Info size={18}/>{holidayCalendar.message}</div>}{holidayStatus==='loading'&&<div className="notice subtle-notice"><Info size={18}/>Carregando calendário de feriados para {base?baseLabel(base):'a Base'}...</div>}{holidayStatus==='failed'&&<div className="notice warning"><AlertTriangle size={18}/>Não foi possível preparar o calendário de feriados. Verifique sua conexão antes de lançar horas.</div>}<div className="stats-grid three"><Stat name="Extras 60% na folha" value={monthHours.h60.toFixed(2)+' h'}/><Stat name="Extras 80% na folha" value={monthHours.h80.toFixed(2)+' h'}/><Stat name="Extras 100% na folha" value={monthHours.h100.toFixed(2)+' h'}/></div><div className="two-col"><Panel title={entryId?'Editar jornada':'Registrar jornada'}><form className="form" onSubmit={e=>{e.preventDefault();saveEntry()}}><label>Data<PayrepDatePicker required value={entry.date} onChange={next=>setEntry({...entry,date:next,holidayOverride:null})} title="Data da jornada"/></label><div className="form-grid">{[['Entrada','start'],['Início do almoço','lunchStart'],['Fim do almoço','lunchEnd'],['Saída','end']].map(([label,key])=><label key={key}>{label}<PayrepTimePicker required value={entry[key as keyof DayEntry] as string} onChange={next=>setEntry({...entry,[key]:next})} title={label}/></label>)}</div><label className="checkbox-label"><input type="checkbox" checked={entry.holidayOverride??(holidayDates?.has(entry.date)??false)} onChange={e=>setEntry({...entry,holidayOverride:e.target.checked})}/>Considerar feriado neste dia</label><button type="button" className="text-button" onClick={()=>setEntry({...entry,holidayOverride:null})}>Usar calendário automático de {base?baseLabel(base):'sua Base'}</button><div className="detail-hint"><Info size={16}/>A classificação automática pode ser alterada. Ponto facultativo não equivale a feriado. A Base cadastrada é usada quando não existe um ajuste manual na data.</div><button className="primary" disabled={busy||!db||!holidayDates} type="submit"><Save size={17}/> Salvar jornada</button></form></Panel><Panel title="Fechamento e competência"><div className="timeline"><div><strong>16 a 31</strong><span>Mês anterior</span></div><ChevronRight size={21}/><div><strong>01 a 15</strong><span>Mês atual</span></div><ChevronRight size={21}/><div><strong>Pagamento</strong><span>Mês atual</span></div></div><div className="detail-hint"><Info size={16}/>O DSR sobre horas extras agora é estimado automaticamente para o período de folha de 16 a 15, usando domingos e feriados da Base. Banco de horas e adicional noturno ainda não são calculados. O divisor de 220h e o critério de DSR devem ser conferidos com o acordo coletivo.</div></Panel></div><Panel title="Registros de ponto"><div className="filterbar hours-filterbar"><label htmlFor="hours-year-filter">Ano</label><PayrepSelect id="hours-year-filter" value={hoursYear} onChange={setHoursYear} title="Ano da jornada"><option value="all">Todos os anos</option>{hoursYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><label htmlFor="hours-month-filter">Mês</label><PayrepSelect id="hours-month-filter" value={hoursMonth} onChange={setHoursMonth} title="Mês da jornada"><option value="all">Todos os meses</option>{Array.from({length:12},(_,i)=>{const value=String(i+1).padStart(2,'0');const label=new Intl.DateTimeFormat('pt-BR',{month:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2026,i,1)));return <option key={value} value={value}>{label}</option>})}</PayrepSelect><span className="pill">{filteredHours.length} registro(s)</span></div><div className="table-scroll">{filteredHours.length?<table className="time-records-table"><thead><tr><th>Data</th><th>Horários</th><th>Horas trabalhadas</th><th>60%</th><th>80%</th><th>100%</th><th>Folha</th><th>Ações</th></tr></thead><tbody>{filteredHours.map(x=><tr key={x.id}><td>{dateBR(x.date)}</td><td>{x.start} a {x.end}</td><td>{x.calc.total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} h</td><td>{x.calc.h60.toFixed(2)}h</td><td>{x.calc.h80.toFixed(2)}h</td><td>{x.calc.h100.toFixed(2)}h</td><td>{x.calc.payMonth}</td><td><button className="icon-button" onClick={()=>{setEntryId(x.id);setEntry(x)}}><Pencil size={15}/></button><button className="icon-button" onClick={()=>task(async()=>{await removeTimeEntry(x.id);await refresh()},'Registro excluído')}><Trash2 size={15}/></button></td></tr>)}</tbody></table>:<Empty text={computedHours.length?'Nenhum registro no período selecionado.':'Ainda não há registros de jornada.'}/ >}</div></Panel></div>}
+        {section==='hours'&&<div className="stack">
+     <div className="page-intro"><div>
+      <h2>Jornada e horas extras</h2>
+      <p><strong>Base · {base?baseLabel(base):'Não configurada'}.</strong></p>
+     </div></div>
+     {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
+      Configure sua Base em Definições para calcular os feriados e as horas extras.</div>}
+     {holidayCalendar&&<div className={holidayCalendar.coverage==='partial'?'notice warning':'notice subtle-notice'}>
+      <Info size={18}/>{holidayCalendar.message}</div>}
+     {holidayStatus==='loading'&&<div className="notice subtle-notice"><Info size={18}/>
+      Carregando calendário de feriados para {base?baseLabel(base):'a Base'}...</div>}
+     {holidayStatus==='failed'&&<div className="notice warning"><AlertTriangle size={18}/>
+      Não foi possível preparar o calendário de feriados. Verifique sua conexão antes de calcular horas.</div>}
+     <FortnightTimesheet anchor={hoursAnchor} onAnchorChange={setHoursAnchor}
+      records={records} holidayDates={holidayDates}
+      baseName={base?baseLabel(base):'Não configurada'} onSaved={()=>refresh()}/>
+    </div>}
     {section==='events'&&<div className="stack"><div className="page-intro"><div><h2>Parâmetros com data de início</h2><p>Alterações permanentes afetam as projeções a partir da vigência. Ocorrências pontuais não alteram o salário-base.</p></div></div><div className="two-col"><Panel title={eventId?'Editar evento':'Novo evento'}><form className="form" onSubmit={e=>{e.preventDefault();saveNewEvent()}}><label>Evento<PayrepSelect value={eventKind} onChange={next=>{setEventKind(next);setPensionOptions({...defaultPensionRule})}} title="Tipo de evento">{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}</PayrepSelect></label><label>Valor / quantidade<input type="text" inputMode="decimal" required value={eventValue} onChange={e=>setEventValue(e.target.value)} onBlur={()=>setEventValue(value=>formatEventInput(value,eventKind))} placeholder={eventKind==='dependents'?'0':'0,00'} autoComplete="off"/></label>{eventKind==='mealBenefit'&&<div className="detail-hint"><Info size={16}/>Informe o valor diário. A previsão recebida em uma competência corresponde aos dias úteis do mês seguinte, excluindo sábados, domingos e feriados da Base.</div>}{eventKind==='pensionPercent'&&<div className="pension-criteria"><p className="subtle">Defina os critérios de incidência. A projeção mensal aplica os descontos selecionados; 13º, férias e PPR têm cálculos próprios, separados da folha mensal.</p><div className="pension-criteria-grid"><fieldset><legend>Excluir da base</legend>{(['excludeInss','excludeIrrf'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset><fieldset><legend>Incluir na base</legend>{(['includeOvertime','includeVacation','includeVacationThird','includeThirteenth','includePpr'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset></div></div>}<label>Data de início<PayrepDatePicker required value={eventDate} onChange={setEventDate} title="Data de início"/></label><label>Observação<textarea value={eventNote} onChange={e=>setEventNote(e.target.value)} rows={2} placeholder="Opcional"/></label><button className="primary" disabled={busy||!db} type="submit"><Plus size={17}/>{eventId?'Atualizar evento':'Adicionar evento'}</button></form></Panel><Panel title="Como funcionam as vigências"><div className="instruction"><div className="step">01</div><p>Cadastre uma mudança com o valor novo, não a diferença.</p></div><div className="instruction"><div className="step">02</div><p>A data define a primeira competência da nova regra. Eventos antigos permanecem no histórico.</p></div><div className="instruction"><div className="step">03</div><p>Importações de holerites sugerem mudanças, mas nunca criam eventos permanentes sem confirmação.</p></div></Panel></div><Panel title="Eventos cadastrados"><div className="filterbar events-filterbar"><label htmlFor="events-year-filter">Ano</label><PayrepSelect id="events-year-filter" value={eventsYear} onChange={setEventsYear} title="Ano do evento"><option value="all">Todos os anos</option>{eventYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><span className="pill">{filteredEvents.length} evento(s)</span></div>{filteredEvents.length?<div className="table-scroll"><table className="events-table"><colgroup><col className="event-col-name"/><col className="event-col-date"/><col className="event-col-value"/><col className="event-col-status"/><col className="event-col-notes"/><col className="event-col-actions"/></colgroup><thead><tr><th>Evento</th><th>Vigência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>{filteredEvents.map(x=><tr key={x.id}><td>{eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind}</td><td>{dateBR(x.effective_date)}</td><td>{formatEventValue(x.value,x.kind)}</td><td>{x.source_statement_id?<span className="pill">Importado do PDF</span>:<span className="subtle">Manual</span>}</td><td className="events-notes-cell"><span className="events-note-preview" title={eventNotesText(x)}>{eventNotesText(x)||'—'}</span></td><td className="events-actions-cell">{x.source_statement_id?<span className="subtle">Vinculado ao holerite</span>:<><button className="icon-button" onClick={()=>{setEventId(x.id);setEventKind(x.kind);setEventDate(x.effective_date);setEventValue(formatEventValue(x.value,x.kind));setEventNote(x.kind==='pensionPercent'?parsePensionNotes(x.notes).note:x.notes);setPensionOptions(x.kind==='pensionPercent'?parsePensionNotes(x.notes).rule:{...defaultPensionRule})}}><Pencil size={15}/></button><button className="icon-button" onClick={()=>task(async()=>{await removeEvent(x.id);await refresh()},'Evento excluído')}><Trash2 size={15}/></button></>}</td></tr>)}</tbody></table></div>:<Empty text={events.length?'Nenhum evento cadastrado para '+eventsYear+'.':'Nenhum evento cadastrado.'}/>}</Panel><VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
     {section==='analytics'&&<AnalyticsDashboard year={year} onYearChange={setYear} years={months}
       statements={statements} lines={allLines} monthlyGraph={monthlyGraph}

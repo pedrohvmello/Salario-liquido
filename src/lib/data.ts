@@ -58,7 +58,7 @@ export async function getData(){
     listAllStatementRubrics(id)
   ])
   for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string;lunch_start:string;lunch_end:string;end_at:string;holiday_override:boolean|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
@@ -95,13 +95,41 @@ export async function removeEvent(id:string){
   const {error}=await db.from('salary_events').delete().eq('id',id).eq('user_id',await identity())
   if(error)throw new Error(error.message)
 }
+const timePayload=(entry:DayEntry,user_id:string,id?:string)=>{
+ const time=(value:string,name:string)=>{
+  if(!value)return null
+  if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value))throw Error(name+': use HH:MM (00:00 a 23:59).')
+  return value
+ }
+ const extra=entry.additionalHours?.trim()||''
+ const additional=extra? /^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(extra):null
+ if(extra&&!additional)throw Error('Horas adicionais: use HH:MM (00:00 a 23:59).')
+ const comments=entry.comments?.trim()||null
+ if(comments&&comments.length>500)throw Error('Comentários devem ter no máximo 500 caracteres.')
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(entry.date))throw Error('Data inválida.')
+ return {
+  ...(id?{id}:{}),user_id,date:entry.date,
+  start_at:time(entry.start,'Entrada'),lunch_start:time(entry.lunchStart,'Início do almoço'),
+  lunch_end:time(entry.lunchEnd,'Fim do almoço'),end_at:time(entry.end,'Saída'),
+  additional_minutes:additional?Number(additional[1])*60+Number(additional[2]):0,
+  holiday_override:entry.holidayOverride,comments
+ }
+}
+export async function saveTimeEntries(entries:DayEntry[]){
+ if(!db)throw new Error('Banco não configurado')
+ if(entries.length===0)return
+ if(entries.length>31||new Set(entries.map(e=>e.date)).size!==entries.length)
+  throw new Error('Seleção de registros inválida.')
+ const user_id=await identity()
+ const payload=entries.map(entry=>timePayload(entry,user_id))
+ const {error}=await db.from('time_entries').upsert(payload,{onConflict:'user_id,date'})
+ if(error)throw new Error(error.message)
+}
 export async function saveTimeEntry(entry:DayEntry,id?:string){
-  if(!db)throw new Error('Banco não configurado')
-  const user_id=await identity()
-  const {error}=await db.from('time_entries').upsert({
-    ...(id?{id}:{}),user_id,date:entry.date,start_at:entry.start,lunch_start:entry.lunchStart,lunch_end:entry.lunchEnd,end_at:entry.end,holiday_override:entry.holidayOverride
-  },{onConflict:'user_id,date'})
-  if(error)throw new Error(error.message)
+ if(!db)throw new Error('Banco não configurado')
+ const user_id=await identity()
+ const {error}=await db.from('time_entries').upsert(timePayload(entry,user_id,id),{onConflict:'user_id,date'})
+ if(error)throw new Error(error.message)
 }
 export async function removeTimeEntry(id:string){
   if(!db)throw new Error('Banco não configurado')

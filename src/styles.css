@@ -1690,3 +1690,91 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .password-policy-length:has(select){align-items:stretch;flex-direction:column}
  .password-policy-length select{width:100%}
 }
+
+
+/* Controle de horas: grade quinzenal com lançamento parcial e colunas fixas. */
+.payrep-fortnight .fortnight-toolbar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 18px
+}
+.payrep-fortnight .fortnight-toolbar>strong{
+ color:#361257;font-size:15px;font-weight:800;text-align:center;flex:1;min-width:240px
+}
+.payrep-fortnight .fortnight-calendar-label{
+ display:flex;flex-direction:column;gap:5px;min-width:165px;
+ font-size:11px;font-weight:750;color:#74578c
+}
+.payrep-fortnight .fortnight-calendar-label .payrep-date-trigger{min-height:40px}
+.payrep-fortnight .fortnight-summary{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;margin:6px 0 14px
+}
+.payrep-fortnight .fortnight-summary .stat{
+ min-width:0;background:#fbf8ff;border:1px solid #e9dbf5;border-radius:11px;
+ padding:16px 12px;display:flex;flex-direction:column;gap:8px
+}
+.payrep-fortnight .fortnight-summary .stat span{font-size:12px;color:#77598e}
+.payrep-fortnight .fortnight-summary .stat strong{font-size:21px;color:#3b1763;font-variant-numeric:tabular-nums}
+.payrep-fortnight .fortnight-explanation{margin:0 0 16px;line-height:1.6}
+.payrep-fortnight .fortnight-scroll{
+ max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+ border:1px solid #e8dff0;border-radius:12px
+}
+.payrep-fortnight .fortnight-table{min-width:1740px;width:100%;border-collapse:separate;border-spacing:0}
+.payrep-fortnight .fortnight-table th{
+ position:sticky;top:0;z-index:2;padding:13px 10px;
+ font-size:10px;line-height:1.4;white-space:normal;text-transform:none;
+ background:#f6effc;border-bottom:1px solid #dac7ee;color:#553078
+}
+.payrep-fortnight .fortnight-table td{
+ padding:7px 8px;white-space:nowrap;border-bottom:1px solid #f0e9f7;
+ font-size:12px;color:#392252;height:49px;background:#fff
+}
+.payrep-fortnight .fortnight-table tr:last-child td{border-bottom:0}
+.payrep-fortnight .fortnight-table tr.fortnight-weekend td{background:#faf7fd}
+.payrep-fortnight .fortnight-table tr.fortnight-dirty td{background:#f7eefe}
+.payrep-fortnight .fortnight-table tr.fortnight-invalid td{background:#fff0f0}
+.payrep-fortnight .fortnight-table th:first-child,
+.payrep-fortnight .fortnight-table td:first-child{
+ position:sticky;left:0;z-index:3;min-width:105px
+}
+.payrep-fortnight .fortnight-table th:nth-child(2),
+.payrep-fortnight .fortnight-table td:nth-child(2){
+ position:sticky;left:105px;z-index:3;min-width:135px;
+ box-shadow:4px 0 8px -6px rgba(40,20,65,.3)
+}
+.payrep-fortnight .fortnight-table th:first-child,
+.payrep-fortnight .fortnight-table th:nth-child(2){z-index:4}
+.payrep-fortnight .fortnight-table .fortnight-time-input{
+ width:88px;min-width:88px;padding:7px 8px;
+ text-align:center;font-variant-numeric:tabular-nums;font-size:12px;border-radius:7px
+}
+.payrep-fortnight .fortnight-table .fortnight-comment{
+ min-width:190px;width:100%;padding:8px;border-radius:7px;font-size:12px
+}
+.payrep-fortnight .fortnight-table .fortnight-calculated{
+ text-align:right;min-width:93px;color:#4f2a6b;font-variant-numeric:tabular-nums
+}
+.payrep-fortnight .fortnight-holiday-cell{
+ display:flex;align-items:center;justify-content:center;gap:6px;min-width:80px
+}
+.payrep-fortnight .fortnight-holiday-cell input{
+ width:17px;height:17px;accent-color:#7900d3;cursor:pointer
+}
+.payrep-fortnight .fortnight-reset{
+ display:inline-flex;align-items:center;justify-content:center;border:0;
+ border-radius:6px;background:#f0e7f8;color:#622d91;padding:5px;cursor:pointer
+}
+.payrep-fortnight .fortnight-actions{
+ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+ gap:14px;margin-top:17px
+}
+.payrep-fortnight .fortnight-actions>.subtle{flex:1;line-height:1.6}
+@media(max-width:1250px){
+ .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .payrep-fortnight .fortnight-toolbar>strong{order:-1;flex-basis:100%}
+ .payrep-fortnight .fortnight-calendar-label{min-width:100%;order:4}
+ .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .payrep-fortnight .fortnight-summary .stat strong{font-size:18px}
+ .payrep-fortnight .fortnight-actions .primary{width:100%}
+}

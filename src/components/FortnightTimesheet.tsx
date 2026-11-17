@@ -1,0 +1,203 @@
+import {useMemo,useState} from 'react'
+import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
+import {PayrepDatePicker} from './PayrepDatePicker'
+import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
+import {fortnightDays,getFortnight,shiftFortnight} from '../lib/fortnight'
+import {saveTimeEntries} from '../lib/data'
+
+type TimeRow=DayEntry&{id:string}
+type Field='start'|'lunchStart'|'lunchEnd'|'end'|'additionalHours'|'comments'
+type GridRow={date:string;entry:DayEntry;calculated:Overtime|null;complete:boolean;invalid:boolean;holiday:boolean;automaticHoliday:boolean}
+type Props={
+ anchor:string
+ onAnchorChange:(date:string)=>void
+ records:TimeRow[]
+ holidayDates:ReadonlySet<string>|null
+ baseName:string
+ onSaved:()=>Promise<void>
+}
+const empty=(date:string):DayEntry=>({
+ date,start:'',lunchStart:'',lunchEnd:'',end:'',holidayOverride:null,
+ additionalHours:'',comments:''
+})
+const timeFields=['start','lunchStart','lunchEnd','end'] as const
+const formatDate=(value:string)=>value.slice(8,10)+'/'+value.slice(5,7)+'/'+value.slice(0,4)
+const weekday=(date:string)=>new Intl.DateTimeFormat('pt-BR',{weekday:'long',timeZone:'UTC'}).format(new Date(date+'T12:00:00Z'))
+const hours=(value:number)=>value.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' h'
+const clock=/^([01]\d|2[0-3]):[0-5]\d$/
+const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim());return m?m[1].padStart(2,'0')+':'+m[2]:value.trim()}
+
+export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,baseName,onSaved}:Props){
+ const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
+ const [saving,setSaving]=useState(false)
+ const [error,setError]=useState('')
+ const [message,setMessage]=useState('')
+ const period=getFortnight(anchor)
+ const dates=fortnightDays(anchor)
+ const byDate=useMemo(()=>new Map(records.map(row=>[row.date,row])),[records])
+ const read=(date:string)=>drafts[date]??byDate.get(date)??empty(date)
+ const change=(date:string,patch:Partial<DayEntry>)=>{
+  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch}}))
+  setMessage('');setError('')
+ }
+ const rows:GridRow[]=dates.map(date=>{
+  const entry=read(date)
+  const complete=timeFields.every(key=>clock.test(entry[key]))
+  const automaticHoliday=holidayDates?.has(date)??false
+  let calculated:Overtime|null=null
+  let invalid=false
+  if(complete){
+   try{
+    // No calculated value is shown until the actual Base holiday catalog is available.
+    const checked=classifyHours(entry,holidayDates??new Set<string>())
+    if(holidayDates)calculated=checked
+   }catch{invalid=true}
+  }
+  return {
+   date,entry,calculated,complete,invalid,
+   automaticHoliday,holiday:entry.holidayOverride??automaticHoliday
+  }
+ })
+ const dirtyCurrent=dates.filter(date=>Object.prototype.hasOwnProperty.call(drafts,date))
+ const dirtyOutside=Object.keys(drafts).filter(date=>!dates.includes(date)).length
+ const calculated=rows.map(row=>row.calculated).filter((value):value is Overtime=>value!==null)
+ const totals=calculated.reduce((result,calc)=>({
+  worked:result.worked+calc.total,
+  extra:result.extra+calc.h60+calc.h80+calc.h100,
+  h60:result.h60+calc.h60,h80:result.h80+calc.h80,h100:result.h100+calc.h100
+ }),{worked:0,extra:0,h60:0,h80:0,h100:0})
+ const save=async()=>{
+  if(!dirtyCurrent.length||saving)return
+  setSaving(true);setError('');setMessage('')
+  const changed=dirtyCurrent.map(date=>read(date))
+  for(const entry of changed){
+   for(const field of [...timeFields,'additionalHours'] as const){
+    const time=entry[field]||''
+    if(time&&!clock.test(time)){
+     setError('Horário inválido em '+formatDate(entry.date)+'. Use HH:MM (por exemplo, 09:00).')
+     setSaving(false);return
+    }
+   }
+   if((entry.comments||'').length>500){
+    setError('Comentários acima de 500 caracteres em '+formatDate(entry.date)+'.')
+    setSaving(false);return
+   }
+   if(timeFields.every(field=>Boolean(entry[field]))){
+    try{classifyHours(entry,holidayDates??new Set<string>())}
+    catch(e){
+     setError(formatDate(entry.date)+': '+(e instanceof Error?e.message:'Jornada inválida.'))
+     setSaving(false);return
+    }
+   }
+  }
+  try{
+   await saveTimeEntries(changed)
+   setDrafts(previous=>{
+    const next={...previous}
+    for(const date of dirtyCurrent)delete next[date]
+    return next
+   })
+   setMessage(dirtyCurrent.length+' dia(s) salvo(s), inclusive registros parciais.')
+   try{await onSaved()}catch{
+    setError('Os registros foram gravados, mas não foi possível atualizar a lista. Recarregue a página.')
+   }
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar a quinzena.')}
+  finally{setSaving(false)}
+ }
+
+ return <div className="stack payrep-fortnight">
+  <section className="panel">
+   <div className="panel-heading"><h2>Registro de ponto por quinzena</h2>
+    <span className="pill">{calculated.length} jornada(s) completa(s)</span>
+   </div>
+   <div className="fortnight-toolbar">
+    <button type="button" className="secondary" aria-label="Quinzena anterior"
+     onClick={()=>onAnchorChange(shiftFortnight(anchor,-1))}><ChevronLeft size={17}/> Anterior</button>
+    <strong aria-live="polite">{period.label}</strong>
+    <button type="button" className="secondary" aria-label="Próxima quinzena"
+     onClick={()=>onAnchorChange(shiftFortnight(anchor,1))}>Próxima <ChevronRight size={17}/></button>
+    <label className="fortnight-calendar-label">Selecionar dia
+     <PayrepDatePicker value={anchor} onChange={onAnchorChange} title="Selecionar dia e quinzena"/>
+    </label>
+   </div>
+   <div className="fortnight-summary" aria-label="Totais da quinzena">
+    <div className="stat"><span>Extras 60%</span><strong>{hours(totals.h60)}</strong></div>
+    <div className="stat"><span>Extras 80%</span><strong>{hours(totals.h80)}</strong></div>
+    <div className="stat"><span>Extras 100%</span><strong>{hours(totals.h100)}</strong></div>
+    <div className="stat"><span>Total de horas extras</span><strong>{hours(totals.extra)}</strong></div>
+    <div className="stat"><span>Total trabalhado</span><strong>{hours(totals.worked)}</strong></div>
+   </div>
+   <p className="subtle fortnight-explanation">
+    Horários e horas adicionais em HH:MM. Somente jornadas completas entram nos totais.
+    Horas adicionais são somadas às horas trabalhadas e classificadas nas faixas de horas extras.
+    {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
+   </p>
+   {!holidayDates&&<div className="notice warning"><Info size={17}/>
+    Configure sua Base ou aguarde o calendário de feriados para exibir os cálculos.</div>}
+   <div className="table-scroll fortnight-scroll" role="region" tabIndex={0}
+    aria-label={'Registro de horas da '+period.label}>
+    <table className="fortnight-table">
+     <thead><tr>
+      <th>Data</th><th>Dia da semana</th><th>Entrada</th><th>Almoço início</th>
+      <th>Almoço fim</th><th>Saída</th><th>Horas Adicionais</th>
+      <th>Horas Trabalhadas</th><th>Hora Extra</th><th>60%</th><th>80%</th>
+      <th>100%</th><th>Feriado</th><th>Comentários</th>
+     </tr></thead>
+     <tbody>{rows.map(row=>{
+      const dow=new Date(row.date+'T12:00:00Z').getUTCDay()
+      const typed=(key:Field,label:string,placeholder='HH:MM')=><input
+       type="text" inputMode={key==='comments'?'text':'numeric'}
+       className={key==='comments'?'fortnight-comment':'fortnight-time-input'}
+       aria-label={label+' em '+formatDate(row.date)}
+       placeholder={placeholder}
+       maxLength={key==='comments'?500:5}
+       value={row.entry[key]||''}
+       onChange={event=>change(row.date,{[key]:event.target.value})}
+       onBlur={key==='comments'?undefined:event=>{
+        const normalized=normalize(event.target.value)
+        if(normalized!==(row.entry[key]||''))change(row.date,{[key]:normalized})
+       }}
+      />
+      return <tr key={row.date} className={(dow===0||dow===6?'fortnight-weekend ':'')+
+       (dirtyCurrent.includes(row.date)?'fortnight-dirty ':'')+(row.invalid?'fortnight-invalid':'')}>
+       <td><strong>{formatDate(row.date)}</strong></td>
+       <td>{weekday(row.date)}</td>
+       <td>{typed('start','Entrada')}</td>
+       <td>{typed('lunchStart','Almoço início')}</td>
+       <td>{typed('lunchEnd','Almoço fim')}</td>
+       <td>{typed('end','Saída')}</td>
+       <td>{typed('additionalHours','Horas adicionais','00:00')}</td>
+       <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.total):'—'}</td>
+       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
+       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60):'—'}</td>
+       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h80):'—'}</td>
+       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h100):'—'}</td>
+       <td><div className="fortnight-holiday-cell">
+        <input type="checkbox" aria-label={'Feriado em '+formatDate(row.date)}
+         checked={row.holiday}
+         onChange={event=>change(row.date,{holidayOverride:event.target.checked})}/>
+        {row.entry.holidayOverride!==null&&<button type="button" className="fortnight-reset"
+          title="Restaurar calendário automático" aria-label={'Restaurar feriado automático em '+formatDate(row.date)}
+          onClick={()=>change(row.date,{holidayOverride:null})}><RotateCcw size={13}/></button>}
+       </div></td>
+       <td>{typed('comments','Comentários','Observações do dia')}</td>
+      </tr>
+     })}</tbody>
+    </table>
+   </div>
+   <div className="fortnight-actions">
+    <div className="subtle">
+     {dirtyCurrent.length?dirtyCurrent.length+' dia(s) com alterações não salvas nesta quinzena.':'Nenhuma alteração pendente nesta quinzena.'}
+     {dirtyOutside>0?' Há '+dirtyOutside+' alteração(ões) não salvas em outras quinzenas.':''}
+    </div>
+    <button type="button" className="primary" disabled={saving||dirtyCurrent.length===0} onClick={()=>void save()}>
+     <Save size={17}/>{saving?'Salvando...':'Salvar quinzena'}
+    </button>
+   </div>
+   {message&&<p className="auth-success" role="status">{message}</p>}
+   {error&&<p className="error" role="alert">{error}</p>}
+  </section>
+  <p className="subtle">Base utilizada para os feriados: {baseName}.
+   As regras de fechamento e DSR de 16 a 15 permanecem aplicadas às projeções salariais.</p>
+ </div>
+}
