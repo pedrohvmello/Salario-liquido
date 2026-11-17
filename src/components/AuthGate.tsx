@@ -231,7 +231,7 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
   }
   return <form className="form" onSubmit={e=>{e.preventDefault();void update()}}>
     <p className="subtle">{policy?passwordRequirements(policy):'Consultando os requisitos atuais de senha...'}</p>
-    {policyLoadError&&<p className="error" role="alert">{policyLoadError}</p>
+    {policyLoadError&&<p className="error" role="alert">{policyLoadError}</p>}
     {requireCurrent&&<label>Senha atual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>}
     <label>Nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
     <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
