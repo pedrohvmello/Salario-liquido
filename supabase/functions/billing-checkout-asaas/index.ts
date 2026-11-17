@@ -11,6 +11,19 @@ const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store','Vary':'Origin'
 }
+// Use the exact hosted checkout URL returned by Asaas Sandbox, never a manually built production URL.
+const sandboxCheckoutUrl=(candidate:unknown,id:string):string|null=>{
+ if(typeof candidate!=='string'||candidate.length>400)return null
+ try{
+  const url=new URL(candidate)
+  if(url.protocol!=='https:'||url.hostname!=='sandbox.asaas.com'
+   ||url.username||url.password||url.search||url.hash)return null
+  const parts=url.pathname.split('/').filter(Boolean)
+  const tail=parts.length===4&&/^[0-9]{3}$/.test(parts[0])?parts.slice(1):parts
+  if(tail.length!==3||tail[0]!=='checkoutSession'||tail[1]!=='show'||tail[2]!==id)return null
+  return url.toString()
+ }catch{return null}
+}
 const reply=(body:Record<string,unknown>,status=200)=>
  new Response(JSON.stringify(body),{status,headers})
 Deno.serve(async(req:Request)=>{
@@ -36,6 +49,27 @@ Deno.serve(async(req:Request)=>{
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
  const {data:{user},error:authError}=await userClient.auth.getUser(token)
  if(authError||!user)return reply({error:'Sessão inválida.'},401)
+ // A prior checkout may already exist even if the user saw a 404 on the old redirect.
+ // Read only the authenticated user's RLS-protected attempts to avoid duplicate billing.
+ const {data:existing,error:existingError}=await userClient.from('billing_checkout_intents')
+  .select('id,plan_code,status,provider_checkout_id,expires_at')
+  .eq('user_id',user.id).in('status',['pending','checkout_created'])
+  .gt('expires_at',new Date().toISOString())
+  .order('created_at',{ascending:false}).limit(1).maybeSingle()
+ if(existingError)return reply({error:'Não foi possível consultar um checkout já iniciado.'},403)
+ if(existing){
+  if(existing.plan_code!==plan)return reply({error:'Já existe um checkout em andamento para outro plano. Aguarde a expiração antes de trocar de plano.'},409)
+  if(existing.status==='pending'||!existing.provider_checkout_id)
+   return reply({error:'Já existe uma tentativa de checkout em processamento. Não crie outra cobrança.'},409)
+  const {data:event,error:eventError}=await admin.from('billing_webhook_events')
+   .select('payload').eq('provider','asaas').eq('event_type','CHECKOUT_CREATED')
+   .eq('provider_checkout_id',existing.provider_checkout_id)
+   .order('received_at',{ascending:false}).limit(1).maybeSingle()
+  if(eventError)return reply({error:'Checkout localizado, mas a URL ainda não pôde ser verificada.'},503)
+  const resumedLink=sandboxCheckoutUrl(event?.payload?.checkout?.link,existing.provider_checkout_id)
+  if(!resumedLink)return reply({error:'Checkout existente, mas o link do Asaas ainda não foi recebido ou validado. Não gere uma nova cobrança.'},409)
+  return reply({checkoutUrl:resumedLink,checkoutId:existing.id,mode:'sandbox',plan,intentStatus:'checkout_created',resumed:true})
+ }
  const {data:intent,error:intentError}=await userClient.rpc('begin_my_billing_checkout',{p_plan:plan})
  if(intentError)return reply({error:intentError.message},409)
  if(typeof intent?.id!=='string'||!Number.isSafeInteger(intent?.amountCents)||intent.amountCents<=0)
@@ -109,6 +143,8 @@ Deno.serve(async(req:Request)=>{
   .eq('id',intent.id).eq('user_id',user.id).eq('status','pending')
   .select('id').maybeSingle()
  if(saveError||!saved)return reply({error:'Checkout criado no provedor, mas a vinculação precisa de revisão pelo suporte. Não repita o pagamento.'},503)
- return reply({checkoutUrl:'https://asaas.com/checkoutSession/show?id='+encodeURIComponent(result.id),
+ const providerLink=sandboxCheckoutUrl(result.link,result.id)
+ if(!providerLink)return reply({error:'Checkout criado no Asaas, mas a URL devolvida não passou na validação do Sandbox. Não repita a cobrança; contate o suporte.',checkoutId:intent.id},503)
+ return reply({checkoutUrl:providerLink,
   checkoutId:intent.id,mode:'sandbox',plan,intentStatus:'checkout_created'})
 })
