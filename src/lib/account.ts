@@ -36,6 +36,20 @@ export async function loadMyCheckoutIntents():Promise<BillingCheckoutIntent[]>{
  if(error)throw Error(error.message)
  return (data||[]) as BillingCheckoutIntent[]
 }
+export async function hasMyCheckoutCpf():Promise<boolean>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data,error}=await db.rpc('my_payrep_billing_identity')
+ if(error)throw Error(error.message)
+ return typeof data?.cpf==='string'&&isValidCpf(data.cpf)
+}
+export async function confirmMyCheckoutCpf(value:string):Promise<void>{
+ if(!db)throw Error('Banco não configurado.')
+ const cpf=cpfDigits(value)
+ if(!isValidCpf(cpf))throw Error('CPF inválido. Confira os dígitos verificadores.')
+ const {data,error}=await db.rpc('save_my_checkout_cpf',{p_cpf:cpf})
+ if(error)throw Error(error.message)
+ if(data?.saved!==true)throw Error('Não foi possível confirmar o CPF cadastrado.')
+}
 export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<string>{
  if(!db)throw Error('Banco não configurado.')
  const {data:{session},error:sessionError}=await db.auth.getSession()
