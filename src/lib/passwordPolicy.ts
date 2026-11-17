@@ -15,11 +15,11 @@ export const passwordPresetOptions:ReadonlyArray<{value:PasswordPreset;label:str
 export function isPasswordPolicy(value:unknown):value is PasswordPolicy{
  if(!value||typeof value!=='object')return false
  const p=value as Record<string,unknown>
- return Number.isInteger(p.minLength)&&Number(p.minLength)>=8&&Number(p.minLength)<=128
+ return Number.isInteger(p.minLength)&&Number(p.minLength)>=6&&Number(p.minLength)<=128
   &&passwordPresetOptions.some(item=>item.value===p.preset)
 }
 export function validatePasswordPolicy(p:PasswordPolicy):string|null{
- if(!isPasswordPolicy(p))return 'Informe de 8 a 128 caracteres e selecione uma combinação de requisitos suportada pelo Supabase.'
+ if(!isPasswordPolicy(p))return 'Informe de 6 a 128 caracteres e selecione uma combinação de requisitos suportada pelo Supabase.'
  return null
 }
 export function checkPassword(value:string,policy:PasswordPolicy=passwordPolicyDefaults):string[]{
@@ -74,7 +74,7 @@ const errorMessages:Record<string,string>={
  verification_failed:'O Supabase não confirmou a nova política. Nenhuma alteração foi considerada concluída.',
  mirror_not_updated:'O Supabase respondeu, mas a sincronização com o Payrep falhou. Recarregue e verifique antes de tentar novamente.',
  management_api_unavailable:'Não foi possível validar a configuração de senhas no Supabase.',
- invalid_policy:'Informe um mínimo entre 8 e 128 e uma combinação de caracteres permitida.'
+ invalid_policy:'Informe um mínimo entre 6 e 128 e uma combinação de caracteres permitida.'
 }
 export async function callAuthPasswordPolicy(
  action:'get'|'save',policy?:PasswordPolicy,expected?:PasswordPolicy
