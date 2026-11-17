@@ -25,15 +25,48 @@ const isPolicy=(x:unknown):x is Policy=>{
  return Number.isInteger(p.minLength)&&Number(p.minLength)>=8&&Number(p.minLength)<=128
   &&typeof p.preset==='string'&&Object.prototype.hasOwnProperty.call(CHARSETS,p.preset)
 }
+// Management API versions can serialize supported character requirements as
+// an Auth config preset or as colon-separated character classes. Resolve both
+// forms without weakening/guessing any unknown requirement.
+const PRESET_ALIASES:Record<string,Policy['preset']>={
+ NO_REQUIRED_CHARS:'none',
+ letters_digits:'letters_numbers',
+ lower_upper_letters_digits:'mixed_case_numbers',
+ lower_upper_letters_digits_symbols:'mixed_case_numbers_symbols'
+}
+const splitGroups=(value:string):string[]=>{
+ const groups:string[]=[]
+ let part=''
+ for(let i=0;i<value.length;i++){
+  if(value[i]==='\\'&&value[i+1]===':'){part+=':';i++;continue}
+  if(value[i]===':'){groups.push(part);part='';continue}
+  part+=value[i]
+ }
+ groups.push(part)
+ return groups
+}
+const sameCharacters=(a:string,b:string):boolean=>
+ a.length===b.length&&[...a].every(letter=>b.includes(letter))&&
+ [...b].every(letter=>a.includes(letter))
+const sameClasses=(a:string,b:string):boolean=>{
+ const left=splitGroups(a),right=splitGroups(b)
+ return left.length===right.length&&left.every((set,i)=>sameCharacters(set,right[i]))
+}
+const decodePreset=(raw:unknown):Policy['preset']|null=>{
+ if(raw===null||raw===undefined||raw==='')return 'none'
+ if(typeof raw!=='string')return null
+ if(Object.prototype.hasOwnProperty.call(PRESET_ALIASES,raw))return PRESET_ALIASES[raw]
+ const match=Object.entries(CHARSETS).find(([,value])=>value===raw||sameClasses(value,raw))
+ return match?match[0] as Policy['preset']:null
+}
 const parsePolicy=(json:unknown):Policy|null=>{
  if(!json||typeof json!=='object')return null
  const obj=json as Record<string,unknown>
- const len=obj.password_min_length
- const chars=obj.password_required_characters??''
- if(!Number.isInteger(len)||typeof chars!=='string')return null
- const entry=Object.entries(CHARSETS).find(([,value])=>value===chars)
- return entry&&isPolicy({minLength:len,preset:entry[0]})?
-  {minLength:Number(len),preset:entry[0]}:null
+ const len=typeof obj.password_min_length==='string'&&/^\\d+$/.test(obj.password_min_length)
+  ?Number(obj.password_min_length):obj.password_min_length
+ const preset=decodePreset(obj.password_required_characters)
+ return preset!==null&&isPolicy({minLength:len,preset})?
+  {minLength:len as number,preset}:null
 }
 const matchPolicy=(a:Policy,b:Policy)=>a.minLength===b.minLength&&a.preset===b.preset
 
