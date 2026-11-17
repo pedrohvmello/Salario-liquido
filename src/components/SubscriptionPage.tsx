@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
@@ -13,6 +13,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
+ const [cancelConfirm,setCancelConfirm]=useState(false)
+ const [cancelBusy,setCancelBusy]=useState(false)
+ const [cancelMessage,setCancelMessage]=useState('')
  const [reconciling,setReconciling]=useState(false)
  const [reconciliationMessage,setReconciliationMessage]=useState('')
  const reconciliationText=(result:BillingReconciliationResult)=>{
@@ -63,6 +66,18 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    window.location.assign(url)
   }catch(e){setCheckoutError(e instanceof Error?e.message:'Checkout de homologação indisponível.');setCheckoutBusy(null)}
  }
+ const cancelRenewal=async()=>{
+  if(cancelBusy)return
+  setCancelBusy(true);setCancelMessage('')
+  try{
+   await cancelMyAsaasSandboxRenewal()
+   const billing=await loadMyBilling()
+   setData(billing)
+   setCancelConfirm(false)
+   setCancelMessage('A renovação automática foi interrompida no Asaas Sandbox. O acesso permanece até a data de fim do período pago. Cobranças já geradas não são canceladas por esta operação.')
+  }catch(e){setCancelMessage(e instanceof Error?e.message:'Falha ao cancelar a renovação.')}
+  finally{setCancelBusy(false)}
+ }
  const current=data.subscription
  const pendingCheckout=current.plan_code==='free'?checkoutHistory.find(intent=>intent.status==='paid'):undefined
  const paidCheckoutPending=Boolean(pendingCheckout)
@@ -81,12 +96,23 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     {current.current_period_end&&<p className="subtle">Fim do período atual: {date(current.current_period_end)}</p>}
     {current.plan_code!=='free'&&<div className="payrep-billing-help">
      <strong>Gerenciamento e cancelamento da assinatura</strong>
-     <p>{current.cancel_at_period_end||current.status==='canceled'
-      ?'A renovação está registrada como cancelada. Se ainda existir período pago, você poderá continuar utilizando o plano até o fim da vigência, salvo se optar por encerrar a conta.'
-      :'O Payrep registra uma assinatura paga. Para cancelar a renovação, utilize o canal pelo qual contratou ou solicite atendimento ao suporte. A exclusão da conta será bloqueada enquanto a renovação estiver ativa.'}</p>
-     <a href="mailto:suporte@payrep.com.br?subject=Cancelamento%20de%20assinatura%20Payrep">Solicitar orientação de cancelamento</a>
+     {current.cancel_at_period_end
+      ?<p role="status">Renovação automática interrompida. Seu acesso ao plano pago permanece até {date(current.current_period_end)}. Cobranças já geradas no Asaas não são canceladas automaticamente.</p>
+      :<>
+       <p>Você pode interromper as próximas renovações. O acesso já pago permanece até {date(current.current_period_end)}. Cobranças já geradas continuam exigíveis e precisam ser tratadas separadamente.</p>
+       {!cancelConfirm
+        ?<button type="button" className="secondary" onClick={()=>setCancelConfirm(true)}>Cancelar renovação</button>
+        :<div className="stack" role="group" aria-label="Confirmar cancelamento da renovação">
+          <p><strong>Confirma interromper a renovação do plano {names[current.plan_code]} no Asaas?</strong></p>
+          <div className="row">
+           <button type="button" className="secondary" disabled={cancelBusy} onClick={()=>setCancelConfirm(false)}>Manter assinatura</button>
+           <button type="button" className="secondary" disabled={cancelBusy} onClick={()=>void cancelRenewal()}>{cancelBusy?'Cancelando...':'Confirmar cancelamento'}</button>
+          </div>
+         </div>}
+      </>}
+     {cancelMessage&&<p role="status" className="subtle">{cancelMessage}</p>}
     </div>}
-    <div className="detail-hint"><Info size={16}/>A infraestrutura de checkout Asaas está preparada exclusivamente para testes no HML. A contratação depende de preços aprovados, habilitação administrativa e credenciais do Sandbox. Não há pagamentos reais nem cancelamento integrado nesta etapa.</div>
+    <div className="detail-hint"><Info size={16}/>Integração Asaas exclusivamente em homologação. Não há movimentação financeira real. A interrupção da renovação não estorna pagamentos nem remove cobranças já emitidas.</div>
    </section>
    {paidCheckoutPending&&<section className="panel" aria-labelledby="subscription-pending-title">
     <div className="panel-heading">
