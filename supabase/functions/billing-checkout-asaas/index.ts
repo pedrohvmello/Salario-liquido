@@ -80,9 +80,12 @@ Deno.serve(async(req:Request)=>{
   const descriptions=providerErrors.map((item:unknown)=>{
    const value=(item&&typeof item==='object'&&'description' in item)?item.description:null
    if(typeof value!=='string')return null
-   const description=value.trim()
-   if(!description||description.length>180||/https?:|\\b(?:token|api[_ -]?key|senha|password|secret|bearer)\\b|\\d{11,}/i.test(description))return null
-   return /^[\\p{L}\\p{N}\\s.,:;!?()\\/\\[\\]_'\\"%ºª-]+$/u.test(description)?description:null
+   const description=value.trim().split(String.fromCharCode(10)).join(' ').split(String.fromCharCode(13)).join(' ')
+   if(!description||description.length>180)return null
+   const forbidden=['@','://','token','api key','apikey','senha','password','secret','bearer','<','>']
+   const normalized=description.toLowerCase()
+   if(forbidden.some(word=>normalized.includes(word))||/[0-9]{6,}/.test(description))return null
+   return description
   }).filter((x:string|null):x is string=>x!==null)
   console.error('asaas_sandbox_checkout_rejected',JSON.stringify({
    status:response.status,codes,descriptions,parseable:result!==null
