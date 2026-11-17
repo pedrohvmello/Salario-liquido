@@ -141,6 +141,11 @@ export async function deletePayslipStatement(statementId:string):Promise<{delete
 export async function saveStatements(pages:ParsedStatement[],files:File[],selected:string[],useCompetenceDate=false){
   if(!db)throw new Error('Banco não configurado')
   const user_id=await identity()
+  // Fast-fail before PDF parsing/upload. The actual entitlement is also
+  // enforced by restrictive RLS/storage policies, never by this client check alone.
+  const {data:plan,error:planError}=await db.rpc('my_effective_payrep_plan')
+  if(planError)throw Error('Não foi possível verificar seu plano: '+planError.message)
+  if(plan?.effectivePlan!=='full')throw Error('Importação de PDFs e eventos automáticos disponíveis somente no plano Full.')
   const chosen=pages.filter(p=>selected.includes(p.sourceFile+'#'+p.page))
   if(!chosen.length)throw new Error('Selecione ao menos um holerite.')
   if(files.length!==new Set(files.map(f=>f.name)).size)
