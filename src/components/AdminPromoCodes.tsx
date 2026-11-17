@@ -34,6 +34,7 @@ export function AdminPromoCodes(){
  const [busy,setBusy]=useState(false)
  const [formOpen,setFormOpen]=useState(false)
  const [plan,setPlan]=useState<'basic'|'full'>('full')
+ const [promoCode,setPromoCode]=useState('')
  const [days,setDays]=useState('7')
  const [expiry,setExpiry]=useState(futureDefault)
  const [maxUses,setMaxUses]=useState('')
@@ -56,6 +57,10 @@ export function AdminPromoCodes(){
  },[reload])
  const create=async()=>{
   if(!db||busy)return
+  const customCode=promoCode.trim().toUpperCase()
+  if(!/^[A-Z0-9_-]{4,12}$/.test(customCode)){
+   setError('Informe um código de 4 a 12 caracteres, usando letras, números, hífen ou sublinhado.');return
+  }
   const count=Number(days)
   if(!Number.isInteger(count)||count<1||count>365){
    setError('Informe um número de dias entre 1 e 365.');return
@@ -70,12 +75,12 @@ export function AdminPromoCodes(){
   setBusy(true);setError('');setMessage('');setCreatedCode('')
   try{
    const {data,error}=await db.rpc('create_hml_promo_code',{
-    p_plan:plan,p_days:count,p_last_date:expiry,p_max_redemptions:uses
+    p_plan:plan,p_days:count,p_last_date:expiry,p_code:customCode,p_max_redemptions:uses
    })
    if(error)throw error
-   if(typeof data?.code!=='string'||!data.code.startsWith('PAY-'))throw Error('O código não foi retornado.')
-   setCreatedCode(data.code);setFormOpen(false)
-   setMessage('Código criado. Copie-o agora: ele não poderá ser exibido novamente.')
+   if(data?.code!==customCode)throw Error('Não foi possível confirmar o código cadastrado.')
+   setCreatedCode(data.code);setPromoCode('');setFormOpen(false)
+   setMessage('Código cadastrado. Ele está disponível para cópia abaixo.')
    await reload()
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o código.')}
   finally{setBusy(false)}
@@ -87,7 +92,7 @@ export function AdminPromoCodes(){
    const {data,error}=await db.rpc('disable_hml_promo_code',{p_code_id:id})
    if(error)throw error
    if(data?.disabled!==true)throw Error('Não foi possível confirmar a desativação.')
-   setPendingDisable(null);setMessage('Código desativado para novos resgates. Acessos já concedidos mantêm sua data final.')
+   setPendingDisable(null);setMessage('Código desativado. Não poderá ser cadastrado novamente por seis meses; acessos já concedidos mantêm sua data final.')
    await reload()
   }catch(e){setError(e instanceof Error?e.message:'Falha ao desativar o código.')}
   finally{setBusy(false)}
@@ -110,9 +115,16 @@ export function AdminPromoCodes(){
     </button>
    </div>
   </div>
-  <p className="subtle">Crie períodos gratuitos Basic ou Full sem checkout, cartão ou cobrança. A validade do código limita o prazo para resgate, não os dias de acesso já concedidos.</p>
+  <p className="subtle">Defina um código de 4 a 12 caracteres para conceder acesso Basic ou Full sem pagamento. Os caracteres são convertidos para maiúsculas. Um código desativado só poderá ser cadastrado novamente após seis meses. Os acessos já concedidos continuam válidos até o fim.</p>
   {formOpen&&<form className="promo-create-form" onSubmit={event=>{event.preventDefault();void create()}}>
    <div className="promo-create-grid">
+    <label className="admin-promo-field">Código promocional
+     <input type="text" maxLength={12} minLength={4} required autoComplete="off"
+      spellCheck={false} value={promoCode} disabled={busy} placeholder="EX.: TESTEFULL"
+      onChange={event=>{setPromoCode(event.target.value.toUpperCase().slice(0,12));setError('')}}
+      aria-describedby="promo-code-format-hint"/>
+     <small id="promo-code-format-hint" className="subtle">4 a 12 caracteres: A–Z, 0–9, hífen ou sublinhado.</small>
+    </label>
     <div className="admin-promo-field"><span>Plano</span>
      <PayrepSelect value={plan} onChange={value=>setPlan(value as 'basic'|'full')} title="Plano do código promocional" disabled={busy}>
       <option value="basic">Basic</option><option value="full">Full</option>
@@ -132,17 +144,17 @@ export function AdminPromoCodes(){
       placeholder="Ilimitado" onChange={e=>setMaxUses(e.target.value)} disabled={busy}/>
     </label>
    </div>
-   <button type="submit" className="primary" disabled={busy||!expiry||!days}>
-    {busy?'Criando...':'Gerar código promocional'}
+   <button type="submit" className="primary" disabled={busy||!expiry||!days||!/^[A-Z0-9_-]{4,12}$/.test(promoCode.trim())}>
+    {busy?'Cadastrando...':'Criar código'}
    </button>
   </form>}
   {createdCode&&<div className="promo-created" role="status" aria-live="polite">
-   <strong>Código criado, disponível somente agora</strong>
+   <strong>Código cadastrado</strong>
    <div className="row promo-created-row">
     <code>{createdCode}</code>
     <button className="secondary" type="button" onClick={()=>void copy()}><Copy size={16}/> Copiar</button>
    </div>
-   <p>Salve o código antes de sair desta tela. Por segurança, o Payrep armazena somente um identificador criptográfico e os quatro últimos caracteres.</p>
+   <p>Guarde o código para compartilhá-lo. Por segurança, o Payrep armazena apenas sua identificação criptográfica e os quatro últimos caracteres.</p>
   </div>}
   {message&&<p className="auth-success" role="status">{message}</p>}
   {error&&<p className="error" role="alert">{error}</p>}
@@ -164,6 +176,6 @@ export function AdminPromoCodes(){
      </tr>)}
    </tbody>
   </table></div>
-  <p className="subtle"><ShieldCheck size={14}/> Um resgate por código e por usuário; uma promoção ativa por vez. Desativar ou expirar um código não reduz os dias de acesso de quem já o utilizou.</p>
+  <p className="subtle"><ShieldCheck size={14}/> Um resgate por código e por usuário; uma promoção ativa por vez. Um código desativado fica reservado por seis meses. Desativar ou expirar um código não reduz os dias de acesso já concedidos.</p>
  </section>
 }
