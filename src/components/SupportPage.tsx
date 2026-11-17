@@ -206,15 +206,15 @@ export function SupportPage({user}:{user:User}){
  }
  // Never display the AI entrypoint in PRD until the HML pilot is approved.
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
- if(inAi&&hmlAiEnabled)return <SupportAiChat onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
+ if(inAi&&hmlAiEnabled)return <SupportAiChat mode="help" onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
   {hmlAiEnabled&&<section className="panel help-ai-entry">
    <div className="help-ai-entry-content">
-    <div className="panel-heading"><h2><Sparkles size={19}/> Pergunte ao Pep</h2></div>
+    <div className="panel-heading"><h2><Sparkles size={19}/> Pep Ajuda</h2></div>
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
     <button type="button" className="primary" onClick={()=>setInAi(true)}><Sparkles size={17}/> Conversar com o Pep</button>
-    <p className="subtle">Em homologação. Com sua autorização, o Pep pode consultar resumos dos seus holerites e explicar valores importados.</p>
+    <p className="subtle">O Pep Ajuda responde apenas dúvidas sobre o funcionamento do Payrep. Consultas aos seus dados ficam no menu Pergunte ao Pep, a partir do plano Basic.</p>
     {isAdmin&&<details className="pep-admin-media">
      <summary>Gerenciar animação do Pep</summary>
      <p className="subtle">Publicação definitiva em homologação. O vídeo ficará disponível para todos os usuários deste ambiente.</p>
