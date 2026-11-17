@@ -1482,3 +1482,33 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .admin-trial-controls .payrep-select-trigger{width:100%}
 .admin-trial-controls>button{min-height:42px}
 @media(max-width:780px){.admin-finance-kpis{grid-template-columns:1fr}.admin-trial-controls{grid-template-columns:1fr}}
+
+
+/* Admin Financeiro: monthly/annual gross/net revenue with independent plan filters */
+.admin-revenue-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 22px;margin:20px 0 16px}
+.admin-revenue-filter{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0}
+.admin-revenue-filter>span{font-size:11px;color:#78648e;font-weight:750}
+.admin-revenue-switch{display:inline-flex;gap:3px;padding:3px;border:1px solid #e5d9f4;background:#f8f3fc;border-radius:10px}
+.admin-revenue-switch button{font-size:12px;font-weight:750;padding:9px 14px;border:0;border-radius:8px;color:#694987;background:transparent;cursor:pointer;white-space:nowrap}
+.admin-revenue-switch button.active{color:#fff;background:#6800c7}
+.admin-revenue-switch button:focus-visible{outline:3px solid #b96df3;outline-offset:1px}
+.admin-revenue-year{min-width:135px}
+.admin-revenue-year .payrep-select-trigger{min-width:130px;min-height:42px}
+.admin-revenue-checks{display:flex;align-items:center;gap:14px;min-height:43px;flex-wrap:wrap}
+.admin-revenue-check{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:750;color:#482a67;cursor:pointer}
+.admin-revenue-check input{width:17px;height:17px;accent-color:#6a00c9}
+.admin-revenue-dot{width:10px;height:10px;flex:none;border-radius:50%}
+.admin-revenue-summary{display:flex;gap:26px;flex-wrap:wrap;padding:16px 19px;border:1px solid #e9ddf5;background:#faf6ff;border-radius:12px}
+.admin-revenue-summary>div{display:flex;flex-direction:column;gap:5px}
+.admin-revenue-summary>div>span{font-size:11px;color:#765e8c}
+.admin-revenue-summary>div>strong{font-size:19px;color:#301048;font-variant-numeric:tabular-nums}
+.admin-revenue-chart-scroll{width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.admin-revenue-chart{min-width:580px;width:100%;height:315px;margin:15px 0}
+.admin-revenue-empty{padding:66px 15px;color:#7d6c90;text-align:center;font-size:13px}
+@media(max-width:760px){
+ .admin-revenue-toolbar{align-items:stretch;gap:14px}
+ .admin-revenue-filter{flex:1 1 145px}
+ .admin-revenue-checks{justify-content:flex-start}
+ .admin-revenue-summary{gap:16px}
+ .admin-revenue-chart{height:290px;min-width:580px}
+}
