@@ -1569,3 +1569,22 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .checkout-review-form .account-form-grid input[aria-invalid="true"]{border-color:#bc324e}
 .checkout-review-form .subscription-cpf-actions{gap:18px;flex-wrap:wrap}
 @media(max-width:680px){.checkout-review-form .account-form-grid{grid-template-columns:1fr}}
+
+
+/* HML promotional Basic/Full access creation and redemption */
+.promo-create-form{border:1px solid #e4d4f6;background:#fbf7ff;padding:17px;border-radius:13px;display:flex;align-items:flex-start;flex-direction:column;gap:17px;margin:17px 0}
+.promo-create-grid{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.admin-promo-field{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;font-weight:650;font-size:12px;color:#5a3374}
+.admin-promo-field input{min-width:0;width:100%;height:42px;padding:9px 12px;border:1px solid #dcc4f0;border-radius:9px;background:#fff;color:#351651;font-size:14px}
+.admin-promo-field input:focus-visible{outline:2px solid #8700d5;outline-offset:1px}
+.admin-promo-field .payrep-select-trigger{width:100%;min-height:42px}
+.admin-promo-field .payrep-date-trigger{width:100%;min-height:42px}
+.promo-created{margin:15px 0;padding:17px;border:1px solid #d4b1f7;border-radius:12px;background:#f8f0ff;color:#481e69}
+.promo-created>strong{font-size:13px}
+.promo-created-row{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:12px 0}
+.promo-created-row code{font-weight:750;font-size:14px;letter-spacing:1px;word-break:break-word;color:#430c69;background:#fff;padding:11px;border:1px solid #dfc6ef;border-radius:8px}
+.promo-created p{font-size:12px;line-height:1.6;color:#795a94}
+.promo-user-form{display:grid;grid-template-columns:minmax(150px,1fr) minmax(250px,2fr) auto;align-items:end;gap:14px;margin:18px 0}
+.promo-user-form>button{min-height:42px;white-space:nowrap}
+@media(max-width:900px){.promo-user-form{grid-template-columns:1fr 1fr}.promo-user-form>button{grid-column:1/-1;justify-self:start}}
+@media(max-width:650px){.promo-create-grid,.promo-user-form{grid-template-columns:1fr}.promo-user-form>button{grid-column:auto;width:100%}}
