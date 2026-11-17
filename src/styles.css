@@ -1512,3 +1512,16 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .admin-revenue-summary{gap:16px}
  .admin-revenue-chart{height:290px;min-width:580px}
 }
+
+
+/* Payrep signup: four live password requirements and separate email verification screen. */
+.auth-card .signup-password-rules{display:grid;grid-template-columns:1fr;gap:9px;margin:-3px 0 0;padding:13px 15px;background:#fbf8ff;border:1px solid #e9dcf6;border-radius:11px}
+.auth-card .signup-password-rule{display:flex;align-items:center;gap:9px;font-size:12px;line-height:1.45;font-weight:650;transition:color .12s ease}
+.signup-password-rule svg{flex-shrink:0}
+.signup-password-rule.is-missing{color:#bf304b}
+.signup-password-rule.is-met{color:#14865b}
+.auth-card form label:has(+ label) {margin-bottom:0}
+.signup-confirmation-screen{display:flex;flex-direction:column;align-items:stretch;gap:15px;margin:19px 0 0}
+.signup-confirmation-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;background:#f2e7ff;border:1px solid #e1ccf8;color:#7900d6}
+.signup-confirmation-screen p{font-size:13px;line-height:1.7;color:#5e4b70;margin:0}
+.signup-confirmation-screen button{width:100%;min-height:46px;margin-top:6px}
