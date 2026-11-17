@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,type DayEntry} from './lib/calendar'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
@@ -34,6 +34,7 @@ import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
+import {AdminPepSettingsPage} from './components/AdminPepSettingsPage'
 import {AdminFinancePage} from './components/AdminFinancePage'
 import {AdminPlansPage} from './components/AdminPlansPage'
 import {AdminSupportTickets} from './components/AdminSupportTickets'
@@ -52,7 +53,7 @@ import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
 import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
-type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'pep-personal'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-finance'|'admin-plans'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
+type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'pep-personal'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-pep'|'admin-finance'|'admin-plans'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
@@ -65,6 +66,7 @@ const nav=[
  {id:'imports',label:'Meus Holerites',icon:FileInput},
  {id:'definitions',label:'Definições',icon:Settings2},
  {id:'admin-settings',label:'Configurações',icon:Settings2},
+ {id:'admin-pep',label:'Configurações do Pep',icon:Sparkles},
  {id:'admin-finance',label:'Financeiro',icon:Wallet},
  {id:'admin-plans',label:'Planos e Assinaturas',icon:ContactRound}
 ] as const
@@ -519,7 +521,7 @@ export default function App(){
   childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
- const accessiblePrimaryViews=nav.filter(item=>isAdmin||item.id!=='admin-settings').map(item=>item.id) as MobilePrimaryView[]
+ const accessiblePrimaryViews=nav.filter(item=>isAdmin||!item.id.startsWith('admin-')).map(item=>item.id) as MobilePrimaryView[]
  const renderPageBody=(section:Section)=> (
   <div className="page-body">
     {isDemo&&<div className="notice warning"><Info size={18}/><span><strong>Modo de demonstração.</strong> Os valores exibidos são fictícios e nada é salvo. Configure o Supabase para ativar contas e dados reais.</span></div>}
@@ -578,6 +580,7 @@ export default function App(){
         {section==='admin'&&isAdmin&&<div className="stack"><div><button type="button" className="secondary" onClick={()=>setSection('admin-settings')}>Voltar às configurações</button></div><AdminDashboard/></div>}
     {section==='admin-support'&&isAdmin&&<AdminSupportTickets onBack={()=>setSection('admin-settings')}/>}
     {section==='admin-settings'&&isAdmin&&<AdminSettingsPage onNavigate={view=>setSection(view)}/>}
+    {section==='admin-pep'&&isAdmin&&<AdminPepSettingsPage onBack={()=>setSection('admin-settings')}/>}
     {section==='admin-finance'&&isAdmin&&<AdminFinancePage/>}
     {section==='admin-plans'&&isAdmin&&<AdminPlansPage/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
