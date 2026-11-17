@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ShieldCheck,Save,BookOpen,UsersRound,LifeBuoy} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
+import {AdminPasswordPolicy} from './AdminPasswordPolicy'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-support')=>void}){
  const [approval,setApproval]=useState(true)
@@ -40,6 +41,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    </div>
    <p className="subtle">A política de aprovação controla o acesso ao Payrep, não a criação de usuários no Supabase Auth.</p>
   </section>
+  <AdminPasswordPolicy/>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
    <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
