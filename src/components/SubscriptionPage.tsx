@@ -4,6 +4,8 @@ import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerN
 import type {BillingReturn} from '../lib/billingReturn'
 import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
 import {isValidCheckoutName} from '../lib/checkoutPayerName'
+import {CheckoutPayerReview} from './CheckoutPayerReview'
+import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
 function date(raw:string|null){return raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'}
@@ -16,6 +18,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
+ const [reviewCheckout,setReviewCheckout]=useState<{plan:'basic'|'full';profile:PayrepProfile}|null>(null)
  const [cpfPlan,setCpfPlan]=useState<'basic'|'full'|null>(null)
  const [cpfDraft,setCpfDraft]=useState('')
  const [cpfError,setCpfError]=useState('')
@@ -86,18 +89,25 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   if(checkoutBusy)return
   setCheckoutBusy(plan);setCheckoutError('');setCpfError('');setNameError('')
   try{
-   if(!await hasMyCheckoutCpf()){
-    setNamePlan(null);setCpfDraft('');setCpfPlan(plan)
-    return
-   }
-   await continueWithPayerName(plan)
+   // A hosted Asaas checkout does not offer an editable-prefilled toggle.
+   // Let users review their account data before the first provider request.
+   const profile=await loadMyProfile()
+   setCpfPlan(null);setNamePlan(null)
+   setReviewCheckout({plan,profile})
   }catch(e){
-   const message=e instanceof Error?e.message:'Checkout de homologação indisponível.'
-   if(message.includes('Informe seu CPF')){
-    setCpfPlan(plan);setCpfDraft('')
-   }else if(message.includes('nome completo')){
-    setNamePlan(plan);setNameDraft(await getMyCheckoutPayerName().catch(()=>''));setNameError('')
-   }else setCheckoutError(message)
+   setCheckoutError(e instanceof Error?e.message:'Não foi possível carregar os dados cadastrais.')
+  }finally{setCheckoutBusy(null)}
+ }
+ const submitReviewedCheckout=async(profile:PayrepProfile)=>{
+  if(!reviewCheckout||checkoutBusy)return
+  const plan=reviewCheckout.plan
+  setCheckoutBusy(plan);setCheckoutError('')
+  try{
+   // Payrep remains the source of truth for newly created Asaas customers.
+   // Existing linked customers are validated by the provider integration.
+   await saveMyProfile(profile)
+   const url=await startAsaasSandboxCheckout(plan)
+   window.location.assign(url)
   }finally{setCheckoutBusy(null)}
  }
  const confirmCpfAndCheckout=async()=>{
@@ -223,6 +233,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      </div>
     })}</div>
    </section>
+   {reviewCheckout&&<CheckoutPayerReview key={reviewCheckout.plan} planName={names[reviewCheckout.plan]}
+    initial={reviewCheckout.profile} busy={checkoutBusy!==null}
+    onCancel={()=>setReviewCheckout(null)} onContinue={submitReviewedCheckout}/>}
    {cpfPlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-cpf-title">
     <div className="panel-heading"><h2 id="checkout-cpf-title">Informe seu CPF para contratar o {names[cpfPlan]}</h2></div>
     <p className="subtle">O CPF é necessário para contratar uma assinatura. Após confirmar, ele será automaticamente salvo no seu cadastro. Não solicitamos dados de cartão nesta etapa.</p>
