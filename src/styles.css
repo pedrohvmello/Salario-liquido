@@ -1535,3 +1535,25 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .subscription-cpf-form input[aria-invalid="true"]{border-color:#c7384c}
 .subscription-cpf-form .row{gap:10px;flex-wrap:wrap}
 .subscription-cpf-form .row button{min-height:42px}
+
+
+/* Birth date picker: click the displayed year to search or select directly. */
+.payrep-calendar-heading{flex:1;display:flex;align-items:center;justify-content:center;gap:2px;color:#491d67;font-size:15px;font-weight:750;white-space:nowrap;text-transform:capitalize}
+.payrep-calendar-controls .payrep-calendar-year-trigger{
+ display:inline-flex;align-items:center;justify-content:center;gap:3px;
+ width:auto;min-width:58px;height:34px;padding:0 7px;color:#6519a0;
+ font-size:15px;font-weight:800;border-radius:8px;text-transform:none
+}
+.payrep-calendar-controls .payrep-calendar-year-trigger:hover{background:#f2e5fb}
+.payrep-calendar-controls button:disabled{opacity:.25;cursor:not-allowed}
+.payrep-calendar-year-panel{display:flex;flex-direction:column;gap:10px;padding:3px 18px 16px}
+.payrep-calendar-year-panel>label{font-size:12px;font-weight:700;color:#614777}
+.payrep-calendar-year-panel>input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #ddc6ed;background:#fff;color:#40225e;font-size:14px}
+.payrep-calendar-year-panel>input:focus-visible{outline:2px solid #8e27c7;outline-offset:1px}
+.payrep-calendar-year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 6px 0}
+.payrep-calendar-year-option{min-width:0;height:39px;border-radius:9px;border:1px solid transparent;background:#faf5ff;color:#4c2d69;font-weight:650;font-size:13px;cursor:pointer}
+.payrep-calendar-year-option:hover{border-color:#cda7e9;background:#f2e5fb}
+.payrep-calendar-year-option.selected{color:#fff;background:linear-gradient(135deg,#9600ee,#6710b6)}
+.payrep-calendar-year-option:focus-visible{outline:2px solid #8e27c7;outline-offset:2px}
+.payrep-calendar-year-empty{grid-column:1/-1;padding:18px 0;text-align:center;color:#806b90;font-size:12px}
+.payrep-calendar-day:disabled{opacity:.25;cursor:not-allowed}
