@@ -1,8 +1,9 @@
 import {useEffect,useRef,useState} from 'react'
 import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
+import {isValidCheckoutName} from '../lib/checkoutPayerName'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
 function date(raw:string|null){return raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'}
@@ -19,7 +20,12 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [cpfDraft,setCpfDraft]=useState('')
  const [cpfError,setCpfError]=useState('')
  const cpfInputRef=useRef<HTMLInputElement>(null)
+ const nameInputRef=useRef<HTMLInputElement>(null)
+ const [namePlan,setNamePlan]=useState<'basic'|'full'|null>(null)
+ const [nameDraft,setNameDraft]=useState('')
+ const [nameError,setNameError]=useState('')
  useEffect(()=>{if(cpfPlan)cpfInputRef.current?.focus()},[cpfPlan])
+ useEffect(()=>{if(namePlan)nameInputRef.current?.focus()},[namePlan])
  const [cancelConfirm,setCancelConfirm]=useState(false)
  const [cancelBusy,setCancelBusy]=useState(false)
  const [cancelMessage,setCancelMessage]=useState('')
@@ -66,23 +72,33 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    .finally(()=>{if(active)setLoading(false)})
   return ()=>{active=false}
  },[])
+ const continueWithPayerName=async(plan:'basic'|'full')=>{
+  const currentName=await getMyCheckoutPayerName()
+  if(!isValidCheckoutName(currentName)){
+   setCpfPlan(null);setNamePlan(plan)
+   setNameDraft(currentName);setNameError('')
+   return
+  }
+  const url=await startAsaasSandboxCheckout(plan)
+  window.location.assign(url)
+ }
  const checkout=async(plan:'basic'|'full')=>{
   if(checkoutBusy)return
-  setCheckoutBusy(plan);setCheckoutError('');setCpfError('')
+  setCheckoutBusy(plan);setCheckoutError('');setCpfError('');setNameError('')
   try{
    if(!await hasMyCheckoutCpf()){
-    setCpfDraft('');setCpfPlan(plan);setCheckoutBusy(null)
+    setNamePlan(null);setCpfDraft('');setCpfPlan(plan)
     return
    }
-   const url=await startAsaasSandboxCheckout(plan)
-   window.location.assign(url)
+   await continueWithPayerName(plan)
   }catch(e){
    const message=e instanceof Error?e.message:'Checkout de homologação indisponível.'
-   if(message.includes('CPF_REQUIRED')||message.includes('Informe seu CPF')){
+   if(message.includes('Informe seu CPF')){
     setCpfPlan(plan);setCpfDraft('')
+   }else if(message.includes('nome completo')){
+    setNamePlan(plan);setNameDraft(await getMyCheckoutPayerName().catch(()=>''));setNameError('')
    }else setCheckoutError(message)
-   setCheckoutBusy(null)
-  }
+  }finally{setCheckoutBusy(null)}
  }
  const confirmCpfAndCheckout=async()=>{
   if(!cpfPlan||checkoutBusy)return
@@ -97,12 +113,31 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    await confirmMyCheckoutCpf(cpfDraft)
    saved=true
    setCpfPlan(null);setCpfDraft('')
-   const url=await startAsaasSandboxCheckout(plan)
-   window.location.assign(url)
+   await continueWithPayerName(plan)
   }catch(e){
    const message=e instanceof Error?e.message:'Não foi possível concluir o cadastro para pagamento.'
    if(saved)setCheckoutError('CPF salvo no seu cadastro. '+message)
    else setCpfError(message)
+  }finally{setCheckoutBusy(null)}
+ }
+ const confirmNameAndCheckout=async()=>{
+  if(!namePlan||checkoutBusy)return
+  if(!isValidCheckoutName(nameDraft)){
+   setNameError('Informe seu nome e sobrenome completos, sem números ou abreviações.')
+   return
+  }
+  const plan=namePlan
+  setCheckoutBusy(plan);setNameError('');setCheckoutError('')
+  let saved=false
+  try{
+   await confirmMyCheckoutPayerName(nameDraft)
+   saved=true;setNamePlan(null);setNameDraft('')
+   const url=await startAsaasSandboxCheckout(plan)
+   window.location.assign(url)
+  }catch(e){
+   const message=e instanceof Error?e.message:'Não foi possível iniciar o checkout.'
+   if(saved)setCheckoutError('Nome completo salvo em Meu cadastro. '+message)
+   else setNameError(message)
   }finally{setCheckoutBusy(null)}
  }
  const cancelRenewal=async()=>{
@@ -207,6 +242,27 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       <button type="submit" className="primary"
        disabled={checkoutBusy!==null||!isValidCpf(cpfDraft)}>
        {checkoutBusy===cpfPlan?'Salvando CPF...':'Confirmar CPF e continuar no Asaas'}
+      </button>
+     </div>
+    </form>
+   </section>}
+   {namePlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-name-title">
+    <div className="panel-heading"><h2 id="checkout-name-title">Informe seu nome completo para contratar o {names[namePlan]}</h2></div>
+    <p className="subtle">O Asaas exige um nome válido para identificar o titular da assinatura. Informe seu nome e sobrenome. Após confirmar, ele será salvo em Meu cadastro e o checkout continuará automaticamente. Seu CPF já está salvo.</p>
+    <form className="subscription-cpf-form" onSubmit={e=>{e.preventDefault();void confirmNameAndCheckout()}}>
+     <label htmlFor="checkout-name-input">Nome completo
+      <input id="checkout-name-input" ref={nameInputRef} type="text" autoComplete="name"
+       placeholder="Nome e sobrenome" maxLength={100} value={nameDraft}
+       aria-invalid={Boolean(nameError)}
+       aria-describedby={nameError?'checkout-name-error':undefined}
+       onChange={e=>{setNameDraft(e.target.value);setNameError('')}}/>
+     </label>
+     {nameError&&<p id="checkout-name-error" className="error" role="alert">{nameError}</p>}
+     <div className="row subscription-cpf-actions">
+      <button type="button" className="secondary" disabled={checkoutBusy!==null}
+       onClick={()=>{setNamePlan(null);setNameDraft('');setNameError('')}}>Cancelar</button>
+      <button type="submit" className="primary" disabled={checkoutBusy!==null||!isValidCheckoutName(nameDraft)}>
+       {checkoutBusy===namePlan?'Salvando nome...':'Confirmar nome e continuar no Asaas'}
       </button>
      </div>
     </form>
