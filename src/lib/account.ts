@@ -77,6 +77,23 @@ export async function cancelMyAsaasSandboxRenewal():Promise<{canceledRenewal:boo
  return data as {canceledRenewal:boolean;accessUntil?:string}
 }
 
+export type EffectivePayrepPlan={
+ effectivePlan:'free'|'basic'|'full';
+ paidPlan:'free'|'basic'|'full';
+ trialActive:boolean;
+ trialStartsAt:string|null;
+ trialEndsAt:string|null;
+ trialRevokedAt:string|null
+}
+export async function loadMyEffectivePayrepPlan():Promise<EffectivePayrepPlan>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data,error}=await db.rpc('my_effective_payrep_plan')
+ if(error)throw Error(error.message)
+ if(!data||!['free','basic','full'].includes(data.effectivePlan)||typeof data.trialActive!=='boolean')
+  throw Error('Dados inválidos do acesso ao plano.')
+ return data as EffectivePayrepPlan
+}
+
 export const blankProfile=(user?:User|null):PayrepProfile=>({
  display_name:profileDisplayName(user||null),
  phone:'',postal_code:'',street:'',street_number:'',complement:'',
