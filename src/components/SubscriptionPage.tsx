@@ -64,7 +64,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   }catch(e){setCheckoutError(e instanceof Error?e.message:'Checkout de homologação indisponível.');setCheckoutBusy(null)}
  }
  const current=data.subscription
- const paidCheckoutPending=current.plan_code==='free'&&checkoutHistory.some(intent=>intent.status==='paid')
+ const pendingCheckout=current.plan_code==='free'?checkoutHistory.find(intent=>intent.status==='paid'):undefined
+ const paidCheckoutPending=Boolean(pendingCheckout)
+ const pendingPlanName=pendingCheckout?names[pendingCheckout.plan_code]:null
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
@@ -79,7 +81,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>Plano {names[current.plan_code]||'Free'}</strong><span>{current.plan_code==='free'?'Gratuito. Nenhuma cobrança ativa.':current.status==='active'?'Assinatura ativa': 'Situação: '+current.status}</span></div>
+    <div className="subscription-current"><strong>Plano {names[current.plan_code]||'Free'}</strong><span>{current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.'):(current.status==='active'?'Assinatura ativa':'Situação: '+current.status)}</span></div>
     {current.current_period_end&&<p className="subtle">Fim do período atual: {date(current.current_period_end)}</p>}
     {current.plan_code!=='free'&&<div className="payrep-billing-help">
      <strong>Gerenciamento e cancelamento da assinatura</strong>
@@ -90,19 +92,24 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     </div>}
     <div className="detail-hint"><Info size={16}/>A infraestrutura de checkout Asaas está preparada exclusivamente para testes no HML. A contratação depende de preços aprovados, habilitação administrativa e credenciais do Sandbox. Não há pagamentos reais nem cancelamento integrado nesta etapa.</div>
    </section>
-   {paidCheckoutPending&&<div className="notice" role="status">
-    O checkout de teste foi pago no Asaas Sandbox. A assinatura está aguardando conciliação no Payrep. Não inicie outra contratação.
+   {paidCheckoutPending&&<section className="panel" aria-labelledby="subscription-pending-title">
+    <div className="panel-heading">
+     <h2 id="subscription-pending-title"><CreditCard size={17}/> Assinatura {pendingPlanName} em andamento</h2>
+     <span className="pill">Em andamento</span>
+    </div>
+    <p role="status"><strong>Status: Aguardando confirmação do pagamento</strong></p>
+    <p className="subtle">O checkout de teste foi concluído no Asaas Sandbox, mas a confirmação da cobrança e sua conciliação no Payrep ainda estão pendentes. Até a validação, o plano Free permanece ativo. Não inicie outra contratação.</p>
     <button type="button" className="secondary" onClick={()=>void checkPayment()} disabled={reconciling}>
      {reconciling?'Verificando cobrança...':'Verificar pagamento no Asaas'}
     </button>
-   </div>}
+   </section>}
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
      return <div key={code} className={'subscription-plan '+(current.plan_code===code?'subscription-plan-active':'')}>
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
-      <small>{current.plan_code===code?'Plano atual':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
+      <small>{current.plan_code===code?'Plano atual':pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
       {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
        <button type="button" className="secondary" disabled={checkoutBusy!==null}
         onClick={()=>void checkout(code)}>
@@ -116,7 +123,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     <div className="panel-heading"><h2>Checkouts de homologação</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
     <div className="table-scroll"><table><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
-     <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
+     <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':c.status}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
     </table></div>
    </section>}
    <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Pagamentos</h2></div>
