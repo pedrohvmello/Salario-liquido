@@ -124,8 +124,24 @@ Deno.serve(async req=>{
   if(error||!data)throw new Error('mirror_not_updated')
  }
  try{
-  const remote=parsePolicy(await apiFetch('GET'))
-  if(!remote)return reply(409,{error:'unsupported_remote_policy'})
+  const rawConfig=await apiFetch('GET')
+  const remote=parsePolicy(rawConfig)
+  if(!remote){
+   // Only the public password rules may be logged. NEVER log the full Auth
+   // config because it includes SMTP and provider secrets.
+   const config=(rawConfig&&typeof rawConfig==='object'&&!Array.isArray(rawConfig))
+    ?rawConfig as Record<string,unknown>:{}
+   const min=config.password_min_length
+   const chars=config.password_required_characters
+   console.warn('PAYREP_AUTH_POLICY_UNRECOGNIZED',JSON.stringify({
+    minLengthType:typeof min,
+    minLengthValue:(typeof min==='number'||typeof min==='string')?String(min).slice(0,20):null,
+    requiredCharactersType:typeof chars,
+    requiredCharactersValue:typeof chars==='string'?chars.slice(0,256):null,
+    passwordKeys:Object.keys(config).filter(k=>k.startsWith('password_')).sort()
+   }))
+   return reply(409,{error:'unsupported_remote_policy'})
+  }
   if(body.action==='get'){
    await persist(remote)
    return reply(200,{policy:remote,verified:true})
