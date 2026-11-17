@@ -1,11 +1,9 @@
-import {useEffect,useRef,useState} from 'react'
-import {ArrowLeft,CreditCard,Gift,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {useEffect,useState} from 'react'
+import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
+import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
-import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
-import {isValidCheckoutName} from '../lib/checkoutPayerName'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
-import {PayrepSelect} from './PayrepSelect'
+import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
 import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
@@ -19,22 +17,12 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
- const [promoPlan,setPromoPlan]=useState<'basic'|'full'>('full')
+ const [selectedPlan,setSelectedPlan]=useState<'basic'|'full'|null>(null)
  const [promoCode,setPromoCode]=useState('')
  const [promoBusy,setPromoBusy]=useState(false)
  const [promoError,setPromoError]=useState('')
  const [promoMessage,setPromoMessage]=useState('')
  const [reviewCheckout,setReviewCheckout]=useState<{plan:'basic'|'full';profile:PayrepProfile}|null>(null)
- const [cpfPlan,setCpfPlan]=useState<'basic'|'full'|null>(null)
- const [cpfDraft,setCpfDraft]=useState('')
- const [cpfError,setCpfError]=useState('')
- const cpfInputRef=useRef<HTMLInputElement>(null)
- const nameInputRef=useRef<HTMLInputElement>(null)
- const [namePlan,setNamePlan]=useState<'basic'|'full'|null>(null)
- const [nameDraft,setNameDraft]=useState('')
- const [nameError,setNameError]=useState('')
- useEffect(()=>{if(cpfPlan)cpfInputRef.current?.focus()},[cpfPlan])
- useEffect(()=>{if(namePlan)nameInputRef.current?.focus()},[namePlan])
  const [cancelConfirm,setCancelConfirm]=useState(false)
  const [cancelBusy,setCancelBusy]=useState(false)
  const [cancelMessage,setCancelMessage]=useState('')
@@ -89,24 +77,13 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   },60_000)
   return ()=>window.clearInterval(interval)
  },[])
- const continueWithPayerName=async(plan:'basic'|'full')=>{
-  const currentName=await getMyCheckoutPayerName()
-  if(!isValidCheckoutName(currentName)){
-   setCpfPlan(null);setNamePlan(plan)
-   setNameDraft(currentName);setNameError('')
-   return
-  }
-  const url=await startAsaasSandboxCheckout(plan)
-  window.location.assign(url)
- }
  const checkout=async(plan:'basic'|'full')=>{
   if(checkoutBusy)return
-  setCheckoutBusy(plan);setCheckoutError('');setCpfError('');setNameError('')
+  setCheckoutBusy(plan);setCheckoutError('')
   try{
    // A hosted Asaas checkout does not offer an editable-prefilled toggle.
    // Let users review their account data before the first provider request.
    const profile=await loadMyProfile()
-   setCpfPlan(null);setNamePlan(null)
    setReviewCheckout({plan,profile})
   }catch(e){
    setCheckoutError(e instanceof Error?e.message:'Não foi possível carregar os dados cadastrais.')
@@ -124,60 +101,36 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    window.location.assign(url)
   }finally{setCheckoutBusy(null)}
  }
- const confirmCpfAndCheckout=async()=>{
-  if(!cpfPlan||checkoutBusy)return
-  if(!isValidCpf(cpfDraft)){
-   setCpfError('CPF inválido. Confira os 11 dígitos informados.')
-   return
-  }
-  const plan=cpfPlan
-  setCheckoutBusy(plan);setCpfError('');setCheckoutError('')
-  let saved=false
-  try{
-   await confirmMyCheckoutCpf(cpfDraft)
-   saved=true
-   setCpfPlan(null);setCpfDraft('')
-   await continueWithPayerName(plan)
-  }catch(e){
-   const message=e instanceof Error?e.message:'Não foi possível concluir o cadastro para pagamento.'
-   if(saved)setCheckoutError('CPF salvo no seu cadastro. '+message)
-   else setCpfError(message)
-  }finally{setCheckoutBusy(null)}
- }
- const confirmNameAndCheckout=async()=>{
-  if(!namePlan||checkoutBusy)return
-  if(!isValidCheckoutName(nameDraft)){
-   setNameError('Informe seu nome e sobrenome completos, sem números ou abreviações.')
-   return
-  }
-  const plan=namePlan
-  setCheckoutBusy(plan);setNameError('');setCheckoutError('')
-  let saved=false
-  try{
-   await confirmMyCheckoutPayerName(nameDraft)
-   saved=true;setNamePlan(null);setNameDraft('')
-   const url=await startAsaasSandboxCheckout(plan)
-   window.location.assign(url)
-  }catch(e){
-   const message=e instanceof Error?e.message:'Não foi possível iniciar o checkout.'
-   if(saved)setCheckoutError('Nome completo salvo em Meu cadastro. '+message)
-   else setNameError(message)
-  }finally{setCheckoutBusy(null)}
- }
- const redeemPromo=async()=>{
+ const redeemPromo=async(plan:'basic'|'full')=>{
   if(promoBusy)return
   setPromoBusy(true);setPromoError('');setPromoMessage('')
   try{
-   const redeemed=await redeemPayrepPromoCode(promoPlan,promoCode)
+   const redeemed=await redeemPayrepPromoCode(plan,promoCode)
    const next=await loadMyEffectivePayrepPlan()
-   setAccess(next);setPromoCode('')
+   setAccess(next);setPromoCode('');setSelectedPlan(null)
    setPromoMessage('Código ativado: '+names[redeemed.plan]+' por '+redeemed.days+
     (redeemed.days===1?' dia.':' dias.')+
     ' Acesso até '+new Intl.DateTimeFormat('pt-BR',{
      timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'
-    }).format(new Date(redeemed.endsAt))+'. Após esse período, o plano anterior retorna automaticamente.')
+    }).format(new Date(redeemed.endsAt))+'. Após esse período, o plano anterior válido retorna automaticamente.')
+   window.scrollTo(0,0)
   }catch(e){setPromoError(e instanceof Error?e.message:'Não foi possível resgatar o código.')}
   finally{setPromoBusy(false)}
+ }
+ const openSubscription=(plan:'basic'|'full')=>{
+  setSelectedPlan(plan);setPromoCode('');setPromoError('');setPromoMessage('')
+  setReviewCheckout(null);setCheckoutError('')
+  window.scrollTo(0,0)
+ }
+ const closeSubscription=()=>{
+  setSelectedPlan(null);setReviewCheckout(null)
+  setPromoCode('');setPromoError('');setCheckoutError('')
+  window.scrollTo(0,0)
+ }
+ const submitSubscription=()=>{
+  if(!selectedPlan||promoBusy||checkoutBusy)return
+  if(promoCode.trim())void redeemPromo(selectedPlan)
+  else void checkout(selectedPlan)
  }
  const cancelRenewal=async()=>{
   if(cancelBusy)return
