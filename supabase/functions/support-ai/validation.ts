@@ -1,6 +1,7 @@
 // Pure validation shared by Supabase Edge and Vitest tests.
 export type AiTurn={role:'user'|'assistant';content:string};
-export type AiInput={question:string;history:AiTurn[];useFinancialData:boolean};
+export type PepMode='help'|'personal';
+export type AiInput={question:string;history:AiTurn[];mode:PepMode};
 export type ParseError='invalid_payload'|'invalid_question'|'invalid_history';
 export function parseAiInput(raw:unknown):{value:AiInput;error:null}|{value:null;error:ParseError}{
  if(!raw||typeof raw!=='object'||Array.isArray(raw))return {value:null,error:'invalid_payload'};
@@ -9,7 +10,9 @@ export function parseAiInput(raw:unknown):{value:AiInput;error:null}|{value:null
   return {value:null,error:'invalid_question'};
  if(obj.history!==undefined&&!Array.isArray(obj.history))
   return {value:null,error:'invalid_history'};
- if(obj.useFinancialData!==undefined&&typeof obj.useFinancialData!=='boolean')return {value:null,error:'invalid_payload'};
+ // Require an explicit mode: never fall back to personal data from a legacy help request.
+ if(obj.mode!=='help'&&obj.mode!=='personal')return {value:null,error:'invalid_payload'};
+ if(obj.useFinancialData!==undefined)return {value:null,error:'invalid_payload'};
  const hist=obj.history??[];
  if(!Array.isArray(hist)||hist.length>6)return {value:null,error:'invalid_history'};
  const cleaned:AiTurn[]=[];
@@ -20,7 +23,7 @@ export function parseAiInput(raw:unknown):{value:AiInput;error:null}|{value:null
     turn.content.trim().length<1||turn.content.length>800)return {value:null,error:'invalid_history'};
   cleaned.push({role:turn.role,content:turn.content.trim()});
  }
- return {value:{question:obj.question.trim(),history:cleaned,useFinancialData:obj.useFinancialData===true},error:null};
+ return {value:{question:obj.question.trim(),history:cleaned,mode:obj.mode},error:null};
 }
 export function parseCloudflareAnswer(raw:unknown):string|null{
  if(!raw||typeof raw!=='object')return null;
