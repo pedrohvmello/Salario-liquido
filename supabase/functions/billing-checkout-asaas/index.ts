@@ -18,11 +18,21 @@ type PayerProfile={
  street?:string|null;street_number?:string|null;complement?:string|null;
  neighborhood?:string|null;country?:string|null
 }
+function cleanPayerName(value:unknown):string{
+ return typeof value==='string'?value.trim().replace(/\s+/g,' '):''
+}
+function validPayerName(value:unknown):boolean{
+ const name=cleanPayerName(value)
+ if(name.length<5||name.length>100)return false
+ const tokens=name.split(' ')
+ return tokens.length>=2&&tokens.every(token=>
+  /^[\p{L}][\p{L}'’.-]*$/u.test(token)&&token.replace(/[^\p{L}]/gu,'').length>=2)
+}
 function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined,cpf:string):Record<string,string>{
  const data:Record<string,string>={cpfCnpj:cpf}
  const clean=(value:unknown,max:number)=>typeof value==='string'?value.trim().slice(0,max):''
- const name=clean(profile?.display_name,100)
- if(name.length>=2)data.name=name
+ const name=cleanPayerName(profile?.display_name)
+ if(validPayerName(name))data.name=name
  const authEmail=clean(email,254)
  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail))data.email=authEmail
  const number=clean(profile?.phone,30).replace(/\D/g,'')
@@ -112,6 +122,10 @@ Deno.serve(async(req:Request)=>{
   &&typeof billing.provider_customer_id==='string'
   &&/^cus_[A-Za-z0-9_]{5,80}$/.test(billing.provider_customer_id)
   ?billing.provider_customer_id:null
+ // Do not send nickname-like profile names (e.g. "LRP") to Asaas.
+ // Validate before begin_my_billing_checkout so no failed attempt is recorded.
+ if(!knownCustomer&&!validPayerName(profile?.display_name))
+  return reply({code:'NAME_REQUIRED',error:'Informe seu nome completo (nome e sobrenome) para contratar. O nome será salvo em Meu cadastro.'},422)
  const customerData=knownCustomer?null:checkoutCustomerData(profile,user.email,cpf)
  // Reusing an Asaas customer is safe only if its CPF matches the user's
  // newly confirmed CPF. Otherwise do not create or update a payer by guess.
