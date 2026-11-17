@@ -1,6 +1,7 @@
 import {db} from './data'
 import {profileDisplayName} from './profile'
 import {checkoutInvokeErrorMessage} from './checkoutError'
+import {isValidCheckoutName,normalizeCheckoutName} from './checkoutPayerName'
 import {cpfDigits,isValidCpf,validBirthDate} from './brazilIdentity'
 import {validatedSandboxCheckoutUrl} from './checkoutUrl'
 import type {User} from '@supabase/supabase-js'
@@ -35,6 +36,28 @@ export async function loadMyCheckoutIntents():Promise<BillingCheckoutIntent[]>{
   .eq('user_id',user.id).order('created_at',{ascending:false}).limit(5)
  if(error)throw Error(error.message)
  return (data||[]) as BillingCheckoutIntent[]
+}
+export async function getMyCheckoutPayerName():Promise<string>{
+ const user=await identity()
+ const {data,error}=await db!.from('user_profiles').select('display_name')
+  .eq('user_id',user.id).maybeSingle()
+ if(error)throw Error('Não foi possível consultar o nome cadastrado: '+error.message)
+ return typeof data?.display_name==='string'?data.display_name:''
+}
+export async function confirmMyCheckoutPayerName(value:string):Promise<void>{
+ const name=normalizeCheckoutName(value)
+ if(!isValidCheckoutName(name))throw Error('Informe nome e sobrenome válidos, como aparecem no seu documento.')
+ const user=await identity()
+ // Update ONLY the authenticated user's profile, keeping CPF, birth date and address.
+ const {data,error}=await db!.from('user_profiles')
+  .update({display_name:name,updated_at:new Date().toISOString()})
+  .eq('user_id',user.id).select('user_id').maybeSingle()
+ if(error)throw Error('Não foi possível salvar o nome no cadastro: '+error.message)
+ if(!data)throw Error('Cadastro não encontrado. Atualize seus dados em Meu cadastro.')
+ // The canonical billing name comes from user_profiles. Auth metadata is not
+ // an authorization source and must never contain CPF or date of birth.
+ const {error:authError}=await db!.auth.updateUser({data:{display_name:name}})
+ if(authError)throw Error('Nome salvo no cadastro, mas a sincronização do login falhou. '+authError.message)
 }
 export async function hasMyCheckoutCpf():Promise<boolean>{
  if(!db)throw Error('Banco não configurado.')
