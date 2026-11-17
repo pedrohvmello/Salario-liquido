@@ -1,6 +1,7 @@
 import {db} from './data'
 import {profileDisplayName} from './profile'
 import {checkoutInvokeErrorMessage} from './checkoutError'
+import {validatedSandboxCheckoutUrl} from './checkoutUrl'
 import type {User} from '@supabase/supabase-js'
 
 export type PayrepProfile={
@@ -45,10 +46,7 @@ export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<str
   throw Error(await checkoutInvokeErrorMessage(error))
  }
  if(data?.mode!=='sandbox'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
- const dest=new URL(data.checkoutUrl)
- if(dest.protocol!=='https:'||dest.hostname!=='asaas.com'||dest.pathname!=='/checkoutSession/show')
-  throw Error('Destino de pagamento não autorizado.')
- return dest.toString()
+ return validatedSandboxCheckoutUrl(data.checkoutUrl)
 }
 
 export const blankProfile=(user?:User|null):PayrepProfile=>({
