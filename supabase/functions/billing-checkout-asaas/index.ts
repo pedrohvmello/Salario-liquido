@@ -49,6 +49,10 @@ Deno.serve(async(req:Request)=>{
  const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
  const {data:{user},error:authError}=await userClient.auth.getUser(token)
  if(authError||!user)return reply({error:'Sessão inválida.'},401)
+ const {data:member,error:memberError}=await admin.from('app_members')
+  .select('active,status').eq('user_id',user.id).maybeSingle()
+ if(memberError||!member||member.active!==true||member.status!=='approved')
+  return reply({error:'Conta não autorizada para contratar ou retomar checkout.'},403)
  // A prior checkout may already exist even if the user saw a 404 on the old redirect.
  // Read only the authenticated user's RLS-protected attempts to avoid duplicate billing.
  const {data:existing,error:existingError}=await userClient.from('billing_checkout_intents')
