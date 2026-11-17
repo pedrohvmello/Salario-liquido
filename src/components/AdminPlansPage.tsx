@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react'
 import {CreditCard,RefreshCw,UsersRound} from 'lucide-react'
 import {AdminBillingPlans} from './AdminBillingPlans'
 import {AdminFullTrials} from './AdminFullTrials'
+import {AdminPromoCodes} from './AdminPromoCodes'
 import {fetchAdminDashboard,type AdminDashboardData} from '../lib/admin'
 export function AdminPlansPage(){
  const [dashboard,setDashboard]=useState<AdminDashboardData|null>(null)
@@ -22,6 +23,7 @@ export function AdminPlansPage(){
   </div></div>
   <AdminBillingPlans/>
   <AdminFullTrials/>
+  <AdminPromoCodes/>
   <section className="panel">
    <div className="panel-heading"><h2><UsersRound size={18}/> Assinantes cadastrados</h2>
     <button type="button" className="secondary" onClick={()=>void reload()}><RefreshCw size={15}/> Atualizar</button>
