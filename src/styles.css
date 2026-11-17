@@ -1557,3 +1557,15 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .payrep-calendar-year-option:focus-visible{outline:2px solid #8e27c7;outline-offset:2px}
 .payrep-calendar-year-empty{grid-column:1/-1;padding:18px 0;text-align:center;color:#806b90;font-size:12px}
 .payrep-calendar-day:disabled{opacity:.25;cursor:not-allowed}
+
+
+/* Payrep payer review before Asaas hosted checkout. */
+.checkout-review-panel{border:1px solid #dfc2f8}
+.checkout-review-form{display:flex;flex-direction:column;gap:16px;margin-top:16px}
+.checkout-review-form .account-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.checkout-review-form .account-form-grid label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:650;color:#4d236f;min-width:0}
+.checkout-review-form .account-form-grid input{width:100%;min-width:0;min-height:42px;padding:10px 12px;border:1px solid #dfc7f3;border-radius:9px;background:#fff;color:#351651}
+.checkout-review-form .account-form-grid input:focus-visible{outline:2px solid #9400db;outline-offset:1px}
+.checkout-review-form .account-form-grid input[aria-invalid="true"]{border-color:#bc324e}
+.checkout-review-form .subscription-cpf-actions{gap:18px;flex-wrap:wrap}
+@media(max-width:680px){.checkout-review-form .account-form-grid{grid-template-columns:1fr}}
