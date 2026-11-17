@@ -53,7 +53,7 @@ export function CheckoutPayerReview({planName,initial,busy,onCancel,onContinue}:
  }
  return <section className="panel checkout-review-panel" aria-labelledby="checkout-review-title">
   <div className="panel-heading"><h2 id="checkout-review-title"><UserRound size={18}/> Revisar dados para contratar {planName}</h2></div>
-  <p className="subtle">Confira ou altere seus dados antes de continuar. As informações serão salvas em Meu cadastro e enviadas ao Asaas. No checkout hospedado, os campos preenchidos pelo Payrep podem ficar bloqueados para edição.</p>
+  <p className="subtle">Confira ou altere seus dados antes de continuar. As informações serão salvas em Meu cadastro e enviadas ao Asaas. No checkout hospedado, os campos previamente preenchidos podem ficar bloqueados. As alterações não modificam sessões de pagamento já abertas no Asaas.</p>
   <form className="checkout-review-form" onSubmit={event=>{event.preventDefault();void submit()}}>
    <div className="account-form-grid">
     {labels.map(field=><label key={field.key}>{field.label}
