@@ -70,11 +70,34 @@ Deno.serve(async(req:Request)=>{
  }
  const result=await response.json().catch(()=>null)
  if(!response.ok||!result||typeof result.id!=='string'){
+  // Report only the documented, non-sensitive validation diagnostics.
+  // Never log response bodies, API credentials, request headers, or payer data.
+  const providerErrors=Array.isArray(result?.errors)?result.errors.slice(0,3):[]
+  const codes=providerErrors.map((item:unknown)=>{
+   const code=(item&&typeof item==='object'&&'code' in item)?item.code:null
+   return typeof code==='string'&&/^[a-zA-Z0-9_-]{1,50}$/.test(code)?code:null
+  }).filter((x:string|null):x is string=>x!==null)
+  const descriptions=providerErrors.map((item:unknown)=>{
+   const value=(item&&typeof item==='object'&&'description' in item)?item.description:null
+   if(typeof value!=='string')return null
+   const description=value.trim()
+   if(!description||description.length>180||/https?:|\\b(?:token|api[_ -]?key|senha|password|secret|bearer)\\b|\\d{11,}/i.test(description))return null
+   return /^[\\p{L}\\p{N}\\s.,:;!?()\\/\\[\\]_'\\"%ºª-]+$/u.test(description)?description:null
+  }).filter((x:string|null):x is string=>x!==null)
+  console.error('asaas_sandbox_checkout_rejected',JSON.stringify({
+   status:response.status,codes,descriptions,parseable:result!==null
+  }))
   if(response.status>=400&&response.status<500){
    await admin.from('billing_checkout_intents').update({status:'failed',updated_at:new Date().toISOString()})
     .eq('id',intent.id).eq('user_id',user.id).eq('status','pending')
   }
-  return reply({error:'O Sandbox Asaas recusou a criação do checkout. Confira a integração e as configurações do plano.'},502)
+  const reason=response.status===401
+   ?'Verifique se a chave de API corresponde ao Sandbox e possui permissão para criar checkouts.'
+   :response.status===403
+   ?'O Asaas negou a operação. Verifique as permissões da conta Sandbox.'
+   :descriptions.length?descriptions.join(' '):'Consulte o suporte com o status informado.'
+  return reply({error:'Asaas Sandbox (HTTP '+response.status+'): '+reason,
+   providerStatus:response.status,providerErrorCodes:codes},502)
  }
  if(!/^[0-9a-zA-Z_-]{8,120}$/.test(result.id))
   return reply({error:'Resposta do checkout inesperada. Nenhuma assinatura foi liberada.'},502)
