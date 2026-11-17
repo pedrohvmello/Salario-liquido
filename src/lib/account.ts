@@ -122,6 +122,33 @@ export type EffectivePayrepPlan={
  trialStartsAt:string|null;
  trialEndsAt:string|null;
  trialRevokedAt:string|null
+ promoActive?:boolean
+ promoApplied?:boolean
+ promoPlan?:'basic'|'full'|null
+ promoStartsAt?:string|null
+ promoEndsAt?:string|null
+ promoGrantedDays?:number|null
+ promoPreviousPlan?:PlanCode|null
+}
+export type PromoRedemptionResult={
+ redeemed:true
+ plan:'basic'|'full'
+ days:number
+ startsAt:string
+ endsAt:string
+ previousPlan:PlanCode
+}
+export async function redeemPayrepPromoCode(plan:'basic'|'full',code:string):Promise<PromoRedemptionResult>{
+ if(!db)throw Error('Banco não configurado.')
+ const normalized=code.trim().toUpperCase().replace(/\s+/g,'')
+ if(!normalized||normalized.length>64)throw Error('Informe um código promocional válido.')
+ const {data,error}=await db.rpc('redeem_hml_promo_code',{
+  p_plan:plan,p_code:normalized
+ })
+ if(error)throw Error(error.message)
+ if(data?.redeemed!==true||typeof data.endsAt!=='string')
+  throw Error('Não foi possível confirmar o resgate do código.')
+ return data as PromoRedemptionResult
 }
 export async function loadMyEffectivePayrepPlan():Promise<EffectivePayrepPlan>{
  if(!db)throw Error('Banco não configurado.')
