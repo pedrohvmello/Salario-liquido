@@ -1,20 +1,56 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {loadMyBilling,loadMyCheckoutIntents,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription} from '../lib/account'
+import {loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult} from '../lib/account'
+import type {BillingReturn} from '../lib/billingReturn'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
 function date(raw:string|null){return raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'}
 const fallback:BillingSubscription={plan_code:'free',status:'active',provider:null,provider_customer_id:null,provider_subscription_id:null,current_period_start:null,current_period_end:null,cancel_at_period_end:false}
-export function SubscriptionPage({onBack}:{onBack:()=>void}){
+export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;billingReturn?:BillingReturn|null}){
  const [data,setData]=useState<{subscription:BillingSubscription;payments:BillingPayment[];plans:BillingPlan[]}>({subscription:fallback,payments:[],plans:[]})
  const [loading,setLoading]=useState(true)
  const [error,setError]=useState('')
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
+ const [reconciling,setReconciling]=useState(false)
+ const [reconciliationMessage,setReconciliationMessage]=useState('')
+ const reconciliationText=(result:BillingReconciliationResult)=>{
+  if(result.state==='active')return 'A cobrança foi confirmada pelo Asaas e a assinatura está ativa no Payrep HML.'
+  if(result.state==='pending')return 'O checkout foi pago. A cobrança individual ainda está como '+(result.providerPaymentStatus||'pendente')+' no Asaas.'
+  if(result.state==='needs_review')return 'O checkout foi pago, mas a assinatura ou cobrança precisa de conciliação antes de liberar benefícios.'
+  if(result.state==='provider_unavailable')return 'Não foi possível consultar o Asaas agora. Nenhum benefício foi liberado.'
+  return 'Ainda não recebemos a confirmação do checkout pelo webhook do Asaas.'
+ }
+ const checkPayment=async()=>{
+  if(reconciling)return
+  setReconciling(true);setReconciliationMessage('')
+  try{
+   const result=await reconcileMyAsaasSandboxBilling()
+   setReconciliationMessage(reconciliationText(result))
+   const [billing,intents]=await Promise.all([loadMyBilling(),loadMyCheckoutIntents()])
+   setData(billing);setCheckoutHistory(intents)
+  }catch(e){setReconciliationMessage(e instanceof Error?e.message:'Falha ao verificar pagamento.')}
+  finally{setReconciling(false)}
+ }
  useEffect(()=>{let active=true
   void Promise.all([loadMyBilling(),loadMyCheckoutIntents()])
-   .then(([billing,intents])=>{if(active){setData(billing);setCheckoutHistory(intents)}})
+   .then(async([billing,intents])=>{
+    if(!active)return
+    setData(billing);setCheckoutHistory(intents)
+    if(billing.subscription.plan_code==='free'&&(intents.some(i=>i.status==='paid')||billingReturn==='success')){
+     setReconciling(true)
+     try{
+      const result=await reconcileMyAsaasSandboxBilling()
+      if(!active)return
+      setReconciliationMessage(reconciliationText(result))
+      const [latest,history]=await Promise.all([loadMyBilling(),loadMyCheckoutIntents()])
+      if(active){setData(latest);setCheckoutHistory(history)}
+     }catch(e){
+      if(active)setReconciliationMessage(e instanceof Error?e.message:'Não foi possível verificar o pagamento.')
+     }finally{if(active)setReconciling(false)}
+    }
+   })
    .catch(e=>{if(active)setError(e instanceof Error?e.message:'Falha ao consultar informações de cobrança.')})
    .finally(()=>{if(active)setLoading(false)})
   return ()=>{active=false}
@@ -32,6 +68,14 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
+  {billingReturn&&<div className="notice" role="status">
+   {billingReturn==='success'
+    ?'Checkout finalizado no Asaas. O pagamento será confirmado no Payrep somente após a conciliação com o provedor.'
+    :billingReturn==='cancel'
+    ?'Você retornou de um checkout cancelado. Consulte abaixo a situação registrada pelo provedor.'
+    :'O checkout expirou. Consulte abaixo o estado da assinatura antes de iniciar outra contratação.'}
+  </div>}
+  {reconciliationMessage&&<div className="notice" role="status">{reconciliationMessage}</div>}
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{names[current.plan_code]||'Free'}</span></div>
@@ -48,6 +92,9 @@ export function SubscriptionPage({onBack}:{onBack:()=>void}){
    </section>
    {paidCheckoutPending&&<div className="notice" role="status">
     O checkout de teste foi pago no Asaas Sandbox. A assinatura está aguardando conciliação no Payrep. Não inicie outra contratação.
+    <button type="button" className="secondary" onClick={()=>void checkPayment()} disabled={reconciling}>
+     {reconciling?'Verificando cobrança...':'Verificar pagamento no Asaas'}
+    </button>
    </div>}
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
