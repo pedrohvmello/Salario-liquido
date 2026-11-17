@@ -41,6 +41,7 @@ import {AccountSecurityPage} from './components/AccountSecurityPage'
 import {PayrepConfirmDialog} from './components/PayrepConfirmDialog'
 import {SupportPage} from './components/SupportPage'
 import {PersonalPepPage} from './components/PersonalPepPage'
+import {loadMyEffectivePayrepPlan} from './lib/account'
 import {MfaGate} from './components/MfaGate'
 import {TotpSettings} from './components/TotpSettings'
 import {mfaGateForAssurance} from './lib/mfaAssurance'
@@ -184,6 +185,16 @@ export default function App(){
  const [importSelected,setImportSelected]=useState<string[]>([])
  const [importUseCompetenceDate,setImportUseCompetenceDate]=useState(false)
  const [payslipTab,setPayslipTab]=useState<'import'|'documents'>('documents')
+ const [payslipAccess,setPayslipAccess]=useState<'loading'|'full'|'limited'|'error'>('loading')
+ useEffect(()=>{
+  if(section!=='imports'||!user){setPayslipAccess('loading');return}
+  let alive=true
+  setPayslipAccess('loading')
+  void loadMyEffectivePayrepPlan().then(result=>{
+   if(alive)setPayslipAccess(result.effectivePlan==='full'?'full':'limited')
+  }).catch(()=>{if(alive)setPayslipAccess('error')})
+  return ()=>{alive=false}
+ },[section,user?.id])
  const [eventId,setEventId]=useState<string|undefined>()
  const [eventKind,setEventKind]=useState('salary')
  const [eventValue,setEventValue]=useState('')
@@ -530,7 +541,15 @@ export default function App(){
       <button type="button" role="tab" aria-selected={payslipTab==='documents'} className={payslipTab==='documents'?'active':''} onClick={()=>setPayslipTab('documents')}><FileText size={17}/> Meus documentos <span className="payslip-tab-count">{statements.length}</span></button>
       <button type="button" role="tab" aria-selected={payslipTab==='import'} className={payslipTab==='import'?'active':''} onClick={()=>setPayslipTab('import')}><Upload size={17}/> Importar</button>
      </div>
-     {payslipTab==='import'?<div className="stack"><div className="page-intro"><div><h2>Importação inteligente de PDFs</h2><p>Reconhece folhas mensais, PPR, férias e 13º salário da Accenture. Os recibos de férias são opcionais; o recibo de 13º comprova os impostos exclusivos e é conciliado com adiantamentos anteriores.</p></div></div><Panel title="Selecionar holerites"><div className="dropzone"><Upload size={30}/><strong>Envie PDFs antigos ou novos</strong><p>É possível selecionar vários arquivos e importar documentos com várias páginas. Cada holerite identificado será salvo em um PDF individual.</p><label className="primary file-button">Selecionar PDFs<input multiple type="file" accept="application/pdf,.pdf" onChange={e=>{const files=Array.from(e.target.files||[]);if(files.length)previewFiles(files)}}/></label></div><div className="detail-hint"><ShieldCheck size={16}/>A leitura ocorre no navegador. O envio ao armazenamento privado acontece somente após você confirmar.</div></Panel>{previews.length>0&&<Panel title={'Prévia: '+previews.length+' competência(s)'} extra={<button className="secondary" onClick={()=>previewFiles(importFiles)}><RefreshCw size={15}/> Reler</button>}><div className="table-scroll"><table><thead><tr><th>Importar</th><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Formato</th><th>Proventos</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Férias/13º antecipados</th><th>Líquido financeiro estimado</th><th>Resultado</th></tr></thead><tbody>{previews.map(s=>{const key=s.sourceFile+'#'+s.page;return <tr key={key}><td><input type="checkbox" checked={importSelected.includes(key)} onChange={e=>setImportSelected(v=>e.target.checked?[...v,key]:v.filter(x=>x!==key))}/></td><td>{s.sourceFile} (p. {s.page})</td><td>{s.period||'Não encontrada'}</td><td>{s.documentType==='ppr'?<span className="pill">PPR</span>:s.documentType==='vacation'?<span className="pill">Férias</span>:s.documentType==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.format==='old'?'Antigo':'Novo'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.documentType==='thirteenth'?brl(s.thirteenthAdvance):s.documentType==='vacation'?'—':s.salaryAdvance===null?'A conferir':brl(s.salaryAdvance)}</td>
+     {payslipTab==='import'&&payslipAccess!=='full'?
+      <section className="panel">
+       <div className="panel-heading"><h2><ShieldCheck size={18}/> Importação de holerites | Full</h2></div>
+       {payslipAccess==='loading'?<p>Verificando seu plano...</p>:
+        <><p>{payslipAccess==='error'?'Não foi possível validar seu plano. A importação está bloqueada por segurança.':
+          'A importação, o armazenamento de PDFs e a criação automática de eventos a partir dos holerites são exclusivos do Full. Seus documentos antigos continuam disponíveis na aba Meus documentos.'}</p>
+         <button type="button" className="primary" onClick={()=>setSection('subscription')}>Ver plano Full</button></>}
+      </section>
+     :payslipTab==='import'?<div className="stack"><div className="page-intro"><div><h2>Importação inteligente de PDFs</h2><p>Reconhece folhas mensais, PPR, férias e 13º salário da Accenture. Os recibos de férias são opcionais; o recibo de 13º comprova os impostos exclusivos e é conciliado com adiantamentos anteriores.</p></div></div><Panel title="Selecionar holerites"><div className="dropzone"><Upload size={30}/><strong>Envie PDFs antigos ou novos</strong><p>É possível selecionar vários arquivos e importar documentos com várias páginas. Cada holerite identificado será salvo em um PDF individual.</p><label className="primary file-button">Selecionar PDFs<input multiple type="file" accept="application/pdf,.pdf" onChange={e=>{const files=Array.from(e.target.files||[]);if(files.length)previewFiles(files)}}/></label></div><div className="detail-hint"><ShieldCheck size={16}/>A leitura ocorre no navegador. O envio ao armazenamento privado acontece somente após você confirmar.</div></Panel>{previews.length>0&&<Panel title={'Prévia: '+previews.length+' competência(s)'} extra={<button className="secondary" onClick={()=>previewFiles(importFiles)}><RefreshCw size={15}/> Reler</button>}><div className="table-scroll"><table><thead><tr><th>Importar</th><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Formato</th><th>Proventos</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Férias/13º antecipados</th><th>Líquido financeiro estimado</th><th>Resultado</th></tr></thead><tbody>{previews.map(s=>{const key=s.sourceFile+'#'+s.page;return <tr key={key}><td><input type="checkbox" checked={importSelected.includes(key)} onChange={e=>setImportSelected(v=>e.target.checked?[...v,key]:v.filter(x=>x!==key))}/></td><td>{s.sourceFile} (p. {s.page})</td><td>{s.period||'Não encontrada'}</td><td>{s.documentType==='ppr'?<span className="pill">PPR</span>:s.documentType==='vacation'?<span className="pill">Férias</span>:s.documentType==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.format==='old'?'Antigo':'Novo'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.documentType==='thirteenth'?brl(s.thirteenthAdvance):s.documentType==='vacation'?'—':s.salaryAdvance===null?'A conferir':brl(s.salaryAdvance)}</td>
     <td>{s.documentType==='monthly'?brl(vacationAdvanceFromLines(s.lines)):'—'}</td>
     <td><strong>{s.documentType==='thirteenth'?brl(s.net??0):s.documentType==='vacation'?brl(s.net??0):s.documentType==='monthly'&&s.netReceived!==null?brl(s.netReceived+vacationAdvanceFromLines(s.lines)):s.netReceived===null?'A conferir':brl(s.netReceived)}</strong>
       {s.documentType==='vacation'&&<div className="subtle">Valor do recibo; não somar novamente</div>}{s.documentType==='thirteenth'&&<div className="subtle">Fechamento do 13º; adiantamento será conciliado ao salvar</div>}
