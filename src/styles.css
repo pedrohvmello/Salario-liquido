@@ -1533,7 +1533,7 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .subscription-cpf-form>label{display:flex;flex-direction:column;gap:6px;width:min(100%,340px);font-weight:650;color:#40225e}
 .subscription-cpf-form input{width:100%;max-width:340px;border:1px solid #d6c0eb;border-radius:10px;padding:11px 13px;font-variant-numeric:tabular-nums}
 .subscription-cpf-form input[aria-invalid="true"]{border-color:#c7384c}
-.subscription-cpf-form .row{gap:10px;flex-wrap:wrap}
+.subscription-cpf-form .subscription-cpf-actions{display:flex;align-items:center;justify-content:flex-start;column-gap:18px;row-gap:10px;flex-wrap:wrap}
 .subscription-cpf-form .row button{min-height:42px}
 
 
