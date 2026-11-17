@@ -16,6 +16,7 @@ export type MobilePrimaryView =
  | "events"
  | "analytics"
  | "income-tax"
+ | "pep-personal"
  | "imports"
  | "definitions"
  | "admin"
