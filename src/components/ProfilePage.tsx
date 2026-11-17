@@ -4,6 +4,7 @@ import type {User} from '@supabase/supabase-js'
 import {ArrowLeft,Save,MapPin,UserRound,Info,CheckCircle2,AlertTriangle} from 'lucide-react'
 import {blankProfile,loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 import {formatCep,formatPhone,onlyDigits,isValidCepResult,type CepResult} from '../lib/profileInput'
+import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
 
 const fields:{key:keyof PayrepProfile;label:string;placeholder?:string;max:number}[]=[
  {key:'phone',label:'Telefone com DDD',placeholder:'(11) 99999-9999',max:30},
@@ -29,7 +30,7 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
  const lastQueriedCep=useRef('')
  useEffect(()=>{
   let active=true
-  void loadMyProfile().then(data=>{if(active){lastQueriedCep.current=onlyDigits(data.postal_code);setValue({...data,phone:formatPhone(data.phone),postal_code:formatCep(data.postal_code)});setError('')}})
+  void loadMyProfile().then(data=>{if(active){lastQueriedCep.current=onlyDigits(data.postal_code);setValue({...data,cpf:formatCpf(data.cpf),phone:formatPhone(data.phone),postal_code:formatCep(data.postal_code)});setError('')}})
    .catch(e=>{if(active)setError(e instanceof Error?e.message:'Falha ao carregar o cadastro.')})
    .finally(()=>{if(active)setLoading(false)})
   return ()=>{active=false}
@@ -61,17 +62,35 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
  const patch=(key:keyof PayrepProfile,v:string)=>setValue(prev=>({...prev,[key]:v}))
  const save=async()=>{
   setBusy(true);setError('');setMessage('')
-  try{const updated=await saveMyProfile(value);setValue(updated);setMessage('Dados cadastrais salvos com sucesso.')}
+  try{const updated=await saveMyProfile(value);setValue({...updated,cpf:formatCpf(updated.cpf)});setMessage('Dados cadastrais salvos com sucesso.')}
   catch(e){setError(e instanceof Error?e.message:'Falha ao salvar os dados.')}
   finally{setBusy(false)}
  }
  return <div className="stack account-page">
-  <div className="page-intro"><div><h2>Meu cadastro</h2><p>Atualize seu nome, telefone e endereço. O e-mail é administrado pelo login.</p></div><button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
+  <div className="page-intro"><div><h2>Meu cadastro</h2><p>Atualize seus dados pessoais, CPF, nascimento e endereço. O e-mail é administrado pelo login.</p></div><button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {loading?<div className="panel">Carregando seu cadastro...</div>:<form className="stack" onSubmit={e=>{e.preventDefault();void save()}}>
    <section className="panel"><div className="panel-heading"><h2><UserRound size={17}/> Dados pessoais</h2></div>
     <div className="account-form-grid">
      <label className="account-field-wide">Nome completo<input type="text" autoComplete="name" maxLength={100} value={value.display_name} onChange={e=>patch('display_name',e.target.value)} required/></label>
      <label>E-mail<input type="email" value={user.email||''} readOnly className="account-readonly"/></label>
+     <label>CPF
+      <input type="text" inputMode="numeric" maxLength={14} autoComplete="off"
+       value={value.cpf} placeholder="000.000.000-00"
+       onChange={e=>patch('cpf',formatCpf(e.target.value))}
+       aria-invalid={cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)}
+       aria-describedby="profile-cpf-hint"/>
+      <small id="profile-cpf-hint" className="subtle">
+       {cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)
+        ?'CPF inválido. Confira os dígitos verificadores.'
+        :'Necessário para contratar um plano pelo Asaas.'}
+      </small>
+     </label>
+     <label>Data de nascimento
+      <input type="date" autoComplete="bday" min="1900-01-01"
+       max={new Date().toISOString().slice(0,10)}
+       value={value.birth_date}
+       onChange={e=>patch('birth_date',e.target.value)}/>
+     </label>
      <InputField field={fields[0]} value={value.phone} onChange={s=>patch('phone',formatPhone(s))}/>
     </div>
    </section>
