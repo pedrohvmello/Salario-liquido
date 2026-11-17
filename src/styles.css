@@ -1525,3 +1525,13 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .signup-confirmation-icon{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;background:#f2e7ff;border:1px solid #e1ccf8;color:#7900d6}
 .signup-confirmation-screen p{font-size:13px;line-height:1.7;color:#5e4b70;margin:0}
 .signup-confirmation-screen button{width:100%;min-height:46px;margin-top:6px}
+
+
+/* HML checkout: optional profile CPF requested only when buying Basic/Full. */
+.subscription-cpf-panel{border:1px solid #d9b9f4;background:linear-gradient(160deg,#fff 0%,#fcf8ff 100%)}
+.subscription-cpf-form{display:flex;flex-direction:column;align-items:flex-start;gap:11px;margin-top:14px}
+.subscription-cpf-form>label{display:flex;flex-direction:column;gap:6px;width:min(100%,340px);font-weight:650;color:#40225e}
+.subscription-cpf-form input{width:100%;max-width:340px;border:1px solid #d6c0eb;border-radius:10px;padding:11px 13px;font-variant-numeric:tabular-nums}
+.subscription-cpf-form input[aria-invalid="true"]{border-color:#c7384c}
+.subscription-cpf-form .row{gap:10px;flex-wrap:wrap}
+.subscription-cpf-form .row button{min-height:42px}
