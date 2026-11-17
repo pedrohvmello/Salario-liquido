@@ -79,15 +79,12 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
        value={value.cpf} placeholder="000.000.000-00"
        onChange={e=>patch('cpf',formatCpf(e.target.value))}
        aria-invalid={cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)}
-       aria-describedby="profile-cpf-hint"/>
-      <small id="profile-cpf-hint" className="subtle">
-       {cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)
-        ?'CPF inválido. Confira os dígitos verificadores.'
-        :'Necessário para contratar um plano pelo Asaas.'}
-      </small>
+       aria-describedby={cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)?'profile-cpf-hint':undefined}/>
+      {cpfDigits(value.cpf).length===11&&!isValidCpf(value.cpf)&&
+       <small id="profile-cpf-hint" className="subtle">CPF inválido. Confira os dígitos verificadores.</small>}
      </label>
      <div className="account-date-field">
-      <span>Data de nascimento (opcional)</span>
+      <span>Data de nascimento</span>
       <PayrepDatePicker title="Selecione sua data de nascimento" value={value.birth_date}
        onChange={next=>patch('birth_date',next)}/>
      </div>
