@@ -8,7 +8,14 @@ describe('Payrep account profile validation',()=>{
  it('requires a valid name',()=>expect(()=>validateProfile({...blankProfile(),display_name:'X'})).toThrow())
  it('rejects invalid CEP format',()=>expect(()=>validateProfile({...blankProfile(),display_name:'Maria Silva',postal_code:'1234'})).toThrow())
  it('rejects invalid phone characters',()=>expect(()=>validateProfile({...blankProfile(),display_name:'Maria Silva',phone:'telefone'})).toThrow())
- it('preserves optional empty fields',()=>{
-  expect(validateProfile({...blankProfile(),display_name:'Maria Silva'}).phone).toBe('')
+ it('preserves optional empty fields, including CPF and birth date',()=>{
+  const value=validateProfile({...blankProfile(),display_name:'Maria Silva'})
+  expect(value.phone).toBe('')
+  expect(value.cpf).toBe('')
+  expect(value.birth_date).toBe('')
+ })
+ it('checks CPF when supplied without requiring it for the Free profile',()=>{
+  expect(validateProfile({...blankProfile(),display_name:'Maria Silva',cpf:'529.982.247-25'}).cpf).toBe('52998224725')
+  expect(()=>validateProfile({...blankProfile(),display_name:'Maria Silva',cpf:'529.982.247-26'})).toThrow('CPF inválido')
  })
 })
