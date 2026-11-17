@@ -6,8 +6,11 @@ type PlanRow={code:PlanCode;monthly_price_cents:number|null;available_for_checko
 type Editable={price:string;enabled:boolean}
 const inReais=(value:number|null)=>value==null?'':(value/100).toFixed(2).replace('.',',')
 const parseCents=(value:string)=>{
- const normalized=value.trim().replace(/\./g,'').replace(',','.')
- if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(normalized))return null
+ const input=value.trim()
+ // Accept Brazilian format only: 5,00 or 1.234,56.
+ // In particular, "5.00" must never silently become R$ 500,00.
+ if(!/^(?:\d{1,7}|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(input))return null
+ const normalized=input.replace(/\./g,'').replace(',','.')
  const cents=Math.round(Number(normalized)*100)
  return Number.isSafeInteger(cents)&&cents>=500&&cents<=100000000?cents:null
 }
