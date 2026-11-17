@@ -124,18 +124,7 @@ export default function App(){
  const [user,setUser]=useState<User|null>(null)
  const authUserIdRef=useRef<string|null>(null)
  const [authReady,setAuthReady]=useState(!db)
- useEffect(()=>{
-  // Route only after authentication, MFA and account approval. The callback
-  // is never used as proof of payment or to grant plan entitlements.
-  if(!user||!authReady||accessDecision?.userId!==user.id||accessDecision.state!=='approved'
-   ||(mfaEnabled&&mfaState!=='ready')||passwordSetup)return
-  const returned=billingReturnFromUrl(window.location.href)
-  if(returned){
-   setBillingReturn(returned)
-   setSection('subscription')
-   window.history.replaceState(window.history.state,'',withoutBillingReturn(window.location.href))
-  }
- },[authReady,user?.id,accessDecision?.userId,accessDecision?.state,mfaState,passwordSetup])
+
 
  useEffect(()=>{
   if(!authReady)return
@@ -149,6 +138,18 @@ export default function App(){
  const [mfaRetry,setMfaRetry]=useState(0)
  const [passwordSetup,setPasswordSetup]=useState(()=>requiresPasswordSetup(window.__salaryAuthIntent))
  const [accessDecision,setAccessDecision]=useState<AccessDecision|null>(null)
+ useEffect(()=>{
+  // Route only after authentication, MFA and account approval. The callback
+  // is never used as proof of payment or to grant plan entitlements.
+  if(!user||!authReady||accessDecision?.userId!==user.id||accessDecision.state!=='approved'
+   ||(mfaEnabled&&mfaState!=='ready')||passwordSetup)return
+  const returned=billingReturnFromUrl(window.location.href)
+  if(returned){
+   setBillingReturn(returned)
+   setSection('subscription')
+   window.history.replaceState(window.history.state,'',withoutBillingReturn(window.location.href))
+  }
+ },[authReady,user?.id,accessDecision?.userId,accessDecision?.state,mfaState,passwordSetup])
  const [accessRetry,setAccessRetry]=useState(0)
  const [reactivationDialog,setReactivationDialog]=useState(false)
  const [reactivationBusy,setReactivationBusy]=useState(false)
