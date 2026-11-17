@@ -1,11 +1,12 @@
 import {db} from './data'
 import {profileDisplayName} from './profile'
 import {checkoutInvokeErrorMessage} from './checkoutError'
+import {cpfDigits,isValidCpf,validBirthDate} from './brazilIdentity'
 import {validatedSandboxCheckoutUrl} from './checkoutUrl'
 import type {User} from '@supabase/supabase-js'
 
 export type PayrepProfile={
- display_name:string;phone:string;postal_code:string;street:string;street_number:string;
+   display_name:string;cpf:string;birth_date:string;phone:string;postal_code:string;street:string;street_number:string;
  complement:string;neighborhood:string;city:string;state:string;country:string
 }
 export type PlanCode='free'|'basic'|'full'
@@ -95,7 +96,7 @@ export async function loadMyEffectivePayrepPlan():Promise<EffectivePayrepPlan>{
 }
 
 export const blankProfile=(user?:User|null):PayrepProfile=>({
- display_name:profileDisplayName(user||null),
+ display_name:profileDisplayName(user||null),cpf:'',birth_date:'',
  phone:'',postal_code:'',street:'',street_number:'',complement:'',
  neighborhood:'',city:'',state:'',country:'Brasil'
 })
@@ -104,6 +105,9 @@ export function validateProfile(value:PayrepProfile):PayrepProfile{
  const out={...value}
  for(const key of requiredFields)out[key]=(out[key]||'').trim().replace(/\s+/g,' ')
  if(out.display_name.length<2||out.display_name.length>100)throw Error('Informe um nome entre 2 e 100 caracteres.')
+ out.cpf=cpfDigits(out.cpf||'')
+ if(out.cpf&&!isValidCpf(out.cpf))throw Error('CPF inválido. Confira os dígitos informados.')
+ if(out.birth_date&&!validBirthDate(out.birth_date))throw Error('Informe uma data de nascimento válida, não futura.')
  if(out.phone&&!/^[+0-9()\s-]{8,30}$/.test(out.phone))throw Error('Informe um telefone válido, com DDD.')
  if(out.postal_code&&!/^[0-9]{5}-?[0-9]{3}$/.test(out.postal_code))throw Error('Informe o CEP no formato 00000-000.')
  if(out.state&&out.country.toLowerCase()==='brasil'&&!/^[a-zA-Z]{2}$/.test(out.state))throw Error('Informe a UF com duas letras.')
@@ -122,16 +126,30 @@ async function identity(){
 }
 export async function loadMyProfile():Promise<PayrepProfile>{
  const user=await identity()
- const {data,error}=await db!.from('user_profiles').select('display_name,phone,postal_code,street,street_number,complement,neighborhood,city,state,country').eq('user_id',user.id).maybeSingle()
- if(error)throw Error(error.message)
- return {...blankProfile(user),...(data||{}),display_name:data?.display_name||profileDisplayName(user)}
+ const [profile,identityData]=await Promise.all([
+  db!.from('user_profiles').select('display_name,phone,postal_code,street,street_number,complement,neighborhood,city,state,country').eq('user_id',user.id).maybeSingle(),
+  db!.rpc('my_payrep_billing_identity')
+ ])
+ if(profile.error)throw Error(profile.error.message)
+ if(identityData.error)throw Error(identityData.error.message)
+ const data=profile.data
+ const extra=identityData.data||{}
+ return {...blankProfile(user),...(data||{}),cpf:extra.cpf||'',birth_date:extra.birth_date||'',
+  display_name:data?.display_name||profileDisplayName(user)}
 }
 export async function saveMyProfile(data:PayrepProfile):Promise<PayrepProfile>{
  const user=await identity()
  const profile=validateProfile(data)
- const {error}=await db!.from('user_profiles').upsert({user_id:user.id,...profile,updated_at:new Date().toISOString()},{onConflict:'user_id'})
- if(error)throw Error(error.message)
- // Mirror the display name to Auth for consistency with OAuth and other surfaces.
+ const {cpf,birth_date,...publicProfile}=profile
+ // Store CPF and birth date in a private schema, never in user_profiles/Auth metadata.
+ const {error:privateError}=await db!.rpc('save_my_payrep_billing_identity',{
+  p_cpf:cpf||null,p_birth_date:birth_date||null
+ })
+ if(privateError)throw Error(privateError.message)
+ const {error}=await db!.from('user_profiles')
+  .upsert({user_id:user.id,...publicProfile,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+ if(error)throw Error('Dados pessoais salvos, mas houve erro nos demais campos: '+error.message)
+ // Mirror ONLY the display name to Auth, not the CPF or birth date.
  const {error:authError}=await db!.auth.updateUser({data:{display_name:profile.display_name}})
  if(authError)throw Error('Dados salvos. Não foi possível sincronizar o nome com a autenticação: '+authError.message)
  return profile
