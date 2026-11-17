@@ -48,7 +48,7 @@ export function AdminPasswordPolicy(){
    O salvamento só é confirmado após a consulta de verificação ao Supabase.</p>
   <div className="password-policy-layout">
    <label className="password-policy-length">Quantidade mínima de caracteres
-    <input type="number" min={8} max={128} step={1}
+    <input type="number" min={6} max={128} step={1}
      value={policy.minLength} disabled={!saved||loading||saving}
      onChange={e=>setPolicy(old=>({...old,minLength:Number(e.target.value)}))}
      aria-label="Mínimo de caracteres"/>
@@ -61,7 +61,7 @@ export function AdminPasswordPolicy(){
     </PayrepSelect>
    </label>
   </div>
-  <p className="subtle">As combinações seguem exatamente as opções suportadas pelo Supabase.
+  <p className="subtle">O Supabase aceita mínimo de 6 caracteres. Recomendamos manter 8 ou mais, preferencialmente 12. As combinações seguem exatamente as opções suportadas pelo Supabase.
    Outras combinações isoladas não são aceitas pela API.</p>
   {!valid&&<p role="alert" className="error">{validatePasswordPolicy(policy)}</p>}
   {error&&<div className="detail-hint" role="alert">{error}</div>}
