@@ -2,7 +2,7 @@ import {createElement,Fragment} from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {describe,expect,it} from 'vitest'
 import {PayrepSelect} from './PayrepSelect'
-import {PayrepDatePicker} from './PayrepDatePicker'
+import {PayrepDatePicker,selectableYears} from './PayrepDatePicker'
 import {PayrepTimePicker} from './PayrepTimePicker'
 
 describe('Payrep pickers',()=>{
@@ -25,6 +25,16 @@ describe('Payrep pickers',()=>{
   expect(html).toContain('12/11/2026')
   expect(html).not.toContain('type="date"')
   expect(html).toContain('aria-haspopup="dialog"')
+ })
+ it('offers searchable birth years without a native date input',()=>{
+  expect(selectableYears(1900,2026,'1987')).toEqual([1987])
+  expect(selectableYears(1900,2026,'2027')).toEqual([])
+  expect(selectableYears(2025,2026)).toEqual([2026,2025])
+  const html=renderToStaticMarkup(createElement(PayrepDatePicker,{
+   value:'1987-09-19',yearSelection:true,minYear:1900,maxYear:2026,onChange:()=>{}
+  }))
+  expect(html).toContain('19/09/1987')
+  expect(html).not.toContain('type="date"')
  })
  it('renders precise HH:MM time with custom UI',()=>{
   const html=renderToStaticMarkup(createElement(PayrepTimePicker,{value:'18:37',onChange:()=>{}}))
