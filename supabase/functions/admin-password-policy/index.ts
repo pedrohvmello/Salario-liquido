@@ -29,7 +29,7 @@ const parsePolicy=(json:unknown):Policy|null=>{
  if(!json||typeof json!=='object')return null
  const obj=json as Record<string,unknown>
  const len=obj.password_min_length
- const chars=obj.password_required_characters
+ const chars=obj.password_required_characters??''
  if(!Number.isInteger(len)||typeof chars!=='string')return null
  const entry=Object.entries(CHARSETS).find(([,value])=>value===chars)
  return entry&&isPolicy({minLength:len,preset:entry[0]})?
