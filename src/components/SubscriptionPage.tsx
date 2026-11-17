@@ -1,10 +1,11 @@
 import {useEffect,useRef,useState} from 'react'
-import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {ArrowLeft,CreditCard,Gift,Info,ShieldCheck} from 'lucide-react'
+import {cancelMyAsaasSandboxRenewal,confirmMyCheckoutCpf,confirmMyCheckoutPayerName,getMyCheckoutPayerName,hasMyCheckoutCpf,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {cpfDigits,formatCpf,isValidCpf} from '../lib/brazilIdentity'
 import {isValidCheckoutName} from '../lib/checkoutPayerName'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
+import {PayrepSelect} from './PayrepSelect'
 import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
@@ -18,6 +19,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
  const [checkoutError,setCheckoutError]=useState('')
+ const [promoPlan,setPromoPlan]=useState<'basic'|'full'>('full')
+ const [promoCode,setPromoCode]=useState('')
+ const [promoBusy,setPromoBusy]=useState(false)
+ const [promoError,setPromoError]=useState('')
+ const [promoMessage,setPromoMessage]=useState('')
  const [reviewCheckout,setReviewCheckout]=useState<{plan:'basic'|'full';profile:PayrepProfile}|null>(null)
  const [cpfPlan,setCpfPlan]=useState<'basic'|'full'|null>(null)
  const [cpfDraft,setCpfDraft]=useState('')
@@ -150,6 +156,21 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    else setNameError(message)
   }finally{setCheckoutBusy(null)}
  }
+ const redeemPromo=async()=>{
+  if(promoBusy)return
+  setPromoBusy(true);setPromoError('');setPromoMessage('')
+  try{
+   const redeemed=await redeemPayrepPromoCode(promoPlan,promoCode)
+   const next=await loadMyEffectivePayrepPlan()
+   setAccess(next);setPromoCode('')
+   setPromoMessage('Código ativado: '+names[redeemed.plan]+' por '+redeemed.days+
+    (redeemed.days===1?' dia.':' dias.')+
+    ' Acesso até '+new Intl.DateTimeFormat('pt-BR',{
+     timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'
+    }).format(new Date(redeemed.endsAt))+'. Após esse período, o plano anterior retorna automaticamente.')
+  }catch(e){setPromoError(e instanceof Error?e.message:'Não foi possível resgatar o código.')}
+  finally{setPromoBusy(false)}
+ }
  const cancelRenewal=async()=>{
   if(cancelBusy)return
   setCancelBusy(true);setCancelMessage('')
@@ -171,12 +192,24 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   {error&&<div className="notice danger">{error}</div>}
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
-    <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>{access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
-     {access?.trialActive?'Acesso temporário concedido pelo Payrep, sem cartão e sem cobrança. A assinatura financeira permanece Free.'
+    <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2>
+     <span className="pill">{access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
+      access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
+    <div className="subscription-current"><strong>{access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
+      access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
+     {access?.promoApplied?'Acesso promocional gratuito. O plano pago cadastrado permanece '+names[current.plan_code]+'.':
+      access?.trialActive?'Acesso temporário concedido pelo Payrep, sem cartão e sem cobrança. A assinatura financeira permanece Free.'
       :current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.')
       :current.status==='active'?'Assinatura ativa':'Situação: '+current.status}
     </span></div>
+    {access?.promoActive&&access.promoEndsAt&&<div className="payrep-billing-help">
+     <strong>Código promocional ativado: {names[access.promoPlan||'free']}</strong>
+     <p>Válido até {new Intl.DateTimeFormat('pt-BR',{
+      timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'
+     }).format(new Date(access.promoEndsAt))}.
+     Depois, seu acesso volta ao plano pago vigente, ou ao Free se não houver assinatura ativa.
+     O resgate não criou pagamento e não suspende cobranças de uma assinatura já existente.</p>
+    </div>}
     {access?.trialActive&&<div className="payrep-billing-help">
      <strong>Período de avaliação Full</strong>
      <p>Válido até {date(access.trialEndsAt)}. Ao expirar, o acesso retorna automaticamente ao Free, sem renovação ou cobrança automática. Não é necessário cancelar.</p>
@@ -232,6 +265,32 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
        </button>}
      </div>
     })}</div>
+   </section>
+   <section className="panel" aria-labelledby="promo-code-title">
+    <div className="panel-heading"><h2 id="promo-code-title"><Gift size={17}/> Código promocional</h2></div>
+    <p className="subtle">Selecione Basic ou Full e informe um código válido para receber dias gratuitos de acesso. O código precisa estar válido apenas no momento do resgate. Não exige CPF, cartão ou pagamento.</p>
+    <form className="promo-user-form" onSubmit={event=>{event.preventDefault();void redeemPromo()}}>
+     <div className="admin-promo-field"><span>Plano</span>
+      <PayrepSelect title="Plano da promoção" value={promoPlan}
+       disabled={promoBusy} onChange={value=>setPromoPlan(value as 'basic'|'full')}>
+       <option value="basic">Basic</option><option value="full">Full</option>
+      </PayrepSelect>
+     </div>
+     <label className="admin-promo-field">Código promocional
+      <input type="text" autoComplete="off" maxLength={64}
+       value={promoCode} disabled={promoBusy}
+       placeholder="PAY-XXXX-XXXX-XXXX-XXXX-XXXX"
+       onChange={event=>{setPromoCode(event.target.value.toUpperCase());setPromoError('')}}/>
+     </label>
+     <button className="primary" type="submit"
+      disabled={promoBusy||!promoCode.trim()||Boolean(access?.promoActive)}>
+      {promoBusy?'Validando código...':'Ativar acesso gratuito'}
+     </button>
+    </form>
+    {access?.promoActive&&<p className="subtle">Já existe uma promoção ativa. Outro código poderá ser utilizado quando o período terminar.</p>}
+    {promoMessage&&<p className="auth-success" role="status">{promoMessage}</p>}
+    {promoError&&<p className="error" role="alert">{promoError}</p>}
+    <p className="subtle">O código não renova automaticamente e não altera pagamentos existentes. Após o prazo, o plano anterior válido volta a determinar o acesso.</p>
    </section>
    {reviewCheckout&&<CheckoutPayerReview key={reviewCheckout.plan} planName={names[reviewCheckout.plan]}
     initial={reviewCheckout.profile} busy={checkoutBusy!==null}
