@@ -148,6 +148,26 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const pendingCheckout=current.plan_code==='free'?checkoutHistory.find(intent=>intent.status==='paid'):undefined
  const paidCheckoutPending=Boolean(pendingCheckout)
  const pendingPlanName=pendingCheckout?names[pendingCheckout.plan_code]:null
+ if(selectedPlan){
+  if(reviewCheckout)return <div className="stack account-page">
+   <div className="page-intro"><div><h2>Revisar dados de assinatura</h2>
+    <p>Plano {names[selectedPlan]}. Confira os dados para o checkout.</p></div>
+    <button className="secondary" type="button" disabled={checkoutBusy!==null}
+     onClick={()=>{setReviewCheckout(null);setCheckoutError('')}}><ArrowLeft size={16}/> Voltar</button>
+   </div>
+   <CheckoutPayerReview key={selectedPlan} planName={names[selectedPlan]}
+    initial={reviewCheckout.profile} busy={checkoutBusy!==null}
+    onCancel={()=>{setReviewCheckout(null);setCheckoutError('')}} onContinue={submitReviewedCheckout}/>
+  </div>
+  const plan=data.plans.find(item=>item.code===selectedPlan)
+  const priceLabel=plan?.monthly_price_cents!=null
+   ?currency(plan.monthly_price_cents,plan.currency)+' / mês':'Preço a definir'
+  return <PlanSubscriptionFlow plan={selectedPlan} priceLabel={priceLabel}
+   promoCode={promoCode} busy={promoBusy||checkoutBusy!==null}
+   error={promoError||checkoutError}
+   onCodeChange={value=>{setPromoCode(value);setPromoError('');setCheckoutError('')}}
+   onConfirm={submitSubscription} onCancel={closeSubscription}/>
+ }
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
@@ -212,6 +232,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      {reconciling?'Verificando cobrança...':'Verificar pagamento no Asaas'}
     </button>
    </section>}
+   {promoMessage&&<div className="auth-success" role="status">{promoMessage}</div>}
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
@@ -220,87 +241,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
       <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
       {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
-       <button type="button" className="secondary" disabled={checkoutBusy!==null}
-        onClick={()=>void checkout(code)}>
-        {checkoutBusy===code?'Preparando checkout...':'Testar checkout no Asaas'}
-       </button>}
+       <button type="button" className="secondary" disabled={checkoutBusy!==null||promoBusy}
+         onClick={()=>openSubscription(code)}>Assinar</button>}
      </div>
     })}</div>
    </section>
-   <section className="panel" aria-labelledby="promo-code-title">
-    <div className="panel-heading"><h2 id="promo-code-title"><Gift size={17}/> Código promocional</h2></div>
-    <p className="subtle">Selecione Basic ou Full e informe um código válido para receber dias gratuitos de acesso. O código precisa estar válido apenas no momento do resgate. Não exige CPF, cartão ou pagamento.</p>
-    <form className="promo-user-form" onSubmit={event=>{event.preventDefault();void redeemPromo()}}>
-     <div className="admin-promo-field"><span>Plano</span>
-      <PayrepSelect title="Plano da promoção" value={promoPlan}
-       disabled={promoBusy} onChange={value=>setPromoPlan(value as 'basic'|'full')}>
-       <option value="basic">Basic</option><option value="full">Full</option>
-      </PayrepSelect>
-     </div>
-     <label className="admin-promo-field">Código promocional
-      <input type="text" autoComplete="off" maxLength={64}
-       value={promoCode} disabled={promoBusy}
-       placeholder="PAY-XXXX-XXXX-XXXX-XXXX-XXXX"
-       onChange={event=>{setPromoCode(event.target.value.toUpperCase());setPromoError('')}}/>
-     </label>
-     <button className="primary" type="submit"
-      disabled={promoBusy||!promoCode.trim()||Boolean(access?.promoActive)}>
-      {promoBusy?'Validando código...':'Ativar acesso gratuito'}
-     </button>
-    </form>
-    {access?.promoActive&&<p className="subtle">Já existe uma promoção ativa. Outro código poderá ser utilizado quando o período terminar.</p>}
-    {promoMessage&&<p className="auth-success" role="status">{promoMessage}</p>}
-    {promoError&&<p className="error" role="alert">{promoError}</p>}
-    <p className="subtle">O código não renova automaticamente e não altera pagamentos existentes. Após o prazo, o plano anterior válido volta a determinar o acesso.</p>
-   </section>
-   {reviewCheckout&&<CheckoutPayerReview key={reviewCheckout.plan} planName={names[reviewCheckout.plan]}
-    initial={reviewCheckout.profile} busy={checkoutBusy!==null}
-    onCancel={()=>setReviewCheckout(null)} onContinue={submitReviewedCheckout}/>}
-   {cpfPlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-cpf-title">
-    <div className="panel-heading"><h2 id="checkout-cpf-title">Informe seu CPF para contratar o {names[cpfPlan]}</h2></div>
-    <p className="subtle">O CPF é necessário para contratar uma assinatura. Após confirmar, ele será automaticamente salvo no seu cadastro. Não solicitamos dados de cartão nesta etapa.</p>
-    <form className="subscription-cpf-form" onSubmit={e=>{e.preventDefault();void confirmCpfAndCheckout()}}>
-     <label htmlFor="checkout-cpf-input">CPF
-      <input id="checkout-cpf-input" ref={cpfInputRef} type="text" inputMode="numeric"
-       autoComplete="off" placeholder="000.000.000-00" maxLength={14}
-       value={cpfDraft} onChange={e=>{setCpfDraft(formatCpf(e.target.value));setCpfError('')}}
-       aria-invalid={cpfDigits(cpfDraft).length===11&&!isValidCpf(cpfDraft)||Boolean(cpfError)}
-       aria-describedby={cpfError?'checkout-cpf-error':'checkout-cpf-help'}/>
-     </label>
-     <small id="checkout-cpf-help" className="subtle">O CPF deve conter 11 dígitos válidos. A data de nascimento não é exigida para contratar.</small>
-     {cpfError&&<p id="checkout-cpf-error" className="error" role="alert">{cpfError}</p>}
-     <div className="row subscription-cpf-actions">
-      <button type="button" className="secondary" disabled={checkoutBusy!==null}
-       onClick={()=>{setCpfPlan(null);setCpfDraft('');setCpfError('')}}>Cancelar</button>
-      <button type="submit" className="primary"
-       disabled={checkoutBusy!==null||!isValidCpf(cpfDraft)}>
-       {checkoutBusy===cpfPlan?'Salvando CPF...':'Confirmar CPF e continuar no Asaas'}
-      </button>
-     </div>
-    </form>
-   </section>}
-   {namePlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-name-title">
-    <div className="panel-heading"><h2 id="checkout-name-title">Informe seu nome completo para contratar o {names[namePlan]}</h2></div>
-    <p className="subtle">O Asaas exige um nome válido para identificar o titular da assinatura. Informe seu nome e sobrenome. Após confirmar, ele será salvo em Meu cadastro e o checkout continuará automaticamente. Seu CPF já está salvo.</p>
-    <form className="subscription-cpf-form" onSubmit={e=>{e.preventDefault();void confirmNameAndCheckout()}}>
-     <label htmlFor="checkout-name-input">Nome completo
-      <input id="checkout-name-input" ref={nameInputRef} type="text" autoComplete="name"
-       placeholder="Nome e sobrenome" maxLength={100} value={nameDraft}
-       aria-invalid={Boolean(nameError)}
-       aria-describedby={nameError?'checkout-name-error':undefined}
-       onChange={e=>{setNameDraft(e.target.value);setNameError('')}}/>
-     </label>
-     {nameError&&<p id="checkout-name-error" className="error" role="alert">{nameError}</p>}
-     <div className="row subscription-cpf-actions">
-      <button type="button" className="secondary" disabled={checkoutBusy!==null}
-       onClick={()=>{setNamePlan(null);setNameDraft('');setNameError('')}}>Cancelar</button>
-      <button type="submit" className="primary" disabled={checkoutBusy!==null||!isValidCheckoutName(nameDraft)}>
-       {checkoutBusy===namePlan?'Salvando nome...':'Confirmar nome e continuar no Asaas'}
-      </button>
-     </div>
-    </form>
-   </section>}
-   {checkoutError&&<div className="notice danger" role="alert">{checkoutError}</div>}
    {checkoutHistory.length>0&&<section className="panel">
     <div className="panel-heading"><h2>Checkouts de homologação</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
