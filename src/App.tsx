@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,type DayEntry} from './lib/calendar'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
@@ -34,6 +34,8 @@ import {ProfileMenu} from './components/ProfileMenu'
 import {ProfilePage} from './components/ProfilePage'
 import {SubscriptionPage} from './components/SubscriptionPage'
 import {AdminSettingsPage} from './components/AdminSettingsPage'
+import {AdminFinancePage} from './components/AdminFinancePage'
+import {AdminPlansPage} from './components/AdminPlansPage'
 import {AdminSupportTickets} from './components/AdminSupportTickets'
 import {AccountSecurityPage} from './components/AccountSecurityPage'
 import {PayrepConfirmDialog} from './components/PayrepConfirmDialog'
@@ -48,7 +50,7 @@ import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
 import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
-type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
+type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-finance'|'admin-plans'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
@@ -59,7 +61,9 @@ const nav=[
  {id:'income-tax',label:'Informe IR (prévia)',icon:FileSpreadsheet},
  {id:'imports',label:'Meus Holerites',icon:FileInput},
  {id:'definitions',label:'Definições',icon:Settings2},
- {id:'admin-settings',label:'Configurações',icon:Settings2}
+ {id:'admin-settings',label:'Configurações',icon:Settings2},
+ {id:'admin-finance',label:'Financeiro',icon:Wallet},
+ {id:'admin-plans',label:'Planos e Assinaturas',icon:ContactRound}
 ] as const
 const today=()=>new Date().toISOString().slice(0,10)
 const currentMonth=()=>today().slice(0,7)
@@ -537,6 +541,8 @@ export default function App(){
         {section==='admin'&&isAdmin&&<div className="stack"><div><button type="button" className="secondary" onClick={()=>setSection('admin-settings')}>Voltar às configurações</button></div><AdminDashboard/></div>}
     {section==='admin-support'&&isAdmin&&<AdminSupportTickets onBack={()=>setSection('admin-settings')}/>}
     {section==='admin-settings'&&isAdmin&&<AdminSettingsPage onNavigate={view=>setSection(view)}/>}
+    {section==='admin-finance'&&isAdmin&&<AdminFinancePage/>}
+    {section==='admin-plans'&&isAdmin&&<AdminPlansPage/>}
     {section==='profile'&&user&&<ProfilePage user={user} onBack={()=>setSection('overview')}/>}
     {section==='subscription'&&user&&<SubscriptionPage billingReturn={billingReturn} onBack={()=>{setBillingReturn(null);setSection('overview')}}/>}
     {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')} onNavigateSubscription={()=>setSection('subscription')} onPayrollReset={async()=>{
@@ -576,9 +582,9 @@ export default function App(){
    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
    <div className="nav-label">MENU PRINCIPAL</div>
    <nav>
-     {nav.filter(n=>n.id!=='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{if(n.id==='imports')setPayslipTab('documents');setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {nav.filter(n=>!n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{if(n.id==='imports')setPayslipTab('documents');setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
      {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
-     {isAdmin&&nav.filter(n=>n.id==='admin-settings').map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {isAdmin&&nav.filter(n=>n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
     </nav>
    <footer className="sidebar-footer" aria-label="Links institucionais">
     <span>© 2026 Payrep</span>
