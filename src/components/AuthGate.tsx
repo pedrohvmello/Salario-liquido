@@ -85,7 +85,12 @@ export function AuthGate(){
         setMessage('Se a conta existir, você receberá instruções para recuperar a senha.')
       }else if(mode==='signup'){
         if(!passwordPolicyReady)throw Error('Os requisitos de senha não estão disponíveis. Recarregue a página.')
-        const missing=checkPassword(password,passwordPolicy)
+        const latest=await loadPasswordPolicy()
+        if(latest.policy.minLength!==passwordPolicy.minLength||latest.policy.preset!==passwordPolicy.preset){
+         setPasswordPolicy(latest.policy)
+         throw Error('Os requisitos de senha foram atualizados. Confira as novas validações e tente novamente.')
+        }
+        const missing=checkPassword(password,latest.policy)
         if(missing.length)throw Error('A senha precisa conter: '+missing.join(', ')+'.')
         if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
         const {data,error}=await db.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin}})
@@ -197,7 +202,17 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
     if(!db)return
     setError('');setMessage('')
     if(!policy){setError('Não foi possível consultar os requisitos atuais. Atualize a página.');return}
-    const missing=checkPassword(password,policy)
+    let latest:PasswordPolicy
+    try{
+     const snapshot=await loadPasswordPolicy()
+     latest=snapshot.policy
+     if(latest.minLength!==policy.minLength||latest.preset!==policy.preset){
+      setPolicy(latest)
+      setError('Os requisitos de senha mudaram. Revise a nova política antes de continuar.')
+      return
+     }
+    }catch{setError('Não foi possível verificar os requisitos de senha. Tente novamente.');return}
+    const missing=checkPassword(password,latest)
     if(missing.length){setError('A senha precisa conter: '+missing.join(', ')+'.');return}
     if(password!==confirmation){setError('As senhas informadas são diferentes.');return}
     if(requireCurrent&&!currentPassword){setError('Informe a senha atual.');return}
