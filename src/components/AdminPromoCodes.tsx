@@ -5,7 +5,7 @@ import {PayrepDatePicker} from './PayrepDatePicker'
 import {db} from '../lib/data'
 
 type Promo={
- id:string;codeSuffix:string;plan:'basic'|'full';days:number;
+ id:string;code:string|null;codeSuffix:string;plan:'basic'|'full';days:number;
  redeemUntil:string;maxRedemptions:number|null;redeemedCount:number;
  createdAt:string;disabledAt:string|null;
  status:'active'|'expired'|'disabled'|'exhausted'
@@ -40,6 +40,8 @@ export function AdminPromoCodes(){
  const [maxUses,setMaxUses]=useState('')
  const [createdCode,setCreatedCode]=useState('')
  const [pendingDisable,setPendingDisable]=useState<string|null>(null)
+ const [restoringId,setRestoringId]=useState<string|null>(null)
+ const [restoreDraft,setRestoreDraft]=useState('')
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
  const reload=useCallback(async()=>{
@@ -80,7 +82,7 @@ export function AdminPromoCodes(){
    if(error)throw error
    if(data?.code!==customCode)throw Error('Não foi possível confirmar o código cadastrado.')
    setCreatedCode(data.code);setPromoCode('');setFormOpen(false)
-   setMessage('Código cadastrado. Ele está disponível para cópia abaixo.')
+   setMessage('Código cadastrado e disponível na lista, inclusive após atualizar a página.')
    await reload()
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível criar o código.')}
   finally{setBusy(false)}
@@ -97,10 +99,29 @@ export function AdminPromoCodes(){
   }catch(e){setError(e instanceof Error?e.message:'Falha ao desativar o código.')}
   finally{setBusy(false)}
  }
- const copy=async()=>{
-  if(!createdCode)return
-  try{await navigator.clipboard.writeText(createdCode);setMessage('Código copiado. Guarde-o em local seguro.')}
-  catch{setMessage('Selecione e copie o código exibido abaixo.')}
+ const copy=async(code:string)=>{
+  if(!code)return
+  try{await navigator.clipboard.writeText(code);setMessage('Código copiado.')}
+  catch{setMessage('Não foi possível copiar automaticamente. Selecione o texto visível e copie.')}
+ }
+ const restoreLegacy=async()=>{
+  if(!db||!restoringId||busy)return
+  const value=restoreDraft.trim().toUpperCase()
+  if(!/^[A-Z0-9_-]{4,64}$/.test(value)){
+   setError('Informe o código original completo.');return
+  }
+  setBusy(true);setError('');setMessage('')
+  try{
+   const {data,error}=await db.rpc('restore_hml_promo_code_label',{
+    p_code_id:restoringId,p_code:value
+   })
+   if(error)throw error
+   if(data?.restored!==true)throw Error('Não foi possível confirmar o código original.')
+   setRestoringId(null);setRestoreDraft('')
+   await reload()
+   setMessage('Código antigo validado e agora exibido integralmente na lista.')
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível recuperar o código original.')}
+  finally{setBusy(false)}
  }
  return <section className="panel">
   <div className="panel-heading">
@@ -149,12 +170,12 @@ export function AdminPromoCodes(){
    </button>
   </form>}
   {createdCode&&<div className="promo-created" role="status" aria-live="polite">
-   <strong>Código cadastrado</strong>
+   <strong>Código cadastrado e visível na tabela</strong>
    <div className="row promo-created-row">
     <code>{createdCode}</code>
-    <button className="secondary" type="button" onClick={()=>void copy()}><Copy size={16}/> Copiar</button>
+    <button className="secondary" type="button" onClick={()=>void copy(createdCode)}><Copy size={16}/> Copiar</button>
    </div>
-   <p>Guarde o código para compartilhá-lo. Por segurança, o Payrep armazena apenas sua identificação criptográfica e os quatro últimos caracteres.</p>
+   <p>O código completo permanecerá visível na listagem administrativa, mesmo depois de atualizar ou reabrir a página.</p>
   </div>}
   {message&&<p className="auth-success" role="status">{message}</p>}
   {error&&<p className="error" role="alert">{error}</p>}
@@ -163,7 +184,21 @@ export function AdminPromoCodes(){
    <tbody>
     {records.length===0?<tr><td colSpan={7}>Nenhum código promocional criado.</td></tr>:
      records.map(code=><tr key={code.id}>
-      <td>•••• {code.codeSuffix}</td>
+      <td>
+       {code.code?<div className="promo-code-visible">
+        <code>{code.code}</code>
+        <button className="secondary" type="button" disabled={busy}
+         aria-label={'Copiar código '+code.code} onClick={()=>void copy(code.code!)}>
+         <Copy size={14}/> Copiar
+        </button>
+       </div>:<div className="promo-code-visible">
+        <span>•••• {code.codeSuffix}</span>
+        <button className="secondary" type="button" disabled={busy}
+         onClick={()=>{setRestoringId(code.id);setRestoreDraft('');setError('')}}>
+         Informar código antigo
+        </button>
+       </div>}
+      </td>
       <td>{code.plan==='full'?'Full':'Basic'}</td>
       <td>{code.days}</td>
       <td>{calendarDayInSP(code.redeemUntil)}</td>
@@ -176,6 +211,21 @@ export function AdminPromoCodes(){
      </tr>)}
    </tbody>
   </table></div>
+  {restoringId&&<form className="promo-legacy-restore" onSubmit={event=>{event.preventDefault();void restoreLegacy()}}>
+   <label>Informar o código original deste registro antigo
+    <input type="text" maxLength={64} autoComplete="off" spellCheck={false}
+     value={restoreDraft} onChange={event=>setRestoreDraft(event.target.value.toUpperCase())}
+     placeholder="Cole o código completo"/>
+   </label>
+   <p className="subtle">Os códigos criados antes desta atualização eram armazenados somente como hash. Para recuperar a exibição, informe o texto original. Ele será comparado ao registro existente sem criar outra promoção.</p>
+   <div className="row">
+    <button className="secondary" type="button" disabled={busy}
+     onClick={()=>{setRestoringId(null);setRestoreDraft('')}}>Cancelar</button>
+    <button className="primary" type="submit" disabled={busy||restoreDraft.trim().length<4}>
+     {busy?'Validando...':'Verificar e exibir código'}
+    </button>
+   </div>
+  </form>}
   <p className="subtle"><ShieldCheck size={14}/> Um resgate por código e por usuário; uma promoção ativa por vez. Um código desativado fica reservado por seis meses. Desativar ou expirar um código não reduz os dias de acesso já concedidos.</p>
  </section>
 }
