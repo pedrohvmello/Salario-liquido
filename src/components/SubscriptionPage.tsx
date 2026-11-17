@@ -70,18 +70,14 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
-  {billingReturn&&<div className="notice" role="status">
-   {billingReturn==='success'
-    ?'Checkout finalizado no Asaas. O pagamento será confirmado no Payrep somente após a conciliação com o provedor.'
-    :billingReturn==='cancel'
-    ?'Você retornou de um checkout cancelado. Consulte abaixo a situação registrada pelo provedor.'
-    :'O checkout expirou. Consulte abaixo o estado da assinatura antes de iniciar outra contratação.'}
-  </div>}
-  {reconciliationMessage&&<div className="notice" role="status">{reconciliationMessage}</div>}
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{names[current.plan_code]||'Free'}</span></div>
     <div className="subscription-current"><strong>Plano {names[current.plan_code]||'Free'}</strong><span>{current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.'):(current.status==='active'?'Assinatura ativa':'Situação: '+current.status)}</span></div>
+    {!paidCheckoutPending&&billingReturn&&billingReturn!=='success'&&<p className="subtle" role="status">
+     {billingReturn==='cancel'?'O checkout foi cancelado.':'O checkout expirou.'} Consulte a situação do seu plano abaixo.
+    </p>}
+    {!paidCheckoutPending&&reconciliationMessage&&<p className="subtle" role="status">{reconciliationMessage}</p>}
     {current.current_period_end&&<p className="subtle">Fim do período atual: {date(current.current_period_end)}</p>}
     {current.plan_code!=='free'&&<div className="payrep-billing-help">
      <strong>Gerenciamento e cancelamento da assinatura</strong>
@@ -98,7 +94,8 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      <span className="pill">Em andamento</span>
     </div>
     <p role="status"><strong>Status: Aguardando confirmação do pagamento</strong></p>
-    <p className="subtle">O checkout de teste foi concluído no Asaas Sandbox, mas a confirmação da cobrança e sua conciliação no Payrep ainda estão pendentes. Até a validação, o plano Free permanece ativo. Não inicie outra contratação.</p>
+    <p className="subtle">O checkout foi concluído no Asaas Sandbox. O plano Free permanece ativo até a conciliação, sem necessidade de realizar outra compra.</p>
+    {reconciliationMessage&&<p className="subtle" role="status">{reconciliationMessage}</p>}
     <button type="button" className="secondary" onClick={()=>void checkPayment()} disabled={reconciling}>
      {reconciling?'Verificando cobrança...':'Verificar pagamento no Asaas'}
     </button>
