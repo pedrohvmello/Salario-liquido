@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
+import {PayrepDatePicker} from './PayrepDatePicker'
 import type {User} from '@supabase/supabase-js'
 import {ArrowLeft,Save,MapPin,UserRound,Info,CheckCircle2,AlertTriangle} from 'lucide-react'
 import {blankProfile,loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
@@ -85,12 +86,11 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
         :'Necessário para contratar um plano pelo Asaas.'}
       </small>
      </label>
-     <label>Data de nascimento
-      <input type="date" autoComplete="bday" min="1900-01-01"
-       max={new Date().toISOString().slice(0,10)}
-       value={value.birth_date}
-       onChange={e=>patch('birth_date',e.target.value)}/>
-     </label>
+     <div className="account-date-field">
+      <span>Data de nascimento (opcional)</span>
+      <PayrepDatePicker title="Selecione sua data de nascimento" value={value.birth_date}
+       onChange={next=>patch('birth_date',next)}/>
+     </div>
      <InputField field={fields[0]} value={value.phone} onChange={s=>patch('phone',formatPhone(s))}/>
     </div>
    </section>
