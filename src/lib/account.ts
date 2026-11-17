@@ -49,6 +49,26 @@ export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<str
  return validatedSandboxCheckoutUrl(data.checkoutUrl)
 }
 
+export type BillingReconciliationResult={
+ state:'active'|'pending'|'needs_review'|'no_paid_checkout'|'provider_unavailable';
+ plan?:'free'|'basic'|'full';
+ paymentStatus?:string;
+ providerPaymentStatus?:string
+}
+export async function reconcileMyAsaasSandboxBilling():Promise<BillingReconciliationResult>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data,error}=await db.functions.invoke('billing-reconcile-asaas',{body:{}})
+ if(error){
+  const message=await checkoutInvokeErrorMessage(error)
+  throw Error(message.includes('checkout de homologação')?
+   'Não foi possível verificar o pagamento no Asaas. Tente novamente.':message)
+ }
+ const state=data?.state
+ if(!['active','pending','needs_review','no_paid_checkout','provider_unavailable'].includes(state))
+  throw Error('Resposta inesperada da conciliação Asaas.')
+ return data as BillingReconciliationResult
+}
+
 export const blankProfile=(user?:User|null):PayrepProfile=>({
  display_name:profileDisplayName(user||null),
  phone:'',postal_code:'',street:'',street_number:'',complement:'',
