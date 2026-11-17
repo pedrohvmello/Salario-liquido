@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {classifyHours,type DayEntry} from './lib/calendar'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
@@ -122,6 +122,22 @@ export default function App(){
  const [section,setSection]=useState<Section>('overview')
  const [billingReturn,setBillingReturn]=useState<BillingReturn|null>(()=>billingReturnFromUrl(window.location.href))
  const [menu,setMenu]=useState(false)
+ const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{
+  try{return window.localStorage.getItem('payrep.sidebar.collapsed')==='true'}catch{return false}
+ })
+ const [sidebarTooltip,setSidebarTooltip]=useState<{label:string;left:number;top:number}|null>(null)
+ const toggleDesktopSidebar=()=>{
+  setSidebarCollapsed(previous=>!previous)
+  setSidebarTooltip(null)
+ }
+ useEffect(()=>{
+  try{window.localStorage.setItem('payrep.sidebar.collapsed',String(sidebarCollapsed))}catch{}
+ },[sidebarCollapsed])
+ const showSidebarTooltip=(label:string,element:HTMLElement)=>{
+  if(!sidebarCollapsed||!window.matchMedia('(min-width:761px)').matches)return
+  const rect=element.getBoundingClientRect()
+  setSidebarTooltip({label,left:rect.right+12,top:rect.top+rect.height/2})
+ }
  useEffect(()=>{
   if(!menu)return
   const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')setMenu(false)}
@@ -601,19 +617,48 @@ export default function App(){
    </div>
  )
  return <div className="app">
-  <aside id="payrep-sidebar" className={menu?'sidebar open':'sidebar'}>
-   <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
+  <aside id="payrep-sidebar" className={'sidebar'+(menu?' open':'')+(sidebarCollapsed?' sidebar--collapsed':'')}>
+   <div className="sidebar-brand-row">
+    <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="Payrep" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>
+    <button type="button" className="sidebar-collapse-toggle"
+     aria-label={sidebarCollapsed?'Expandir menu lateral':'Recolher menu lateral'}
+     title={sidebarCollapsed?'Expandir menu lateral':'Recolher menu lateral'}
+     aria-expanded={!sidebarCollapsed} aria-controls="payrep-sidebar-navigation"
+     onClick={toggleDesktopSidebar}>
+     {sidebarCollapsed?<PanelLeftOpen size={17}/>:<PanelLeftClose size={17}/>}
+    </button>
+   </div>
    <div className="nav-label">MENU PRINCIPAL</div>
-   <nav>
-     {nav.filter(n=>!n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{if(n.id==='imports')setPayslipTab('documents');setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+   <nav id="payrep-sidebar-navigation">
+     {nav.filter(n=>!n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id}
+      type="button" aria-label={n.label} aria-current={section===n.id?'page':undefined}
+      className={section===n.id?'nav active':'nav'}
+      onMouseEnter={event=>showSidebarTooltip(n.label,event.currentTarget)}
+      onMouseLeave={()=>setSidebarTooltip(null)}
+      onFocus={event=>showSidebarTooltip(n.label,event.currentTarget)}
+      onBlur={()=>setSidebarTooltip(null)}
+      onClick={()=>{if(n.id==='imports')setPayslipTab('documents');setSection(n.id);setMenu(false);setSidebarTooltip(null);setNotice('');setError('')}}>
+      <Icon size={19}/><span className="sidebar-menu-label">{n.label}</span>{section===n.id&&<span className="nav-dot"/>}
+     </button>})}
      {isAdmin&&<div className="admin-nav-separator" role="separator"><span>ADMINISTRATION</span></div>}
-     {isAdmin&&nav.filter(n=>n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id} className={section===n.id?'nav active':'nav'} onClick={()=>{setSection(n.id);setMenu(false);setNotice('');setError('')}}><Icon size={19}/>{n.label}{section===n.id&&<span className="nav-dot"/>}</button>})}
+     {isAdmin&&nav.filter(n=>n.id.startsWith('admin-')).map(n=>{const Icon=n.icon;return <button key={n.id}
+      type="button" aria-label={n.label} aria-current={section===n.id?'page':undefined}
+      className={section===n.id?'nav active':'nav'}
+      onMouseEnter={event=>showSidebarTooltip(n.label,event.currentTarget)}
+      onMouseLeave={()=>setSidebarTooltip(null)}
+      onFocus={event=>showSidebarTooltip(n.label,event.currentTarget)}
+      onBlur={()=>setSidebarTooltip(null)}
+      onClick={()=>{setSection(n.id);setMenu(false);setSidebarTooltip(null);setNotice('');setError('')}}>
+      <Icon size={19}/><span className="sidebar-menu-label">{n.label}</span>{section===n.id&&<span className="nav-dot"/>}
+     </button>})}
     </nav>
    <footer className="sidebar-footer" aria-label="Links institucionais">
     <span>© 2026 Payrep</span>
     <div className="sidebar-footer-links"><a href="/sobre" target="_blank" rel="noopener noreferrer">Sobre</a><a href="/privacidade" target="_blank" rel="noopener noreferrer">Privacidade</a><a href="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</a></div>
    </footer>
   </aside>
+  {sidebarCollapsed&&sidebarTooltip&&<div className="sidebar-item-tooltip" role="tooltip"
+   style={{left:sidebarTooltip.left,top:sidebarTooltip.top}}>{sidebarTooltip.label}</div>}
   {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
    <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='admin-support'?'Chamados de suporte':section==='admin'?'Gestão de usuários':section==='help'?'Ajuda':section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
