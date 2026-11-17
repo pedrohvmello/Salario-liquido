@@ -603,7 +603,7 @@ export default function App(){
       setSelectedStmt(null);setStatementLines([])
       setPreviews([]);setImportFiles([]);setImportSelected([])
       setPensionOptions({...defaultPensionRule});setOverviewCards([...defaultOverviewCards])
-      setYear('all');setEventsYear('all');setHoursYear('all');setHoursMonth('all');setMonth(currentMonth())
+      setYear('all');setEventsYear('all');setHoursAnchor(todayInSaoPaulo());setMonth(currentMonth())
     }}/>}
     {section==='help'&&user&&<SupportPage user={user}/>}
     {section==='pep-personal'&&user&&<PersonalPepPage
