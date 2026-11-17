@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react'
-import {ChevronRight, LockKeyhole, UserRound} from 'lucide-react'
+import {ChevronRight, CircleCheck, CircleX, LockKeyhole, MailCheck, UserRound} from 'lucide-react'
 import {db} from '../lib/data'
 import {checkPassword,passwordPolicyDefaults} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
@@ -21,9 +21,25 @@ export function AuthGate(){
   const [email,setEmail]=useState('')
   const [password,setPassword]=useState('')
   const [confirmation,setConfirmation]=useState('')
+  const [signupResult,setSignupResult]=useState<'email'|'ready'|null>(null)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
+  const signupPasswordMissing=checkPassword(password)
+  const signupPasswordRules=[
+    {id:'length',label:'Pelo menos '+passwordPolicyDefaults.minLength+' caracteres',
+      met:!signupPasswordMissing.some(item=>item.startsWith('mínimo de '))},
+    {id:'letters',label:'Letras maiúsculas e minúsculas',
+      met:!signupPasswordMissing.includes('letra maiúscula')&&!signupPasswordMissing.includes('letra minúscula')},
+    {id:'numbers',label:'Pelo menos um número',
+      met:!signupPasswordMissing.includes('número')},
+    {id:'symbols',label:'Pelo menos um caractere especial',
+      met:!signupPasswordMissing.includes('caractere especial')}
+  ]
+  const backToLogin=()=>{
+   stopPasskeyAttempt();setMode('login');setPassword('');setConfirmation('')
+   setSignupResult(null);setError('');setMessage('')
+  }
   const autoPasskey=autoPromptPreferred()
   const automaticStarted=useRef(false)
   const passkeyRequest=useRef<AbortController|null>(null)
@@ -69,8 +85,10 @@ export function AuthGate(){
         if(password!==confirmation)throw Error('As senhas não coincidem. Confira a confirmação.')
         const {data,error}=await db.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin}})
         if(error)throw error
-        if(!data.session)setMessage('Solicitação recebida. Se o cadastro for permitido, confira o e-mail para confirmar sua conta. O acesso poderá depender de aprovação administrativa.')
-        else setMessage('Conta criada. O aplicativo verificará sua autorização de acesso.')
+        // Supabase may deliberately return an obfuscated success for an existing
+        // account. Do not claim confirmation was sent to an enumerated address.
+        setPassword('');setConfirmation('')
+        setSignupResult(data.session?'ready':'email')
       }else{
         const {error}=await db.auth.signInWithPassword({email:email.trim(),password})
         if(error)throw error
@@ -92,15 +110,37 @@ export function AuthGate(){
     <div className="brand auth-brand brand--wordmark">
       <img className="brand-full-logo" src="/brand/payrep-logo.svg" alt="Payrep" width="290" height="87"/>
     </div>
-    <h1>{mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
-    <p>{mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.':mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.':'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>
+    <h1>{signupResult?(signupResult==='email'?'Verifique seu e-mail':'Cadastro concluído'):mode==='reset'?'Recuperar senha':mode==='signup'?'Criar uma conta':'Acesse sua conta'}</h1>
+    <p>{signupResult?(signupResult==='email'
+       ?'Para continuar, confirme seu endereço de e-mail. A liberação da conta poderá depender de aprovação administrativa.'
+       :'Sua solicitação de acesso foi recebida. O Payrep verificará a autorização da conta.')
+      :mode==='reset'?'Informe o e-mail de sua conta. O link de recuperação abrirá esta aplicação.'
+      :mode==='signup'?'Cadastre-se para solicitar acesso. Conforme a política administrativa, sua conta poderá exigir aprovação.'
+      :'Seus holerites e registros ficam privados e vinculados à sua conta.'}</p>
+    {signupResult?
+     <div className="signup-confirmation-screen" role="status">
+      <div className="signup-confirmation-icon"><MailCheck size={29} aria-hidden="true"/></div>
+      <p>{signupResult==='email'
+       ?'Se o cadastro foi aceito, o e-mail de confirmação foi enviado para '+email.trim()+'. Confira também Spam e Promoções. O link valida o endereço de e-mail, não a senha.'
+       :'A conta foi criada. Se houver aprovação administrativa, aguarde a liberação para entrar.'}</p>
+      <button type="button" className="primary" onClick={backToLogin}>
+       Voltar ao login <ChevronRight size={17} aria-hidden="true"/>
+      </button>
+     </div>
+    :<>
     <form onSubmit={e=>{e.preventDefault();void act()}}>
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
       {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?passwordPolicyDefaults.minLength:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de 12 caracteres':'Sua senha'}/></label>}
-      {mode==='signup'&&<p className="subtle password-policy-description">Use no mínimo 12 caracteres, com letras minúsculas, maiúsculas, números e símbolos.</p>}
-      {mode==='signup'&&password&&<small className="password-policy-status" role="status">{checkPassword(password).length?'Faltam: '+checkPassword(password).join(', '):'Senha atende aos requisitos da interface.'}</small>}
-      {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={8} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check" placeholder="Digite a senha novamente"/></label>}
-      {mode==='signup'&&<small id="signup-password-check" className={confirmation.length===0?'password-confirm-hint':password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">{confirmation.length===0?'Repita a mesma senha para confirmar.':password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}</small>}
+      {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={passwordPolicyDefaults.minLength} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check signup-password-rules" placeholder="Digite a senha novamente"/></label>}
+      {mode==='signup'&&<div id="signup-password-rules" className="signup-password-rules" aria-label="Requisitos de senha">
+       {signupPasswordRules.map(rule=><div key={rule.id} className={'signup-password-rule '+(rule.met?'is-met':'is-missing')}>
+        {rule.met?<CircleCheck size={15} aria-hidden="true"/>:<CircleX size={15} aria-hidden="true"/>}
+        <span>{rule.label}</span>
+       </div>)}
+      </div>}
+      {mode==='signup'&&confirmation.length>0&&<small id="signup-password-check" className={password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">
+       {password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}
+      </small>}
       <button className="primary" disabled={busy} type="submit">{mode==='login'&&<UserRound size={17} aria-hidden="true"/>}{mode==='reset'?'Enviar link de recuperação':mode==='signup'?'Solicitar cadastro':'Entrar'} <ChevronRight size={17}/></button>
       {error&&<p className="error" role="alert">{error}</p>}
       {message&&<p className="auth-success" role="status">{message}</p>}
@@ -108,10 +148,11 @@ export function AuthGate(){
     {mode!=='reset'&&googleEnabled&&<><div className="auth-separator">ou</div><button type="button" className="secondary google-sign-in" onClick={()=>{void googleSignIn()}} disabled={busy}><GoogleGIcon/> Continuar com Google</button></>}
     <div className="auth-bottom-actions">
       {mode==='login'&&<button className="text-button" type="button" onClick={()=>{stopPasskeyAttempt();setMode('signup');setPassword('');setConfirmation('');setError('');setMessage('')}}>Criar conta</button>}
-      <button className="text-button" type="button" onClick={()=>{stopPasskeyAttempt();setMode(mode==='login'?'reset':'login');setPassword('');setConfirmation('');setError('');setMessage('')}}>
+      <button className="text-button" type="button" onClick={()=>{stopPasskeyAttempt();setMode(mode==='login'?'reset':'login');setPassword('');setConfirmation('');setSignupResult(null);setError('');setMessage('')}}>
         <LockKeyhole size={15}/>{mode==='login'?'Esqueci minha senha':'Voltar ao login'}
       </button>
     </div>
+    </>}
   </div>
   <footer className="auth-public-footer" aria-label="Navegação institucional">
     <span>© 2026 Payrep</span>
