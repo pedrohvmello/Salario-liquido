@@ -9,7 +9,7 @@ Menu administrativo **Planos e Assinaturas > Códigos promocionais**. O administ
 - último dia para utilizar o código (data em America/Sao_Paulo)
 - limite opcional de resgates (1 a 10.000; vazio = ilimitado)
 
-O administrador informa o código, que é normalizado para uppercase no frontend e no banco. O banco guarda apenas o hash do código e os quatro caracteres finais; o código completo só é devolvido ao finalizar o cadastro, para cópia. A desativação impede novos resgates, mas não revoga benefícios já concedidos. O mesmo texto só pode ser cadastrado novamente seis meses **após sua desativação**, preservando os registros antigos e o histórico de resgates. Códigos ainda ativos, mesmo que a data de resgate já tenha expirado, continuam reservados até serem desativados. A migração `0055_hml_custom_promo_codes_six_month_reuse.sql` substitui o gerador automático anterior. Os códigos PAY-... criados antes da migração continuam válidos até o término ou desativação.
+O administrador informa o código, que é normalizado para uppercase no frontend e no banco. A migração `0056_hml_visible_promo_codes_admin_only.sql` guarda também o código integral em uma tabela do schema `private`, sem acesso direto de usuários, e o expõe exclusivamente pela consulta administrativa autenticada com MFA. O código completo permanece visível para cópia após recarregar a página. Códigos anteriores, gravados somente com hash, podem ser associados ao registro original pelo próprio administrador quando informar seu texto exato, validado pelo hash armazenado. A desativação impede novos resgates, mas não revoga benefícios já concedidos. O mesmo texto só pode ser cadastrado novamente seis meses **após sua desativação**, preservando os registros antigos e o histórico de resgates. Códigos ainda ativos, mesmo que a data de resgate já tenha expirado, continuam reservados até serem desativados. A migração `0055_hml_custom_promo_codes_six_month_reuse.sql` substitui o gerador automático anterior. Os códigos PAY-... criados antes da migração continuam válidos até o término ou desativação.
 
 Menu do usuário **Assinatura > Código promocional**:
 1. escolher Basic ou Full e informar código
@@ -35,7 +35,7 @@ Acesso até 24/11/2026 às 15:00, mesmo que o código deixe de aceitar novos res
 
 ## Controles técnicos
 
-- SQL em `supabase/migrations/0054_hml_promotional_plan_codes.sql` e `0055_hml_custom_promo_codes_six_month_reuse.sql`, somente no projeto HML `nrpqcrhschztdwbfgnyo`.
+- SQL em `supabase/migrations/0054_hml_promotional_plan_codes.sql` e `0055_hml_custom_promo_codes_six_month_reuse.sql` e `0056_hml_visible_promo_codes_admin_only.sql`, somente no projeto HML `nrpqcrhschztdwbfgnyo`.
 - `private.payrep_promo_codes` e `private.payrep_promo_redemptions`: RLS ativo; nenhuma concessão direta para anon ou authenticated.
 - RPCs autenticados: `create_hml_promo_code`, `list_hml_promo_codes`, `disable_hml_promo_code`, `redeem_hml_promo_code`, `my_effective_payrep_plan`.
 - Criação e listagem exigem `private.is_current_admin()`, que usa verificação MFA.
