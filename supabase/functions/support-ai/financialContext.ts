@@ -151,7 +151,7 @@ export function buildFinancialContext(args:{
   ppr_irrf:round2(annualRows.filter(s=>s.document_type==='ppr').reduce((a,s)=>a+(money(s.ppr_income_tax)||0),0)),
   observacao:'Totais por competência, não representam necessariamente rendimentos tributáveis do informe oficial.'
  }:null;
- const latestPeriod=reference?.period||period||(ordered[0]?.period??'');
+ const latestPeriod=reference?.period||period||(ordered[0]?.period??new Date().toISOString().slice(0,7));
  const eventQuestion=/evento|vig[êe]ncia|proje[cç][aã]o|previs[aã]o|sal[aá]rio|pens[aã]o|previd[êe]ncia|espp|tri[êe]nio/i.test(question);
  const data={
   tipo:'resumo_financeiro_autorizado',
