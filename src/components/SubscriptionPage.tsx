@@ -81,6 +81,14 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    .finally(()=>{if(active)setLoading(false)})
   return ()=>{active=false}
  },[])
+ useEffect(()=>{
+  // Database time windows are the source of truth; refresh the visible plan
+  // while this screen remains open, without any background billing jobs.
+  const interval=window.setInterval(()=>{
+   void loadMyEffectivePayrepPlan().then(setAccess).catch(()=>{})
+  },60_000)
+  return ()=>window.clearInterval(interval)
+ },[])
  const continueWithPayerName=async(plan:'basic'|'full')=>{
   const currentName=await getMyCheckoutPayerName()
   if(!isValidCheckoutName(currentName)){
@@ -254,10 +262,10 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
-     return <div key={code} className={'subscription-plan '+(current.plan_code===code?'subscription-plan-active':'')}>
+     return <div key={code} className={'subscription-plan '+(access?.effectivePlan===code?'subscription-plan-active':'')}>
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
-      <small>{current.plan_code===code?'Plano atual':pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
+      <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
       {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
        <button type="button" className="secondary" disabled={checkoutBusy!==null}
         onClick={()=>void checkout(code)}>
