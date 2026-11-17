@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
-import {cancelMyAsaasSandboxRenewal,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 const names={free:'Free',basic:'Basic',full:'Full'}
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
@@ -9,6 +9,7 @@ const fallback:BillingSubscription={plan_code:'free',status:'active',provider:nu
 export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;billingReturn?:BillingReturn|null}){
  const [data,setData]=useState<{subscription:BillingSubscription;payments:BillingPayment[];plans:BillingPlan[]}>({subscription:fallback,payments:[],plans:[]})
  const [loading,setLoading]=useState(true)
+ const [access,setAccess]=useState<EffectivePayrepPlan|null>(null)
  const [error,setError]=useState('')
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
@@ -37,8 +38,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   finally{setReconciling(false)}
  }
  useEffect(()=>{let active=true
-  void Promise.all([loadMyBilling(),loadMyCheckoutIntents()])
-   .then(async([billing,intents])=>{
+  void Promise.all([loadMyBilling(),loadMyCheckoutIntents(),loadMyEffectivePayrepPlan()])
+   .then(async([billing,intents,effective])=>{
+    setAccess(effective)
     if(!active)return
     setData(billing);setCheckoutHistory(intents)
     if(billing.subscription.plan_code==='free'&&(intents.some(i=>i.status==='paid')||billingReturn==='success')){
@@ -47,8 +49,8 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       const result=await reconcileMyAsaasSandboxBilling()
       if(!active)return
       setReconciliationMessage(reconciliationText(result))
-      const [latest,history]=await Promise.all([loadMyBilling(),loadMyCheckoutIntents()])
-      if(active){setData(latest);setCheckoutHistory(history)}
+      const [latest,history,effective]=await Promise.all([loadMyBilling(),loadMyCheckoutIntents(),loadMyEffectivePayrepPlan()])
+      if(active){setData(latest);setCheckoutHistory(history);setAccess(effective)}
      }catch(e){
       if(active)setReconciliationMessage(e instanceof Error?e.message:'Não foi possível verificar o pagamento.')
      }finally{if(active)setReconciling(false)}
@@ -87,8 +89,16 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   {error&&<div className="notice danger">{error}</div>}
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
-    <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>Plano {names[current.plan_code]||'Free'}</strong><span>{current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.'):(current.status==='active'?'Assinatura ativa':'Situação: '+current.status)}</span></div>
+    <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2><span className="pill">{access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
+    <div className="subscription-current"><strong>{access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
+     {access?.trialActive?'Acesso temporário concedido pelo Payrep, sem cartão e sem cobrança. A assinatura financeira permanece Free.'
+      :current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.')
+      :current.status==='active'?'Assinatura ativa':'Situação: '+current.status}
+    </span></div>
+    {access?.trialActive&&<div className="payrep-billing-help">
+     <strong>Período de avaliação Full</strong>
+     <p>Válido até {date(access.trialEndsAt)}. Ao expirar, o acesso retorna automaticamente ao Free, sem renovação ou cobrança automática. Não é necessário cancelar.</p>
+    </div>}
     {!paidCheckoutPending&&billingReturn&&billingReturn!=='success'&&<p className="subtle" role="status">
      {billingReturn==='cancel'?'O checkout foi cancelado.':'O checkout expirou.'} Consulte a situação do seu plano abaixo.
     </p>}
