@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {ArrowDownToLine,CalendarDays,Landmark,RefreshCw,ShieldCheck,Wallet} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
+import {AdminRevenueChart} from './AdminRevenueChart'
 import {db} from '../lib/data'
 type Transaction={
  id:string;date:string;description:string;type:string;value:number|null;
@@ -86,6 +87,7 @@ export function AdminFinancePage(){
    <div className="stat"><span><ArrowDownToLine size={16}/> Cobranças confirmadas</span>
     <strong>{report?String(confirmed.length):'—'}</strong><small>Na amostra consultada, não no histórico completo</small></div>
   </div>
+  <AdminRevenueChart/>
   <section className="panel">
    <div className="panel-heading"><h2><CalendarDays size={18}/> Extrato da conta</h2>
     <button type="button" className="secondary" onClick={exportCsv} disabled={!report||transactions.length===0}>Exportar CSV da página</button>
