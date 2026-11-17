@@ -137,6 +137,32 @@ async function processRenewal(
  if(err){console.error('asaas_hml_renewal_reconcile_failed',{code:err.code});return 'retry'}
  return result?.applied===true?'processed':'waiting'
 }
+async function processOverdue(
+ admin:Admin,event:Record<string,unknown>,key:string
+):Promise<'processed'|'waiting'|'retry'>{
+ if(id(event.event)!=='PAYMENT_OVERDUE')return 'waiting'
+ const node=(event.payment||{}) as Record<string,unknown>
+ const paymentId=id(node.id),subId=id(node.subscription)
+ if(!/^pay_[A-Za-z0-9_]{5,80}$/.test(paymentId)
+  ||!/^sub_[A-Za-z0-9_]{5,80}$/.test(subId))return 'waiting'
+ const {data:local,error}=await admin.from('billing_subscriptions')
+  .select('provider_customer_id').eq('provider','asaas')
+  .eq('provider_subscription_id',subId).maybeSingle()
+ if(error)return 'retry'
+ if(!local)return 'waiting'
+ const charge=await providerGet('payments/'+encodeURIComponent(paymentId),key)
+ if(!charge)return 'retry'
+ const due=id(charge.dueDate)
+ if(id(charge.id)!==paymentId||id(charge.subscription)!==subId
+  ||id(charge.customer)!==local.provider_customer_id
+  ||id(charge.status)!=='OVERDUE'||!validDate(due))return 'waiting'
+ const {data,error:applyError}=await admin.rpc('apply_verified_asaas_overdue',{
+  p_subscription_id:subId,p_payment_id:paymentId,p_customer_id:local.provider_customer_id,
+  p_amount_cents:cents(charge.value),p_payment_due_date:due
+ })
+ if(applyError){console.error('asaas_hml_overdue_reconcile_failed',{code:applyError.code});return 'retry'}
+ return data?.applied===true?'processed':'waiting'
+}
 Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return respond({error:'Método não permitido.'},405)
  const url=Deno.env.get('SUPABASE_URL')||''
@@ -163,10 +189,18 @@ Deno.serve(async(req:Request)=>{
  // Failed storage MUST return a non-200 response so Asaas retries.
  if(error||!data?.stored)return respond({error:'Falha no armazenamento do webhook. Tente novamente.'},503)
  const type=id(payload.event)
- if(['PAYMENT_CONFIRMED','PAYMENT_RECEIVED','SUBSCRIPTION_CREATED',
+ if(['PAYMENT_CONFIRMED','PAYMENT_RECEIVED','PAYMENT_OVERDUE','SUBSCRIPTION_CREATED',
   'CHECKOUT_PAID','PAYMENT_CREATED'].includes(type)){
   const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
   if(!key)return respond({received:true,needsReview:true,reason:'api_not_configured'})
+  const overdue=await processOverdue(admin,payload,key)
+  if(overdue==='processed'){
+   await admin.from('billing_webhook_events')
+    .update({processing_status:'processed',processed_at:new Date().toISOString(),last_error:null})
+    .eq('provider','asaas').eq('provider_event_id',id(payload.id))
+   return respond({received:true,processed:true})
+  }
+  if(overdue==='retry')return respond({error:'Cobrança vencida armazenada. Tentativa de conciliação falhou.'},503)
   const renewal=await processRenewal(admin,payload,key)
   if(renewal==='processed'){
    await admin.from('billing_webhook_events')
