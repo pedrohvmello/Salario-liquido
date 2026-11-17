@@ -190,7 +190,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    </section>
    {cpfPlan&&<section className="panel subscription-cpf-panel" aria-labelledby="checkout-cpf-title">
     <div className="panel-heading"><h2 id="checkout-cpf-title">Informe seu CPF para contratar o {names[cpfPlan]}</h2></div>
-    <p className="subtle">O CPF é opcional no cadastro do Payrep, mas necessário para contratar uma assinatura. Após confirmar, ele será salvo no seu cadastro e enviado ao Asaas para preparar o checkout. Não solicitamos dados de cartão nesta etapa.</p>
+    <p className="subtle">O CPF é necessário para contratar uma assinatura. Após confirmar, ele será automaticamente salvo no seu cadastro. Não solicitamos dados de cartão nesta etapa.</p>
     <form className="subscription-cpf-form" onSubmit={e=>{e.preventDefault();void confirmCpfAndCheckout()}}>
      <label htmlFor="checkout-cpf-input">CPF
       <input id="checkout-cpf-input" ref={cpfInputRef} type="text" inputMode="numeric"
@@ -201,7 +201,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      </label>
      <small id="checkout-cpf-help" className="subtle">O CPF deve conter 11 dígitos válidos. A data de nascimento não é exigida para contratar.</small>
      {cpfError&&<p id="checkout-cpf-error" className="error" role="alert">{cpfError}</p>}
-     <div className="row">
+     <div className="row subscription-cpf-actions">
       <button type="button" className="secondary" disabled={checkoutBusy!==null}
        onClick={()=>{setCpfPlan(null);setCpfDraft('');setCpfError('')}}>Cancelar</button>
       <button type="submit" className="primary"
