@@ -5,7 +5,7 @@
 - Checkout hospedado para recorrência mensal em cartão de crédito.
 - O Payrep nunca recebe números ou CVV de cartões.
 - As tabelas `billing_checkout_intents` e `billing_webhook_events` são isoladas por RLS e privilégios.
-- Em 16/11/2026, Basic e Full foram habilitados exclusivamente no banco HML para teste de checkout com preço **temporário R$ 1,00/mês em ambos**, sem alterar os preços comerciais da futura produção.
+- Em 16/11/2026, Basic e Full foram habilitados exclusivamente no banco HML para teste de checkout com preço **temporário R$ 5,00/mês em ambos**, após erro HTTP 400 do Asaas por cobrança mínima de R$ 5,00, sem alterar os preços comerciais da futura produção.
 - Os três nomes de secrets (`ASAAS_SANDBOX_API_KEY`, `ASAAS_SANDBOX_WEBHOOK_TOKEN` e `PAYREP_ASAAS_SANDBOX_ENABLED`) constam na configuração de HML, mas os valores e a comunicação não foram validados ponta a ponta.
 - A liberação no banco não implica confirmação de pagamento, criação de assinatura ou ativação de benefícios; tudo depende de checkout autenticado e dos eventos do provedor.
 - A liberação de recursos pagos por evento financeiro ainda **não** foi habilitada.
