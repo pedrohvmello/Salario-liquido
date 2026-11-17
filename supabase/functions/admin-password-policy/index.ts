@@ -46,7 +46,7 @@ Deno.serve(async req=>{
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
  if(url!==`https://${PROJECT_REF}.supabase.co`||!serviceKey)
   return reply(503,{error:'environment_unavailable'})
- const accessToken=/^Bearer\\s+(\\S+)$/i.exec(req.headers.get('authorization')||'')?.[1]
+ const accessToken=/^Bearer\s+(\S+)$/i.exec(req.headers.get('authorization')||'')?.[1]
  if(!accessToken)return reply(401,{error:'authentication_required'})
 
  const adminClient=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}})
