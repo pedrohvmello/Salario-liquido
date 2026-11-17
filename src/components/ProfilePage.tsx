@@ -86,6 +86,7 @@ export function ProfilePage({user,onBack}:{user:User;onBack:()=>void}){
      <div className="account-date-field">
       <span>Data de nascimento</span>
       <PayrepDatePicker title="Selecione sua data de nascimento" value={value.birth_date}
+       yearSelection minYear={1900} maxYear={new Date().getFullYear()}
        onChange={next=>patch('birth_date',next)}/>
      </div>
      <InputField field={fields[0]} value={value.phone} onChange={s=>patch('phone',formatPhone(s))}/>
