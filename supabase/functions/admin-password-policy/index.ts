@@ -62,7 +62,7 @@ const decodePreset=(raw:unknown):Policy['preset']|null=>{
 const parsePolicy=(json:unknown):Policy|null=>{
  if(!json||typeof json!=='object')return null
  const obj=json as Record<string,unknown>
- const len=typeof obj.password_min_length==='string'&&/^\\d+$/.test(obj.password_min_length)
+ const len=typeof obj.password_min_length==='string'&&/^\d+$/.test(obj.password_min_length)
   ?Number(obj.password_min_length):obj.password_min_length
  const preset=decodePreset(obj.password_required_characters)
  return preset!==null&&isPolicy({minLength:len,preset})?
