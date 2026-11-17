@@ -20,7 +20,10 @@ export type MobilePrimaryView =
  | "imports"
  | "definitions"
  | "admin"
- | "admin-settings";
+ | "admin-settings"
+ | "admin-pep"
+ | "admin-finance"
+ | "admin-plans";
 
 export type MobileSwipeDirection = "next" | "previous";
 
