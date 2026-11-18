@@ -1,7 +1,8 @@
 import {classifyHours,type DayEntry,type Overtime} from './calendar'
 
 export type TimeBankPolicy={
- id:string;user_id:string;title:string;source_reference:string;
+ id:string;user_id?:string;title:string;source_reference:string;
+ name?:string;description?:string;is_default?:boolean;verified?:boolean;active?:boolean;slug?:string;
  valid_from:string;valid_until:string;
  weekday_factor:number;saturday_factor:number;sunday_factor:number; 
  holiday_factor:number;daily_target_minutes:number;
@@ -19,6 +20,28 @@ export type BankLedger={
 const COMPLETE=/^([01]\d|2[0-3]):[0-5]\d$/
 const toMinutes=(value:string)=>Number(value.slice(0,2))*60+Number(value.slice(3,5))
 const additionalMinutes=(value:string|undefined)=>value?toMinutes(value):0
+
+export function isCompensatedFullDay(entry:DayEntry):boolean{
+ const blank=[entry.start,entry.lunchStart,entry.lunchEnd,entry.end].every(v=>!v?.trim())
+ const additional=entry.additionalHours?.trim()||''
+ return entry.bankHours===true&&blank&&(!additional||additional==='00:00')
+}
+
+export function isBankReadyDay(entry:DayEntry):boolean{
+ return isCompleteWorkday(entry)||isCompensatedFullDay(entry)
+}
+
+export function shouldAutoBankShortDay(
+ entry:DayEntry,dates:ReadonlySet<string>|null,policies:TimeBankPolicy[]
+):boolean{
+ if(!isCompleteWorkday(entry))return false
+ if(effectiveHoliday(entry,dates))return false
+ const dow=new Date(entry.date+'T12:00:00Z').getUTCDay()
+ if(dow===0||dow===6)return false
+ const policy=policyForDate(policies,entry.date)
+ if(!policy)return false
+ try{return workedMinutes(entry)<policy.daily_target_minutes}catch{return false}
+}
 
 export function isCompleteWorkday(entry:DayEntry):boolean{
  return [entry.start,entry.lunchStart,entry.lunchEnd,entry.end].every(v=>COMPLETE.test(v))
@@ -45,10 +68,10 @@ export function policyForDate(policies:TimeBankPolicy[],date:string):TimeBankPol
  return policies.find(policy=>policy.valid_from<=date&&policy.valid_until>=date)
 }
 export function movementForDay(entry:DayEntry,dates:ReadonlySet<string>|null,policies:TimeBankPolicy[]):number{
- if(!entry.bankHours||!isCompleteWorkday(entry))return 0
+ if(!entry.bankHours||!isBankReadyDay(entry))return 0
  const policy=policyForDate(policies,entry.date)
  if(!policy)throw new Error('Política de Banco de Horas sem vigência para '+entry.date)
- const total=workedMinutes(entry)
+ const total=isCompensatedFullDay(entry)?0:workedMinutes(entry)
  const dow=new Date(entry.date+'T12:00:00Z').getUTCDay()
  const holiday=effectiveHoliday(entry,dates)
  const threshold=holiday||dow===0||dow===6?0:policy.daily_target_minutes
@@ -78,8 +101,8 @@ export function calculateBankLedger(entries:BankRecord[],dates:ReadonlySet<strin
   let paid:Overtime|null=null
   let deltaMinutes=0
   try{
-   if(isCompleteWorkday(entry)){
-    paid=dates?paidOvertime(entry,dates):null
+   if(isBankReadyDay(entry)){
+    paid=dates&&isCompleteWorkday(entry)?paidOvertime(entry,dates):null
     deltaMinutes=typeof entry.bankWeightedMinutes==='number'
      ?entry.bankWeightedMinutes:movementForDay(entry,dates,policies)
    }

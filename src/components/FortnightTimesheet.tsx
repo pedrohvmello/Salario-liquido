@@ -1,9 +1,8 @@
 import {useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
 import {PayrepDatePicker} from './PayrepDatePicker'
-import {CollectiveProfileExplorer} from './CollectiveProfileExplorer'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
-import {calculateBankLedger,formatBankMinutes,paidOvertime,type TimeBankPolicy} from '../lib/timeBank'
+import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 
@@ -33,6 +32,8 @@ const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim()
 export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,policies,baseName,onSaved}:Props){
  const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
  const [saving,setSaving]=useState(false)
+ const [manuallySetBank,setManuallySetBank]=useState<Record<string,boolean>>({})
+ const [automaticallyMarked,setAutomaticallyMarked]=useState<Record<string,boolean>>({})
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
  const period=getFortnight(anchor)
@@ -41,7 +42,27 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
  const byDate=useMemo(()=>new Map(records.map(row=>[row.date,row])),[records])
  const read=(date:string)=>drafts[date]??byDate.get(date)??empty(date)
  const change=(date:string,patch:Partial<DayEntry>)=>{
-  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch,bankDeltaMinutes:undefined,bankWeightedMinutes:undefined}}))
+  const explicitBank=Object.prototype.hasOwnProperty.call(patch,'bankHours')
+  const existing=read(date)
+  const next:DayEntry={...existing,...patch,bankDeltaMinutes:undefined,bankWeightedMinutes:undefined}
+  if(explicitBank){
+   setManuallySetBank(previous=>({...previous,[date]:true}))
+   setAutomaticallyMarked(previous=>({...previous,[date]:false}))
+  }else{
+   const modifyingHours=['start','lunchStart','lunchEnd','end','additionalHours','holidayOverride']
+    .some(key=>Object.prototype.hasOwnProperty.call(patch,key))
+   if(modifyingHours&&!manuallySetBank[date]){
+    const shouldAuto=shouldAutoBankShortDay(next,holidayDates,policies)
+    if(shouldAuto&&!existing.bankHours){
+     next.bankHours=true
+     setAutomaticallyMarked(current=>({...current,[date]:true}))
+    }else if(!shouldAuto&&automaticallyMarked[date]){
+     next.bankHours=false
+     setAutomaticallyMarked(current=>({...current,[date]:false}))
+    }
+   }
+  }
+  setDrafts(previous=>({...previous,[date]:next}))
   setMessage('');setError('')
  }
  const rows:GridRow[]=dates.map(date=>{
@@ -133,6 +154,16 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
     for(const date of dirtyCurrent)delete next[date]
     return next
    })
+   setManuallySetBank(previous=>{
+    const next={...previous}
+    for(const date of dirtyCurrent)delete next[date]
+    return next
+   })
+   setAutomaticallyMarked(previous=>{
+    const next={...previous}
+    for(const date of dirtyCurrent)delete next[date]
+    return next
+   })
    setMessage(dirtyCurrent.length+' dia(s) salvo(s), inclusive registros parciais.')
    try{await onSaved()}catch{
     setError('Os registros foram gravados, mas não foi possível atualizar a lista. Recarregue a página.')
@@ -168,8 +199,10 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
     </div>
    </div>
    <p className="subtle fortnight-explanation">
-    Somente jornadas completas entram nos totais.
-    Horas adicionais entram no cálculo. O Banco de Horas acumula ou compensa o saldo disponível.
+    Somente jornadas completas entram nos totais de horas trabalhadas.
+    Marque Banco de Horas para acumular horas extras ou compensar a jornada.
+    Em dias úteis, uma jornada inferior à referência é marcada automaticamente para compensação.
+    Um dia sem horários e com o flag marcado representa folga integral.
     {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
    </p>
    {!holidayDates&&<div className="notice warning"><Info size={17}/>
@@ -185,6 +218,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
      </tr></thead>
      <tbody>{rows.map(row=>{
       const dow=new Date(row.date+'T12:00:00Z').getUTCDay()
+      const movement=previewBank.movements.get(row.date)?.deltaMinutes??0
       const typed=(key:Field,label:string,placeholder='00:00')=><input
        type="text" inputMode={key==='comments'?'text':'numeric'}
        className={key==='comments'?'fortnight-comment':'fortnight-time-input'}
@@ -202,6 +236,8 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
        dow===0||dow===6?'fortnight-weekend':'',
        row.holiday?'fortnight-holiday':'',
        row.date===today?'fortnight-today':'',
+       movement>0?'fortnight-bank-credit':'',
+       movement<0?'fortnight-bank-debit':'',
        dirtyCurrent.includes(row.date)?'fortnight-dirty':'',
        row.invalid?'fortnight-invalid':''
       ].filter(Boolean).join(' ')}>
@@ -214,7 +250,9 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
        <td>{typed('additionalHours','Horas adicionais','00:00')}</td>
        <td className="fortnight-bank-cell"><input type="checkbox"
         aria-label={'Banco de Horas em '+formatDate(row.date)}
-        title="Crédito ou compensação de horas pelo banco"
+        title={movement>0?'Crédito ao banco: +'+formatBankMinutes(movement):
+          movement<0?'Compensação do banco: '+formatBankMinutes(movement):
+          'Crédito ou compensação de horas pelo banco'}
         checked={Boolean(row.entry.bankHours)}
         onChange={event=>change(row.date,{bankHours:event.target.checked})}/></td>
        <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
@@ -233,6 +271,12 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
       </tr>
      })}</tbody>
     </table>
+   </div>
+   <div className="fortnight-color-legend" aria-label="Legenda das cores da tabela">
+    <span><i className="fortnight-legend-swatch fortnight-legend-credit"/> Azul: crédito no Banco de Horas</span>
+    <span><i className="fortnight-legend-swatch fortnight-legend-debit"/> Vermelho: compensação do Banco de Horas</span>
+    <span><i className="fortnight-legend-swatch fortnight-legend-holiday"/> Verde: feriado</span>
+    <span><i className="fortnight-legend-swatch fortnight-legend-today"/> Amarelo: dia atual</span>
    </div>
    <div className="fortnight-actions">
     <div className="subtle">
@@ -255,7 +299,6 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
    {message&&<p className="auth-success" role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}
   </section>
-  <CollectiveProfileExplorer onAssigned={onSaved}/>
   <p className="subtle">Base utilizada para os feriados: {baseName}.
    As regras de fechamento e DSR de 16 a 15 permanecem aplicadas às projeções salariais.</p>
  </div>

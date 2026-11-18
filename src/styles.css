@@ -1956,3 +1956,53 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .collective-profile-item{flex-direction:column;align-items:flex-start}
  .collective-url-input{min-width:160px}
 }
+
+
+/* Hours ledger movements have priority over holiday/today row colors. */
+.payrep-fortnight .fortnight-table tr.fortnight-bank-credit td{background:#e9f3ff}
+.payrep-fortnight .fortnight-table tr.fortnight-bank-debit td{background:#ffeded}
+.payrep-fortnight .fortnight-table tr.fortnight-invalid td{background:#fff0f0}
+.fortnight-color-legend{
+ display:flex;gap:13px;flex-wrap:wrap;align-items:center;margin:12px 0 2px;
+ color:#755d86;font-size:11px
+}
+.fortnight-color-legend span{display:inline-flex;align-items:center;gap:6px}
+.fortnight-legend-swatch{
+ display:inline-block;width:13px;height:13px;border:1px solid #dbcce6;
+ border-radius:3px;flex:none
+}
+.fortnight-legend-credit{background:#e9f3ff}
+.fortnight-legend-debit{background:#ffeded}
+.fortnight-legend-holiday{background:#eaf8f0}
+.fortnight-legend-today{background:#fff8dc}
+.time-bank-profile-list{display:grid;gap:10px;margin:12px 0 16px}
+.time-bank-profile-item{
+ display:flex;justify-content:space-between;align-items:center;gap:16px;
+ padding:13px 15px;background:#fbf8ff;border:1px solid #e9daf7;border-radius:12px
+}
+.time-bank-profile-item .pill{margin-left:8px}
+.time-bank-profile-item .subtle{margin:6px 0 0}
+.time-bank-profile-editor,.user-bank-profile-preview{
+ border:1px solid #e9daf7;border-radius:12px;padding:16px;
+ margin-top:15px;background:#fcf9ff
+}
+.time-bank-profile-editor{display:grid;gap:13px}
+.time-bank-profile-editor h3{margin:0;color:#492367}
+.time-bank-profile-advanced{border-top:1px solid #e9daf7;padding-top:12px}
+.time-bank-profile-advanced summary{cursor:pointer;color:#5a2880;font-weight:650}
+.time-bank-profile-advanced .form-grid{margin-top:12px}
+.user-bank-profile-factors{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:8px;margin:12px 0
+}
+.user-bank-profile-factors span{
+ background:#f5edf9;padding:9px 7px;border-radius:8px;font-size:12px;color:#663784
+}
+.user-bank-profile-settings .admin-settings-actions{margin-top:14px}
+@media(max-width:900px){
+ .user-bank-profile-factors{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .time-bank-profile-item{align-items:flex-start;flex-direction:column}
+}
+@media(max-width:520px){
+ .user-bank-profile-factors{grid-template-columns:1fr}
+}

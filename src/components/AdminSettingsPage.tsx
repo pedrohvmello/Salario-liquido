@@ -52,7 +52,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
  </div>
 
  return <div className="stack">
-  <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas administrativas do Payrep, incluindo regras específicas por usuário.</p></div></div>
+  <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas administrativas do Payrep, com perfis de Banco de Horas reutilizáveis.</p></div></div>
   <section className="panel">
    <div className="panel-heading"><h2><UsersRound size={18}/> Gestão de usuários</h2></div>
    <p>Consulte contas cadastradas, aprove novos acessos, gerencie situações dos usuários e acompanhe indicadores de utilização.</p>
@@ -75,8 +75,8 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><CalendarClock size={18}/> Regras do Banco de Horas</h2></div>
-   <p>Configure os multiplicadores por dia da semana, jornadas de referência, vigência e referência de acordos coletivos por usuário.</p>
-   <button type="button" className="primary" onClick={()=>setActiveSection('bank')}><CalendarClock size={17}/> Configurar Banco de Horas</button>
+   <p>Gerencie perfis reutilizáveis; novos usuários recebem automaticamente o perfil Genérica.</p>
+   <button type="button" className="primary" onClick={()=>setActiveSection('bank')}><CalendarClock size={17}/> Gerenciar perfis do Banco de Horas</button>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><LibraryBig size={18}/> Biblioteca de ACTs e CCTs</h2></div>

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {calculateBankLedger,formatBankMinutes,movementForDay,paidOvertime,type TimeBankPolicy} from './timeBank'
+import {calculateBankLedger,formatBankMinutes,movementForDay,paidOvertime,isCompensatedFullDay,shouldAutoBankShortDay,type TimeBankPolicy} from './timeBank'
 import type {DayEntry} from './calendar'
 
 const dates=new Set<string>()
@@ -71,4 +71,40 @@ describe('cumulative hour bank',()=>{
    [entry('2026-11-22','13:00')],dates,[{...policy,valid_until:'2026-08-31'}])
   expect(expired.firstMissingPolicyDate).toBe('2026-11-22')
  })
+ it('counts a flagged blank weekday as an eight-hour bank withdrawal',()=>{
+  const blank={...entry('2026-11-18','',true),start:'',lunchStart:'',lunchEnd:'',end:''}
+  expect(isCompensatedFullDay(blank)).toBe(true)
+  expect(movementForDay(blank,dates,policies)).toBe(-480)
+  const earned=entry('2026-11-17','21:00') // 11 worked hours: +180 minutes
+  const ledger=calculateBankLedger([earned,blank],dates,policies)
+  expect(ledger.firstInsufficientDate).toBe('2026-11-18')
+ })
+ it('allows an entire day off when prior bank credit covers the target',()=>{
+  const first=entry('2026-11-17','23:00') // 13 worked hours, +300 minutes
+  const second=entry('2026-11-18','23:00') // +300 minutes
+  const dayOff={...entry('2026-11-19',''),start:'',lunchStart:'',lunchEnd:'',end:''}
+  const result=calculateBankLedger([dayOff,second,first],dates,policies)
+  expect(result.firstInsufficientDate).toBeNull()
+  expect(result.balanceMinutes).toBe(120)
+  expect(result.movements.get('2026-11-19')?.deltaMinutes).toBe(-480)
+ })
+ it('never debits an empty or short day without the bank flag',()=>{
+  const blank={...entry('2026-11-18','',false),start:'',lunchStart:'',lunchEnd:'',end:''}
+  const short=entry('2026-11-18','16:00',false)
+  expect(movementForDay(blank,dates,policies)).toBe(0)
+  expect(movementForDay(short,dates,policies)).toBe(0)
+  expect(shouldAutoBankShortDay(short,dates,policies)).toBe(true)
+  expect(movementForDay({...short,bankHours:true},dates,policies)).toBe(-120)
+ })
+ it('does not automatically mark weekends, holidays or incomplete days',()=>{
+  expect(shouldAutoBankShortDay(entry('2026-11-21','13:00',false),dates,policies)).toBe(false)
+  const holiday={...entry('2026-11-18','15:00',false),holidayOverride:null}
+  expect(shouldAutoBankShortDay(holiday,new Set(['2026-11-18']),policies)).toBe(false)
+  expect(shouldAutoBankShortDay({...entry('2026-11-18','15:00',false),end:''},dates,policies)).toBe(false)
+ })
+ it('does not debit blank weekends in the bank',()=>{
+  const sunday={...entry('2026-11-22',''),start:'',lunchStart:'',lunchEnd:'',end:''}
+  expect(movementForDay(sunday,dates,policies)).toBe(0)
+ })
+
 })
