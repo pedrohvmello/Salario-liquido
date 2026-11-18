@@ -35,7 +35,8 @@ describe('overview cards and advance month VR',()=>{
  it('keeps user-defined ordering and hidden cards',()=>{
   const a=changeCardVisibility(defaultOverviewCards,'fgts',false)
   expect(a).not.toContain('fgts')
-  expect(moveOverviewCard(a,'pensionPercent',-1).indexOf('pensionPercent')).toBe(1)
+  const oldPosition=a.indexOf('pensionPercent')
+  expect(moveOverviewCard(a,'pensionPercent',-1).indexOf('pensionPercent')).toBe(oldPosition-1)
   expect(moveOverviewCard(['gross','pensionPercent','fgts'],'fgts',-1)).toEqual(['gross','fgts','pensionPercent','salaryComposition','competenceOvertime'])
   expect(normalizeOverviewCards(['espp','gross','espp','unknown'])).toEqual(['espp','gross','salaryComposition','competenceOvertime'])
  })
