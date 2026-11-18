@@ -58,7 +58,6 @@ export function AdminTimeBankPolicies(){
     !months.length||months.some(x=>!Number.isInteger(x)||x<1||x>12))
     throw Error('Confira prazo e meses de liquidação.')
    const payload={
-    ...(draft.id?{id:draft.id}:{slug:'custom-'+crypto.randomUUID().replace(/-/g,'')}),
     name:draft.name.trim(),description:draft.description.trim(),source_note:draft.source_note.trim(),
     valid_from:draft.valid_from,valid_until:draft.valid_until,
     weekday_factor:toFactor(draft.weekday_factor,'Segunda a sexta'),
@@ -68,8 +67,15 @@ export function AdminTimeBankPolicies(){
     daily_target_minutes:target,settlement_interval_months:interval,
     settlement_months:months.sort((a,b)=>a-b),settlement_half:Number(draft.settlement_half)
    }
-   const {error}=await db.from('bank_policy_profiles').upsert(payload)
-   if(error)throw Error(error.message)
+   if(draft.id){
+    const {error}=await db.from('bank_policy_profiles').update(payload).eq('id',draft.id)
+    if(error)throw Error(error.message)
+   }else{
+    const {error}=await db.from('bank_policy_profiles').insert({
+     ...payload,slug:'custom-'+crypto.randomUUID().replace(/-/g,'')
+    })
+    if(error)throw Error(error.message)
+   }
    await load()
    setDraft(null)
    setMessage('Perfil salvo. Agora ele pode ser selecionado em Definições.')
