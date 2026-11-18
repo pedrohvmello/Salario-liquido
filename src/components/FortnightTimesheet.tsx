@@ -2,6 +2,7 @@ import {useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
 import {PayrepDatePicker} from './PayrepDatePicker'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
+import {calculateBankLedger,formatBankMinutes,paidOvertime} from '../lib/timeBank'
 import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 
@@ -18,7 +19,7 @@ type Props={
 }
 const empty=(date:string):DayEntry=>({
  date,start:'',lunchStart:'',lunchEnd:'',end:'',holidayOverride:null,
- additionalHours:'',comments:''
+ additionalHours:'',comments:'',bankHours:false
 })
 const timeFields=['start','lunchStart','lunchEnd','end'] as const
 const formatDate=(value:string)=>value.slice(8,10)+'/'+value.slice(5,7)+'/'+value.slice(0,4)
@@ -38,7 +39,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  const byDate=useMemo(()=>new Map(records.map(row=>[row.date,row])),[records])
  const read=(date:string)=>drafts[date]??byDate.get(date)??empty(date)
  const change=(date:string,patch:Partial<DayEntry>)=>{
-  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch}}))
+  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch,bankDeltaMinutes:undefined}}))
   setMessage('');setError('')
  }
  const rows:GridRow[]=dates.map(date=>{
@@ -50,7 +51,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
   if(complete){
    try{
     // No calculated value is shown until the actual Base holiday catalog is available.
-    const checked=classifyHours(entry,holidayDates??new Set<string>())
+    const checked=paidOvertime(entry,holidayDates??new Set<string>())
     if(holidayDates)calculated=checked
    }catch{invalid=true}
   }
@@ -61,6 +62,16 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  })
  const dirtyCurrent=dates.filter(date=>Object.prototype.hasOwnProperty.call(drafts,date))
  const dirtyOutside=Object.keys(drafts).filter(date=>!dates.includes(date)).length
+ const savedBank=calculateBankLedger(records,holidayDates)
+ const previewEntries=[
+  ...records.filter(row=>!dirtyCurrent.includes(row.date)),
+  ...dirtyCurrent.map(date=>({
+   ...read(date),
+   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
+   bankDeltaMinutes:undefined
+  }))
+ ]
+ const previewBank=calculateBankLedger(previewEntries,holidayDates)
  const calculated=rows.map(row=>row.calculated).filter((value):value is Overtime=>value!==null)
  const totals=calculated.reduce((result,calc)=>({
   worked:result.worked+calc.total,
@@ -70,7 +81,11 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  const save=async()=>{
   if(!dirtyCurrent.length||saving)return
   setSaving(true);setError('');setMessage('')
-  const changed=dirtyCurrent.map(date=>read(date))
+  const changed=dirtyCurrent.map(date=>({
+   ...read(date),
+   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
+   bankDeltaMinutes:undefined
+  }))
   for(const entry of changed){
    for(const field of [...timeFields,'additionalHours'] as const){
     const time=entry[field]||''
@@ -90,6 +105,18 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
      setSaving(false);return
     }
    }
+  }
+  if(changed.some(entry=>entry.bankHours)&&!holidayDates){
+   setError('Aguarde o calendário de feriados para registrar movimentos no banco de horas.')
+   setSaving(false);return
+  }
+  const hypothetical=calculateBankLedger([
+   ...records.filter(row=>!dirtyCurrent.includes(row.date)),
+   ...changed
+  ],holidayDates)
+  if(hypothetical.firstInsufficientDate){
+   setError('Saldo insuficiente no banco de horas em '+formatDate(hypothetical.firstInsufficientDate)+'.')
+   setSaving(false);return
   }
   try{
    await saveTimeEntries(changed)
@@ -126,10 +153,15 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
     <div className="stat"><span>Extras 100%</span><strong>{hours(totals.h100)}</strong></div>
     <div className="stat"><span>Total de horas extras</span><strong>{hours(totals.extra)}</strong></div>
     <div className="stat"><span>Total trabalhado</span><strong>{hours(totals.worked)}</strong></div>
+    <div className="stat"><span>Saldo de Horas</span>
+     <strong>{formatBankMinutes(savedBank.balanceMinutes)} h</strong>
+     {dirtyCurrent.length>0&&!previewBank.firstInsufficientDate&&
+      <small>Após salvar: {formatBankMinutes(previewBank.balanceMinutes)} h</small>}
+    </div>
    </div>
    <p className="subtle fortnight-explanation">
     Somente jornadas completas entram nos totais.
-    Horas adicionais são somadas às horas trabalhadas e classificadas nas faixas de horas extras.
+    Horas adicionais entram no cálculo. O Banco de Horas acumula ou compensa o saldo disponível.
     {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
    </p>
    {!holidayDates&&<div className="notice warning"><Info size={17}/>
@@ -140,7 +172,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
      <thead><tr>
       <th>Data</th><th>Dia da semana</th><th>Entrada</th><th>Almoço início</th>
       <th>Almoço fim</th><th>Saída</th><th>Horas Adicionais</th>
-      <th>Hora Extra</th><th>60%</th><th>80%</th>
+      <th>Banco de Horas</th><th>Hora Extra</th><th>60%</th><th>80%</th>
       <th>100%</th><th>Feriado</th><th>Comentários</th>
      </tr></thead>
      <tbody>{rows.map(row=>{
@@ -172,6 +204,11 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
        <td>{typed('lunchEnd','Almoço fim')}</td>
        <td>{typed('end','Saída')}</td>
        <td>{typed('additionalHours','Horas adicionais','00:00')}</td>
+       <td className="fortnight-bank-cell"><input type="checkbox"
+        aria-label={'Banco de Horas em '+formatDate(row.date)}
+        title="Crédito ou compensação de horas pelo banco"
+        checked={Boolean(row.entry.bankHours)}
+        onChange={event=>change(row.date,{bankHours:event.target.checked})}/></td>
        <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
        <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60):'—'}</td>
        <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h80):'—'}</td>
@@ -198,6 +235,11 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
      <Save size={17}/>{saving?'Salvando...':'Salvar quinzena'}
     </button>
    </div>
+   {dirtyCurrent.length>0&&previewBank.firstInsufficientDate&&
+    <p className="error" role="alert">
+     Saldo de Horas insuficiente em {formatDate(previewBank.firstInsufficientDate)}.
+     Ajuste a jornada ou desmarque Banco de Horas para permitir o salvamento.
+    </p>}
    {message&&<p className="auth-success" role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}
   </section>

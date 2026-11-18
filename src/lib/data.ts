@@ -59,7 +59,7 @@ export async function getData(){
     listAllStatementRubrics(id)
   ])
   for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')

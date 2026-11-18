@@ -1,5 +1,5 @@
 import { roundMoney } from './money'
-export type DayEntry = { date:string; start:string; lunchStart:string; lunchEnd:string; end:string; holidayOverride: boolean | null; additionalHours?:string; comments?:string }
+export type DayEntry = { date:string; start:string; lunchStart:string; lunchEnd:string; end:string; holidayOverride: boolean | null; additionalHours?:string; comments?:string; bankHours?:boolean; effectiveHoliday?:boolean; bankDeltaMinutes?:number|null }
 export type Overtime = { h60:number; h80:number; h100:number; total:number; payMonth:string }
 function easter(y:number) {
   const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3)

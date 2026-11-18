@@ -1842,3 +1842,67 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
   order:-1;flex:0 0 100%;margin:0 0 4px;white-space:normal
  }
 }
+
+
+/* November 2026: compact application bar, all-menu title removed. */
+.topbar{padding-block:12px;min-height:65px}
+.topbar .top-actions{margin-left:auto}
+
+/* Hour-bank flag between additional time and paid overtime. */
+.payrep-fortnight .fortnight-summary{
+ grid-template-columns:repeat(6,minmax(0,1fr));gap:8px
+}
+.payrep-fortnight .fortnight-summary .stat{
+ padding:12px 10px;gap:6px
+}
+.payrep-fortnight .fortnight-summary .stat strong{
+ font-size:clamp(16px,1.15vw,20px);white-space:nowrap
+}
+.payrep-fortnight .fortnight-summary .stat small{font-size:10px;color:#795995}
+.payrep-fortnight .fortnight-table{
+ min-width:1110px;width:100%;table-layout:fixed
+}
+.payrep-fortnight .fortnight-table th,
+.payrep-fortnight .fortnight-table td{
+ padding:6px 3px;text-align:center
+}
+.payrep-fortnight .fortnight-table th{
+ font-size:9px;letter-spacing:0;line-height:1.3;overflow-wrap:break-word
+}
+.payrep-fortnight .fortnight-table th:first-child,
+.payrep-fortnight .fortnight-table td:first-child{
+ width:83px;min-width:83px;max-width:83px
+}
+.payrep-fortnight .fortnight-table th:nth-child(2),
+.payrep-fortnight .fortnight-table td:nth-child(2){
+ left:83px;width:108px;min-width:108px;max-width:108px;
+}
+.payrep-fortnight .fortnight-table th:nth-child(n+3):nth-child(-n+6){width:75px}
+.payrep-fortnight .fortnight-table th:nth-child(7){width:82px}
+.payrep-fortnight .fortnight-table th:nth-child(8){width:61px}
+.payrep-fortnight .fortnight-table th:nth-child(9){width:69px}
+.payrep-fortnight .fortnight-table th:nth-child(n+10):nth-child(-n+12){width:56px}
+.payrep-fortnight .fortnight-table th:nth-child(13){width:56px}
+.payrep-fortnight .fortnight-table th:nth-child(14){width:150px}
+.payrep-fortnight .fortnight-table .fortnight-time-input{
+ width:66px;min-width:0;max-width:100%;padding:7px 3px;
+ font-size:11px;margin:auto
+}
+.payrep-fortnight .fortnight-table .fortnight-calculated{
+ min-width:0;font-size:11px;padding:5px 2px
+}
+.payrep-fortnight .fortnight-table .fortnight-comment{
+ min-width:0;max-width:100%;width:100%;padding:7px 6px;font-size:11px
+}
+.payrep-fortnight .fortnight-bank-cell input[type=checkbox]{
+ width:17px;height:17px;accent-color:#7500d2;cursor:pointer
+}
+.payrep-fortnight .fortnight-table .fortnight-bank-cell{min-width:0}
+.payrep-fortnight .fortnight-holiday-cell{min-width:0}
+.payrep-fortnight .fortnight-holiday-cell input[type=checkbox]{width:16px;height:16px}
+@media(max-width:1380px){
+ .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

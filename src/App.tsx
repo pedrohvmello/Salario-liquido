@@ -2,7 +2,8 @@ import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
 import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
-import {classifyHours,type DayEntry} from './lib/calendar'
+import {type DayEntry} from './lib/calendar'
+import {paidOvertime} from './lib/timeBank'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
 import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
@@ -306,7 +307,10 @@ export default function App(){
    holidayOverride:x.holiday_override,
    additionalHours:x.additional_minutes
     ?String(Math.floor(x.additional_minutes/60)).padStart(2,'0')+':'+String(x.additional_minutes%60).padStart(2,'0'):'',
-   comments:x.comments||''
+   comments:x.comments||'',
+   bankHours:x.bank_hours??false,
+   effectiveHoliday:x.effective_holiday??false,
+   bankDeltaMinutes:x.bank_delta_minutes??0
   })))
   setParams({...defaults,...d.settings})
   setOverviewCards(normalizeOverviewCards(d.overviewCards))
@@ -370,7 +374,7 @@ export default function App(){
   return ()=>{active=false}
  },[base?.ibge,base?.uf,holidayYearsKey])
  const holidayDates=base&&holidayStatus==='ready'&&holidayCalendar?.baseKey===baseKey(base)?holidayCalendar.dates:null
- const computedHours=useMemo(()=>holidayDates?records.flatMap(r=>{try{return [{...r,calc:classifyHours(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates])
+ const computedHours=useMemo(()=>holidayDates?records.flatMap(r=>{try{return [{...r,calc:paidOvertime(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates])
  const monthHours=useMemo(()=>computedHours.filter(x=>x.calc.payMonth===month).reduce((a,x)=>({h60:a.h60+x.calc.h60,h80:a.h80+x.calc.h80,h100:a.h100+x.calc.h100}),{h60:0,h80:0,h100:0}),[computedHours,month])
  const holidayOverrides=useMemo(()=>new Map(records.filter(r=>r.holidayOverride!==null).map(r=>[r.date,r.holidayOverride as boolean])),[records])
  const effective=useMemo(()=>effectiveParams(params,events,month),[params,events,month])
@@ -551,7 +555,7 @@ export default function App(){
      </div></div>
      {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
       Configure sua Base em Definições para calcular os feriados e as horas extras.</div>}
-     {holidayCalendar&&<div className={holidayCalendar.coverage==='partial'?'notice warning':'notice subtle-notice'}>
+     {holidayCalendar?.coverage==='partial'&&<div className="notice warning">
       <Info size={18}/>{holidayCalendar.message}</div>}
      {holidayStatus==='loading'&&<div className="notice subtle-notice"><Info size={18}/>
       Carregando calendário de feriados para {base?baseLabel(base):'a Base'}...</div>}
@@ -677,7 +681,7 @@ export default function App(){
    style={{left:sidebarTooltip.left,top:sidebarTooltip.top}}>{sidebarTooltip.label}</div>}
   {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
-   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><h1 className="eyebrow topbar-title">{section==='admin-support'?'Chamados de suporte':section==='admin'?'Gestão de usuários':section==='help'?'Ajuda':section==='account-settings'?'Segurança':section==='profile'?'Meu cadastro':nav.find(n=>n.id===section)?.label||'Assinatura'}</h1><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
    <PayrepMobileNavigationSurface
     accessibleViews={accessiblePrimaryViews}
     currentView={section as MobilePrimaryView}

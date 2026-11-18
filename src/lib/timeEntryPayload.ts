@@ -28,6 +28,8 @@ export function timePayload(entry:DayEntry,user_id:string,id?:string){
   end_at:time(entry.end,'Saída'),
   additional_minutes:additional?Number(additional[1])*60+Number(additional[2]):0,
   holiday_override:entry.holidayOverride,
+  bank_hours:entry.bankHours??false,
+  effective_holiday:entry.holidayOverride??entry.effectiveHoliday??false,
   comments
  }
 }
