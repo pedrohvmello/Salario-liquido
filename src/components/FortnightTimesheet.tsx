@@ -1,9 +1,8 @@
 import {useMemo,useState} from 'react'
-import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
-import {PayrepDatePicker} from './PayrepDatePicker'
+import {Info,RotateCcw,Save} from 'lucide-react'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
 import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
-import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
+import {fortnightDays,getFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 
 type TimeRow=DayEntry&{id:string}
@@ -168,18 +167,6 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
 
  return <div className="stack payrep-fortnight">
   <section className="panel">
-   <div className="panel-heading"><h2>Registro de ponto por quinzena</h2>
-    <span className="pill">{calculated.length} jornada(s) completa(s)</span>
-   </div>
-   <div className="fortnight-toolbar">
-    <button type="button" className="secondary" aria-label="Quinzena anterior"
-     onClick={()=>onAnchorChange(shiftFortnight(anchor,-1))}><ChevronLeft size={17}/> Anterior</button>
-    <strong aria-live="polite">{period.label}</strong>
-    <PayrepDatePicker iconOnly value={anchor} onChange={onAnchorChange}
-     title="Selecionar dia e quinzena"/>
-    <button type="button" className="secondary" aria-label="Próxima quinzena"
-     onClick={()=>onAnchorChange(shiftFortnight(anchor,1))}>Próxima <ChevronRight size={17}/></button>
-   </div>
    <div className="fortnight-summary" aria-label="Totais da quinzena">
     <div className="stat"><span>Extras 60%</span><strong>{hours(totals.h60)}</strong></div>
     <div className="stat"><span>Extras 80%</span><strong>{hours(totals.h80)}</strong></div>

@@ -2016,3 +2016,50 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  color:#a73c51;font-size:12px;font-weight:600;
  margin:10px 0 0;line-height:1.5
 }
+
+
+/* Fortnight selector belongs to the page heading, not the timesheet panel. */
+.fortnight-page-intro{align-items:center}
+.fortnight-page-navigation{
+ display:flex;align-items:center;justify-content:flex-end;gap:9px;
+ flex-wrap:wrap;margin-left:auto;min-width:0
+}
+.fortnight-page-navigation strong{
+ white-space:nowrap;color:#381359;font-size:14px;
+ font-weight:800;text-align:center
+}
+.fortnight-page-navigation .secondary{min-height:42px}
+.fortnight-page-navigation .payrep-date-picker{flex:none}
+.payrep-fortnight>.panel{padding-top:22px}
+
+/* Dashboard sections share the same reorderable grid as metric cards. */
+.overview-stats .overview-wide-card{
+ grid-column:span 2;min-width:0;position:relative;
+ border:0;background:none;padding:0;box-shadow:none;
+ display:block;align-self:stretch
+}
+.overview-stats .overview-wide-card>.panel{height:100%;margin:0}
+.overview-stats .overview-wide-card>.panel .detail-hint{white-space:normal}
+.overview-stats .overview-wide-card.overview-card-editing{
+ outline:1px dashed #a45bf0;outline-offset:1px;border-radius:16px;
+}
+.overview-stats .overview-wide-card.overview-card-dragging{outline:2px dashed #8a00d4}
+.overview-drag-ghost .subtle{overflow:hidden;text-overflow:ellipsis}
+
+/* Keep original duplicate PDFs accessible, but clearly exclude their financial value. */
+.payslip-doc-row.payslip-doc-duplicate{background:#fbf8ff}
+.payslip-duplicate-badge{
+ color:#8b5468;background:#fceaf0;border:1px solid #f2d6e0;
+ padding:3px 7px;border-radius:6px;width:fit-content;font-weight:700
+}
+@media(max-width:900px){
+ .fortnight-page-intro{align-items:flex-start}
+ .fortnight-page-navigation{width:100%;margin-left:0;justify-content:flex-end}
+ .fortnight-page-navigation strong{font-size:12px}
+}
+@media(max-width:520px){
+ .fortnight-page-navigation{justify-content:center}
+ .fortnight-page-navigation strong{order:-1;flex-basis:100%}
+ .fortnight-page-navigation .secondary{padding:9px}
+ .overview-stats .overview-wide-card{grid-column:span 2}
+}

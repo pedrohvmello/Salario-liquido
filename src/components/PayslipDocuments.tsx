@@ -194,7 +194,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
    {notice&&<div className="notice success" role="status">{notice}</div>}
    {filtered.length===0?<div className="payslip-doc-empty"><FolderOpen size={30}/><p>Nenhum documento para os filtros selecionados.</p></div>:
    <div className="payslip-doc-list">
-    {filtered.map(s=><div key={s.id} className="payslip-doc-row">
+    {filtered.map(s=><div key={s.id} className={'payslip-doc-row'+(s.duplicate_of?' payslip-doc-duplicate':'')}>
      <label className="payslip-row-select" title={'Selecionar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)}>
       <input className="payslip-custom-checkbox" type="checkbox" checked={selectedIds.includes(s.id)}
        disabled={!!busyId||batchBusy} onChange={e=>toggleRow(s.id,e.target.checked)}
@@ -203,6 +203,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
      <div className="payslip-doc-icon"><FileText size={24}/></div>
      <div className="payslip-doc-details">
       <strong>{typeLabels[s.document_type]} · {periodLabel(s.period)}</strong>
+      {s.duplicate_of&&<small className="payslip-duplicate-badge">Duplicado · não contabilizado nos valores salariais</small>}
       <small title={s.source_file}>{s.source_file} · {s.storage_key.endsWith('-p'+s.source_page+'.pdf')?'PDF individual':'página '+s.source_page+' do PDF original'}</small>
       {s.payment_date&&<small>Pagamento: {s.payment_date.split('-').reverse().join('/')}</small>}
      </div>

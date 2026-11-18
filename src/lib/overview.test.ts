@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes} from './pensionRule'
-import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo} from './overview'
+import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo,isOverviewWideSection} from './overview'
 import {effectiveParams} from './data'
 import {calculatePayroll2026,defaults} from './money'
 describe('pension event semantics',()=>{
@@ -36,8 +36,8 @@ describe('overview cards and advance month VR',()=>{
   const a=changeCardVisibility(defaultOverviewCards,'fgts',false)
   expect(a).not.toContain('fgts')
   expect(moveOverviewCard(a,'pensionPercent',-1).indexOf('pensionPercent')).toBe(1)
-  expect(moveOverviewCard(['gross','pensionPercent','fgts'],'fgts',-1)).toEqual(['gross','fgts','pensionPercent'])
-  expect(normalizeOverviewCards(['espp','gross','espp','unknown'])).toEqual(['espp','gross'])
+  expect(moveOverviewCard(['gross','pensionPercent','fgts'],'fgts',-1)).toEqual(['gross','fgts','pensionPercent','salaryComposition','competenceOvertime'])
+  expect(normalizeOverviewCards(['espp','gross','espp','unknown'])).toEqual(['espp','gross','salaryComposition','competenceOvertime'])
  })
  it('handles year rollover',()=>expect(followingMonth('2026-12')).toBe('2027-01'))
  it('restores the current month when the native picker is cleared',()=>{
@@ -57,10 +57,19 @@ describe('overview cards and advance month VR',()=>{
 })
 
 describe('mobile overview card rearrangement',()=>{
+ it('allows sections to occupy and move among metric-card grid slots',()=>{
+  expect(isOverviewWideSection('salaryComposition')).toBe(true)
+  expect(isOverviewWideSection('competenceOvertime')).toBe(true)
+  expect(isOverviewWideSection('gross')).toBe(false)
+  const reordered=reorderOverviewCardTo(['gross','espp','salaryComposition','competenceOvertime'],'salaryComposition',0)
+  expect(reordered[0]).toBe('salaryComposition')
+  expect(reordered).toContain('competenceOvertime')
+  expect(changeCardVisibility(reordered,'salaryComposition',false)).toContain('salaryComposition')
+ })
  it('inserts at a chosen row/column slot, shifting later cards forward',()=>{
   const original=['gross','deductions','fgts','mealBenefit','espp'] as const
-  expect(reorderOverviewCardTo([...original],'espp',1)).toEqual(['gross','espp','deductions','fgts','mealBenefit'])
-  expect(reorderOverviewCardTo([...original],'gross',4)).toEqual(['deductions','fgts','mealBenefit','espp','gross'])
+  expect(reorderOverviewCardTo([...original],'espp',1)).toEqual(['gross','espp','deductions','fgts','mealBenefit','salaryComposition','competenceOvertime'])
+  expect(reorderOverviewCardTo([...original],'gross',4)).toEqual(['deductions','fgts','mealBenefit','espp','gross','salaryComposition','competenceOvertime'])
  })
  it('ignores invalid drop locations, preserving hidden cards',()=>{
   const current=changeCardVisibility(defaultOverviewCards,'fgts',false)

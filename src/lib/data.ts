@@ -2,6 +2,7 @@ import {createClient, type SupabaseClient} from '@supabase/supabase-js'
 import type {PDFDocument as PdfDocument} from 'pdf-lib'
 import type {ParsedStatement} from './parse'
 import {makePprEvent} from './ppr'
+import {pprReceiptKey} from './pprDuplicate'
 import {validateThirteenthPay} from './thirteenth'
 import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
@@ -17,7 +18,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 // Fail closed on HML if its published URL or key is accidentally changed to PRD.
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
-export type SavedStatement={id:string;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;duplicate_of:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -183,7 +184,27 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
         throw new Error('Recibo de férias incompleto. Verifique datas e totais antes de importar.')
     }
   }
-  const {PDFDocument}=await import('pdf-lib')
+  // A PPR receipt can appear in different PDF files. Check its financial identity.
+   const pprCandidates=chosen.filter(s=>s.documentType==='ppr')
+   if(pprCandidates.length){
+    const {data:prior,error:priorError}=await db.from('statements')
+     .select('period,payment_date,gross_ppr,net,ppr_income_tax,ppr_union_contribution')
+     .eq('user_id',user_id).eq('document_type','ppr').is('duplicate_of',null)
+    if(priorError)throw new Error('Não foi possível verificar os PPR já importados: '+priorError.message)
+    const keys=new Set((prior||[]).map(x=>pprReceiptKey({
+     period:x.period,paymentDate:x.payment_date,gross:x.gross_ppr,net:x.net,
+     incomeTax:x.ppr_income_tax,unionContribution:x.ppr_union_contribution
+    })))
+    for(const receipt of pprCandidates){
+     const identity=pprReceiptKey({
+      period:receipt.period,paymentDate:receipt.paymentDate,gross:receipt.grossPpr,
+      net:receipt.net,incomeTax:receipt.pprIncomeTax,unionContribution:receipt.pprUnionContribution
+     })
+     if(keys.has(identity))throw new Error('PPR duplicado: já existe um recibo com os mesmos dados de pagamento para '+receipt.period+'. O documento não será importado novamente.')
+     keys.add(identity)
+    }
+   }
+   const {PDFDocument}=await import('pdf-lib')
   const originals=new Map<string,{hash:string;document:PdfDocument}>()
   for(const name of new Set(chosen.map(x=>x.sourceFile))){
     const file=fileByName.get(name)
@@ -237,7 +258,11 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       salary_contract:s.salaryContract,trienio:s.trienio,dependents_irrf:s.dependentsIrrf??null,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
     }).select('id').single()
-    if(error)throw new Error('Falha ao registrar o holerite '+s.period+': '+error.message+'. Verifique os documentos importados antes de tentar novamente.')
+    if(error){
+      if(error.code==='23505'&&/statements_ppr_semantic_unique/.test(error.message))
+       throw new Error('PPR duplicado: este pagamento já foi importado. Nenhum novo valor foi registrado.')
+      throw new Error('Falha ao registrar o holerite '+s.period+': '+error.message+'. Verifique os documentos importados antes de tentar novamente.')
+     }
     if(s.lines.length){
       const added=await db.from('statement_lines').insert(s.lines.map((l,i)=>({...l,user_id,statement_id:statement.id,ordinal:i})))
       if(added.error)throw new Error('O holerite '+s.period+' foi salvo, mas a gravação de algumas rubricas falhou: '+added.error.message)

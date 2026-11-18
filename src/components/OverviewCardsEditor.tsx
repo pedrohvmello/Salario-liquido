@@ -1,6 +1,6 @@
-import {useEffect,useLayoutEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent} from 'react'
+import {useEffect,useLayoutEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent,type ReactNode} from 'react'
 import {Check,Grip,RotateCcw,X} from 'lucide-react'
-import {normalizeOverviewCards,reorderOverviewCardTo,type OverviewCardId} from '../lib/overview'
+import {normalizeOverviewCards,reorderOverviewCardTo,isOverviewWideSection,type OverviewCardId} from '../lib/overview'
 
 type CardDetails=Record<OverviewCardId,{value:string;note:string}>
 type DragGhost={id:OverviewCardId;left:number;top:number;width:number;height:number}
@@ -8,6 +8,7 @@ type Props={
  cards:OverviewCardId[]
  details:CardDetails
  labels:Record<OverviewCardId,string>
+ sections?:Partial<Record<OverviewCardId,ReactNode>>
  onCommit:(cards:OverviewCardId[])=>Promise<void>
  onSaved?:()=>void
 }
@@ -15,7 +16,7 @@ const ACTIVATION_MS=1000
 const DRAG_MS=280
 const MOVE_TOLERANCE=12
 
-export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Props){
+export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSaved}:Props){
  const [editing,setEditing]=useState(false)
  const [draft,setDraft]=useState<OverviewCardId[]>(cards)
  const [dragging,setDragging]=useState<OverviewCardId|null>(null)
@@ -159,7 +160,7 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
  const cardKey=(event:ReactKeyboardEvent<HTMLDivElement>,id:OverviewCardId)=>{
   if(event.key==='Enter'&&!editingRef.current){event.preventDefault();setCards([...cards]);setEditor(true)}
   if(!editingRef.current)return
-  if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();setCards(draftRef.current.filter(x=>x!==id))}
+  if((event.key==='Delete'||event.key==='Backspace')&&!isOverviewWideSection(id)){event.preventDefault();setCards(draftRef.current.filter(x=>x!==id))}
   const arrow:{[key:string]:number}={ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1}
   if(arrow[event.key]){event.preventDefault();const index=draftRef.current.indexOf(id);const target=index+arrow[event.key];setCards(reorderOverviewCardTo(draftRef.current,id,target))}
  }
@@ -172,7 +173,7 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
   {error&&<div className="overview-edit-error" role="alert">{error}<button type="button" onClick={()=>setError('')} aria-label="Dispensar aviso"><X size={15}/></button></div>}
   <div className="stats-grid overview-stats" aria-label="Cartões de visão geral">
    {list.map(id=><div key={id}
-    className={'stat overview-card'+(editing?' overview-card-editing':'')+(dragging===id?' overview-card-dragging':'')}
+    className={(isOverviewWideSection(id)?'overview-wide-card ':'stat ')+'overview-card'+(editing?' overview-card-editing':'')+(dragging===id?' overview-card-dragging':'')}
     data-overview-card={id}
     tabIndex={0}
     role="button"
@@ -184,14 +185,17 @@ export function OverviewCardsEditor({cards,details,labels,onCommit,onSaved}:Prop
     onContextMenu={e=>e.preventDefault()}
     onKeyDown={e=>cardKey(e,id)}
    >
-    {editing&&<button type="button" className="overview-remove-card" aria-label={'Ocultar cartão '+labels[id]} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();endDrag();setCards(draftRef.current.filter(x=>x!==id))}}><X size={15}/></button>}
-    <span className="subtle">{labels[id]}</span>
-    <strong>{details[id].value}</strong>
-    {details[id].note&&<small>{details[id].note}</small>}
+    {editing&&!isOverviewWideSection(id)&&<button type="button" className="overview-remove-card" aria-label={'Ocultar cartão '+labels[id]} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();endDrag();setCards(draftRef.current.filter(x=>x!==id))}}><X size={15}/></button>}
+    {isOverviewWideSection(id)&&sections?.[id]?sections[id]:<>
+     <span className="subtle">{labels[id]}</span>
+     <strong>{details[id].value}</strong>
+     {details[id].note&&<small>{details[id].note}</small>}
+    </>}
    </div>)}
   </div>
   {ghost&&<div className="stat overview-drag-ghost" ref={ghostRef} aria-hidden="true" style={{left:ghost.left,top:ghost.top,width:ghost.width,height:ghost.height}}>
-   <span className="subtle">{labels[ghost.id]}</span><strong>{details[ghost.id].value}</strong>{details[ghost.id].note&&<small>{details[ghost.id].note}</small>}
+   <span className="subtle">{labels[ghost.id]}</span>
+   {!isOverviewWideSection(ghost.id)&&<><strong>{details[ghost.id].value}</strong>{details[ghost.id].note&&<small>{details[ghost.id].note}</small>}</>}
   </div>}
   {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Os cartões ocultos podem ser restaurados em Configurações. Toque fora ou em Concluir para salvar.</div>}
   {busy&&<div className="overview-edit-hint" role="status">Salvando disposição...</div>}

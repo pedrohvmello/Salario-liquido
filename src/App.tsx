@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles,ChevronLeft} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {type DayEntry} from './lib/calendar'
 import {paidOvertime,type TimeBankPolicy} from './lib/timeBank'
@@ -12,7 +12,7 @@ import {PayrepSelect} from './components/PayrepSelect'
 import {PayrepDatePicker} from './components/PayrepDatePicker'
 import {FortnightTimesheet} from './components/FortnightTimesheet'
 import {UserBankProfileSettings} from './components/UserBankProfileSettings'
-import {todayInSaoPaulo} from './lib/fortnight'
+import {todayInSaoPaulo,getFortnight,shiftFortnight} from './lib/fortnight'
 import {TaxPreview} from './components/TaxPreview'
 import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
@@ -27,6 +27,7 @@ import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
+import {pprReceiptKey} from './lib/pprDuplicate'
 import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,saveEvent,saveBase,saveOverviewCards,saveStatements,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {PayslipDocuments} from './components/PayslipDocuments'
@@ -189,6 +190,7 @@ export default function App(){
  const [month,setMonth]=useState(currentMonth())
  const [year,setYear]=useState('all')
  const [statements,setStatements]=useState<SavedStatement[]>([])
+ const [documentStatements,setDocumentStatements]=useState<SavedStatement[]>([])
  const [allLines,setAllLines]=useState<StatementRubric[]>([])
  const [events,setEvents]=useState<SalaryEvent[]>([])
  const [eventsYear,setEventsYear]=useState('all')
@@ -301,7 +303,8 @@ export default function App(){
   // Only display the approved application once the account and its data are ready.
   const d=await getData()
   if(!isCurrent())return
-  setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
+  setDocumentStatements(d.statements)
+  setStatements(d.statements.filter(x=>!x.duplicate_of));setAllLines(d.lines);setEvents(d.events)
   setTimeBankPolicies(d.bankPolicies)
   setRecords(d.entries.map(x=>({
    id:x.id,date:x.date,
@@ -337,7 +340,7 @@ export default function App(){
   }else{
    setAccessDecision(null)
    setIsAdmin(false)
-   setStatements([]);setAllLines([]);setEvents([]);setRecords([]);setTimeBankPolicies([])
+   setStatements([]);setDocumentStatements([]);setAllLines([]);setEvents([]);setRecords([]);setTimeBankPolicies([])
   }
   return ()=>{current=false}
  // User metadata updates (e.g. saving a profile) must not unmount the active screen.
@@ -455,6 +458,14 @@ export default function App(){
    return eventCandidates(s,prior).map(e=>({...e,period:s.period,key:s.sourceFile+'#'+s.page}))
   })
  },[previews,statements])
+ const importedPprKeys=useMemo(()=>new Set(statements.filter(s=>s.document_type==='ppr').map(s=>pprReceiptKey({
+  period:s.period,paymentDate:s.payment_date,gross:s.gross_ppr,net:s.net,
+  incomeTax:s.ppr_income_tax,unionContribution:s.ppr_union_contribution
+ }))),[statements])
+ const duplicatePprPreview=(s:ParsedStatement)=>s.documentType==='ppr'&&importedPprKeys.has(pprReceiptKey({
+  period:s.period,paymentDate:s.paymentDate,gross:s.grossPpr,net:s.net,
+  incomeTax:s.pprIncomeTax,unionContribution:s.pprUnionContribution
+ }))
  const showStatement=(s:SavedStatement)=>task(async()=>{
   setSelectedStmt(s)
   if(!db){setStatementLines([]);return}
@@ -465,7 +476,7 @@ export default function App(){
   setImportFiles(items)
   setImportUseCompetenceDate(false)
   const result=(await Promise.all(items.map(parsePdf))).flat()
-  setPreviews(result);setImportSelected(result.filter(x=>x.warnings.length===0).map(x=>x.sourceFile+'#'+x.page))
+  setPreviews(result);setImportSelected(result.filter(x=>x.warnings.length===0&&!duplicatePprPreview(x)).map(x=>x.sourceFile+'#'+x.page))
  },'Leitura concluída. Revise antes de salvar.')
  const saveNewEvent=()=>task(async()=>{
   if(!db)throw Error('Conecte o banco para persistir eventos')
@@ -516,6 +527,15 @@ export default function App(){
  const activeEvent=(kind:string)=>latestEffectiveEvent(events,kind,month)
  const cardDetails:Record<OverviewCardId,{value:string;note:string}>={
   gross:{value:brl(payroll.gross),note:'Salário + triênio + extras + DSR'},
+   baseSalary:{value:brl(effective.salary),note:'Salário-base vigente'},
+   trienio:{value:brl(effective.trienio),note:'Adicional por tempo de serviço'},
+   privatePensionPercent:{value:formatEventValue(effective.privatePensionPercent,'privatePensionPercent')+'%',note:'Percentual da previdência individual'},
+   dependents:{value:String(effective.dependents),note:'Dependentes informados'},
+   esppPercent:{value:formatEventValue(effective.esppPercent,'esppPercent')+'%',note:'Percentual de contribuição ESPP'},
+   fixedPension:{value:effective.pensionMethod==='fixed'?brl(effective.fixedPension):'—',note:effective.pensionMethod==='fixed'?'Valor de pensão fixa vigente':'Sem pensão fixa configurada'},
+   advancePercent:{value:formatEventValue(effective.advancePercent,'advancePercent')+'%',note:'Percentual de adiantamento salarial'},
+   salaryComposition:{value:'',note:''},
+   competenceOvertime:{value:'',note:''},
   deductions:{value:brl(payroll.gross-payroll.netMonth),note:'INSS, IRRF, pensão e contribuições'},
   fgts:{value:brl(payroll.fgts),note:'Informativo; não é desconto'},
   pensionPercent:{value:effective.pensionMethod==='old26'?formatEventValue(effective.pensionPercent,'pensionPercent')+'%':'—',note:effective.pensionMethod==='old26'?'Percentual vigente':'Cadastre o evento de pensão'},
@@ -526,6 +546,10 @@ export default function App(){
   childcareBenefit:{value:activeEvent('childcareBenefit')?brl(effective.childcareBenefit):'—',note:'Valor mensal cadastrado'},
   espp:{value:activeEvent('esppPercent')||effective.esppPercent?brl(payroll.espp):'—',note:'Desconto ESPP na folha'}
  }
+ const overviewSections={
+   salaryComposition:<Panel title="Composição do salário" extra={<span className="pill">Estimativa 2026</span>}><div className="breakdown">{metricRows.map(([label,value])=><div key={label} className="break-row"><span>{label}</span><strong className={['INSS','IRRF','Pensão estimada','ESPP','Previdência individual','Adiantamento'].includes(label)?'muted':''}>{value}</strong></div>)}</div><div className="total-line"><span>Pagamento no fim do mês</span><strong>{brl(payroll.finalPayment)}</strong></div></Panel>,
+   competenceOvertime:<Panel title="Horas extras na competência"><div className="hour-mini"><div><strong>{monthHours.h60.toFixed(1)}h</strong><span>Adicional 60%</span></div><div><strong>{monthHours.h80.toFixed(1)}h</strong><span>Adicional 80%</span></div><div><strong>{monthHours.h100.toFixed(1)}h</strong><span>Adicional 100%</span></div></div><div className="detail-hint"><Info size={16}/>São considerados os dias 16 do mês anterior até 15 do mês atual. DSR estimado automaticamente sobre as horas extras: {dsr?brl(dsrPay)+' ('+dsr.restDays+' repousos/feriados ÷ '+dsr.workingDays+' dias úteis)':'aguardando calendário de feriados'}. Sábados contam como dias úteis; confira a regra do seu acordo coletivo.</div><button className="text-button" onClick={()=>setSection('hours')}>Lançar jornada <ChevronRight size={15}/></button></Panel>
+ }
  const accessiblePrimaryViews=nav.filter(item=>isAdmin||!item.id.startsWith('admin-')).map(item=>item.id) as MobilePrimaryView[]
  const renderPageBody=(section:Section)=> (
   <div className="page-body">
@@ -533,13 +557,12 @@ export default function App(){
     {error&&<div className="notice danger payrep-feedback-toast" role="alert"><AlertTriangle size={18}/>{error}<button onClick={()=>setError('')}>Fechar</button></div>}
     {notice&&<div className="notice success payrep-feedback-toast" role="status"><CheckCircle2 size={18}/>{notice}<button onClick={()=>setNotice('')}>Fechar</button></div>}
     {section==='overview'&&<div className="stack">
-     <div className="hero"><div><CompetencePicker month={month} onChange={setMonth}/><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong><small>Antes de descontar o adiantamento quinzenal</small></div></div>
-     <OverviewCardsEditor cards={overviewCards} details={cardDetails}
+     <div className="hero"><div><CompetencePicker month={month} onChange={setMonth}/><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong></div></div>
+     <OverviewCardsEditor cards={overviewCards} details={cardDetails} sections={overviewSections}
        labels={Object.fromEntries(overviewCardDefinitions.map(([id,label])=>[id,label])) as Record<OverviewCardId,string>}
        onCommit={persistOverviewCards}
        onSaved={()=>setNotice('Disposição dos cartões salva com sucesso')}/>
-     <div className="two-col"><Panel title="Composição do salário" extra={<span className="pill">Estimativa 2026</span>}><div className="breakdown">{metricRows.map(([label,value])=><div key={label} className="break-row"><span>{label}</span><strong className={['INSS','IRRF','Pensão estimada','ESPP','Previdência individual','Adiantamento'].includes(label)?'muted':''}>{value}</strong></div>)}</div><div className="total-line"><span>Pagamento no fim do mês</span><strong>{brl(payroll.finalPayment)}</strong></div></Panel>
-     <Panel title="Horas extras na competência"><div className="hour-mini"><div><strong>{monthHours.h60.toFixed(1)}h</strong><span>Adicional 60%</span></div><div><strong>{monthHours.h80.toFixed(1)}h</strong><span>Adicional 80%</span></div><div><strong>{monthHours.h100.toFixed(1)}h</strong><span>Adicional 100%</span></div></div><div className="detail-hint"><Info size={16}/>São considerados os dias 16 do mês anterior até 15 do mês atual. DSR estimado automaticamente sobre as horas extras: {dsr?brl(dsrPay)+' ('+dsr.restDays+' repousos/feriados ÷ '+dsr.workingDays+' dias úteis)':'aguardando calendário de feriados'}. Sábados contam como dias úteis; confira a regra do seu acordo coletivo.</div><button className="text-button" onClick={()=>setSection('hours')}>Lançar jornada <ChevronRight size={15}/></button></Panel></div>
+     
      {actual&&<Panel title={'Recebimento registrado: '+monthLabel(month)}><div className="stats-grid three"><Stat name="Líquido no fechamento" value={actual.net===null?'A conferir':brl(actual.net)}/><Stat name="Adiantamento salarial" value={actual.salary_advance===null?'A conferir':brl(actual.salary_advance)}/><Stat name="Líquido mensal recebido" value={currentCash?.total===null?'A conferir':brl(currentCash?.total??actual.net_received??0)} note="Fechamento + adiantamento salarial + férias/13º antecipados, sem duplicar" tone="accent"/></div></Panel>}
      {currentCash&&currentCash.vacation>0&&<Panel title={'Férias contabilizadas: '+monthLabel(month)}><div className="stats-grid three"><Stat name="Férias e 13º antecipados" value={brl(currentCash.vacation)}/><Stat name="Status" value={currentCash.vacationState==='reconciled'?'Conciliado':currentCash.vacationState==='estimated'?'Estimado':currentCash.vacationState==='difference'?'Divergência':'Parcial'}/><Stat name="Líquido da competência" value={currentCash.total===null?'A conferir':brl(currentCash.total)} tone="accent"/></div><div className="detail-hint">{currentCash.vacationNote}</div></Panel>}{thirteenthThisMonth&&<Panel title={'13º salário: '+monthLabel(month)}><div className="stats-grid three"><Stat name="13º bruto" value={brl(thirteenthThisMonth.gross)}/><Stat name="IRRF 13º" value={brl(thirteenthThisMonth.irrf)}/><Stat name="13º adicional recebido" value={brl(thirteenthMonth)} tone="accent"/></div><div className="detail-hint">{thirteenthThisMonth.note}</div></Panel>}{pprMonth.length>0&&<Panel title={'PPR recebido: '+monthLabel(month)}><div className="stats-grid three"><Stat name="PPR bruto" value={brl(pprMonth.reduce((sum,s)=>sum+(s.gross_ppr||0),0))}/><Stat name="IRRF e outros descontos" value={brl(pprMonth.reduce((sum,s)=>sum+(s.debits||0),0))}/><Stat name="PPR líquido adicional" value={brl(pprMonth.reduce((sum,s)=>sum+(s.net||0),0))} tone="accent"/></div><div className="detail-hint">Este pagamento é separado da remuneração mensal e não altera o salário-base.</div></Panel>}
      
@@ -553,10 +576,21 @@ export default function App(){
     </td><td>{s.warnings?.length?<span className="flag">Conferir</span>:<span className="ok">Conferido</span>}</td></tr>)}</tbody></table></div>:<Empty text="Não há holerites para este ano."/>}
     </Panel>{selectedStmt&&<Panel title={'Detalhes de '+(selectedStmt.document_type==='ppr'?'PPR · ':selectedStmt.document_type==='vacation'?'Férias · ':selectedStmt.document_type==='thirteenth'?'13º · ':'')+monthLabel(selectedStmt.period)} extra={<button className="secondary" onClick={()=>setSelectedStmt(null)}>Fechar</button>}>{selectedStmt.document_type==='thirteenth'?<div className="detail-hint">13º bruto: <strong>{selectedStmt.thirteenth_gross===null?'A conferir':brl(selectedStmt.thirteenth_gross)}</strong>; adiantamento descontado: {brl(selectedStmt.thirteenth_advance)}; INSS: {brl(selectedStmt.thirteenth_inss)}; IRRF: {brl(selectedStmt.thirteenth_irrf)}; pensão: {brl(selectedStmt.thirteenth_pension)}; líquido no fechamento: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. {thirteenthLedger.byYear.get(selectedStmt.period.slice(0,4))?.note}</div>:selectedStmt.document_type==='vacation'?<div className="detail-hint">Recibo complementar de férias: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Período: {selectedStmt.vacation_start?dateBR(selectedStmt.vacation_start):'Não identificado'} a {selectedStmt.vacation_end?dateBR(selectedStmt.vacation_end):'Não identificado'}. Pagamento efetivo: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificado'}. Este líquido substitui os adiantamentos já inferidos das folhas mensais correspondentes; não é somado novamente.</div>:selectedStmt.document_type==='ppr'?<div className="detail-hint">PPR bruto: <strong>{selectedStmt.gross_ppr===null?'A conferir':brl(selectedStmt.gross_ppr)}</strong>. IRRF PPR: <strong>{brl(selectedStmt.ppr_income_tax||0)}</strong>. Contribuição negocial: <strong>{brl(selectedStmt.ppr_union_contribution||0)}</strong>. Líquido pago: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Data de pagamento: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificada'}. Evento lançado separadamente.</div>:<div className="detail-hint">Líquido mensal: {selectedStmt.net===null?'A conferir':brl(selectedStmt.net)} (fechamento) + {selectedStmt.salary_advance===null?'A conferir':brl(selectedStmt.salary_advance)} (adiantamento salarial) = <strong>{selectedStmt.net_received===null?'A conferir':brl(selectedStmt.net_received)}</strong>. Férias identificadas na folha: {brl(vacationLedger.byMonth.get(selectedStmt.period)?.vacation??0)}. Total financeiro da competência: <strong>{vacationLedger.byMonth.get(selectedStmt.period)?.total===null?'A conferir':brl(vacationLedger.byMonth.get(selectedStmt.period)?.total??selectedStmt.net_received??0)}</strong>. O recibo complementar não duplica a contabilização.</div>}<div className="table-scroll"><table><thead><tr><th>Código</th><th>Rubrica original</th><th>Tipo</th><th>Valor</th></tr></thead><tbody>{statementLines.map((l,i)=><tr key={i}><td>{l.code}</td><td>{l.description}</td><td>{l.side==='credit'?'Provento':l.side==='debit'?'Desconto':'Revisar'}</td><td>{brl(Number(l.amount))}</td></tr>)}</tbody></table></div>{selectedStmt.warnings?.map((w,i)=><div className="detail-hint" key={i}><AlertTriangle size={15}/>{w}</div>)}</Panel>}<VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
         {section==='hours'&&<div className="stack">
-     <div className="page-intro"><div>
-      <h2>Jornada e horas extras</h2>
-      <p><strong>Base · {base?baseLabel(base):'Não configurada'}.</strong></p>
-     </div></div>
+     <div className="page-intro fortnight-page-intro">
+      <div><h2>Jornada e horas extras</h2>
+       <p><strong>Base · {base?baseLabel(base):'Não configurada'}.</strong></p>
+      </div>
+      <div className="fortnight-page-navigation" aria-label="Selecionar quinzena">
+       <button type="button" className="secondary" onClick={()=>setHoursAnchor(shiftFortnight(hoursAnchor,-1))}>
+        <ChevronLeft size={17}/> Anterior
+       </button>
+       <strong aria-live="polite">{getFortnight(hoursAnchor).label}</strong>
+       <PayrepDatePicker iconOnly value={hoursAnchor} onChange={setHoursAnchor} title="Selecionar dia e quinzena"/>
+       <button type="button" className="secondary" onClick={()=>setHoursAnchor(shiftFortnight(hoursAnchor,1))}>
+        Próxima <ChevronRight size={17}/>
+       </button>
+      </div>
+     </div>
      {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
       Configure sua Base em Definições para calcular os feriados e as horas extras.</div>}
      {holidayCalendar?.coverage==='partial'&&<div className="notice warning">
@@ -577,7 +611,7 @@ export default function App(){
     {section==='imports'&&<div className="stack">
      <div className="page-intro"><div><h2>Meus Holerites</h2><p>Importe, visualize e gerencie seus documentos salariais em um único lugar.</p></div></div>
      <div className="payslip-tabs" role="tablist" aria-label="Áreas de Meus Holerites">
-      <button type="button" role="tab" aria-selected={payslipTab==='documents'} className={payslipTab==='documents'?'active':''} onClick={()=>setPayslipTab('documents')}><FileText size={17}/> Meus documentos <span className="payslip-tab-count">{statements.length}</span></button>
+      <button type="button" role="tab" aria-selected={payslipTab==='documents'} className={payslipTab==='documents'?'active':''} onClick={()=>setPayslipTab('documents')}><FileText size={17}/> Meus documentos <span className="payslip-tab-count">{documentStatements.length}</span></button>
       <button type="button" role="tab" aria-selected={payslipTab==='import'} className={payslipTab==='import'?'active':''} onClick={()=>setPayslipTab('import')}><Upload size={17}/> Importar</button>
      </div>
      {payslipTab==='import'&&payslipAccess!=='full'?
@@ -588,15 +622,15 @@ export default function App(){
           'A importação, o armazenamento de PDFs e a criação automática de eventos a partir dos holerites são exclusivos do Full. Seus documentos antigos continuam disponíveis na aba Meus documentos.'}</p>
          <button type="button" className="primary" onClick={()=>setSection('subscription')}>Ver plano Full</button></>}
       </section>
-     :payslipTab==='import'?<div className="stack"><div className="page-intro"><div><h2>Importação inteligente de PDFs</h2><p>Reconhece folhas mensais, PPR, férias e 13º salário da Accenture. Os recibos de férias são opcionais; o recibo de 13º comprova os impostos exclusivos e é conciliado com adiantamentos anteriores.</p></div></div><Panel title="Selecionar holerites"><div className="dropzone"><Upload size={30}/><strong>Envie PDFs antigos ou novos</strong><p>É possível selecionar vários arquivos e importar documentos com várias páginas. Cada holerite identificado será salvo em um PDF individual.</p><label className="primary file-button">Selecionar PDFs<input multiple type="file" accept="application/pdf,.pdf" onChange={e=>{const files=Array.from(e.target.files||[]);if(files.length)previewFiles(files)}}/></label></div><div className="detail-hint"><ShieldCheck size={16}/>A leitura ocorre no navegador. O envio ao armazenamento privado acontece somente após você confirmar.</div></Panel>{previews.length>0&&<Panel title={'Prévia: '+previews.length+' competência(s)'} extra={<button className="secondary" onClick={()=>previewFiles(importFiles)}><RefreshCw size={15}/> Reler</button>}><div className="table-scroll"><table><thead><tr><th>Importar</th><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Formato</th><th>Proventos</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Férias/13º antecipados</th><th>Líquido financeiro estimado</th><th>Resultado</th></tr></thead><tbody>{previews.map(s=>{const key=s.sourceFile+'#'+s.page;return <tr key={key}><td><input type="checkbox" checked={importSelected.includes(key)} onChange={e=>setImportSelected(v=>e.target.checked?[...v,key]:v.filter(x=>x!==key))}/></td><td>{s.sourceFile} (p. {s.page})</td><td>{s.period||'Não encontrada'}</td><td>{s.documentType==='ppr'?<span className="pill">PPR</span>:s.documentType==='vacation'?<span className="pill">Férias</span>:s.documentType==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.format==='old'?'Antigo':'Novo'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.documentType==='thirteenth'?brl(s.thirteenthAdvance):s.documentType==='vacation'?'—':s.salaryAdvance===null?'A conferir':brl(s.salaryAdvance)}</td>
+     :payslipTab==='import'?<div className="stack"><div className="page-intro"><div><h2>Importação inteligente de PDFs</h2><p>Reconhece folhas mensais, PPR, férias e 13º salário da Accenture. Os recibos de férias são opcionais; o recibo de 13º comprova os impostos exclusivos e é conciliado com adiantamentos anteriores.</p></div></div><Panel title="Selecionar holerites"><div className="dropzone"><Upload size={30}/><strong>Envie PDFs antigos ou novos</strong><p>É possível selecionar vários arquivos e importar documentos com várias páginas. Cada holerite identificado será salvo em um PDF individual.</p><label className="primary file-button">Selecionar PDFs<input multiple type="file" accept="application/pdf,.pdf" onChange={e=>{const files=Array.from(e.target.files||[]);if(files.length)previewFiles(files)}}/></label></div><div className="detail-hint"><ShieldCheck size={16}/>A leitura ocorre no navegador. O envio ao armazenamento privado acontece somente após você confirmar.</div></Panel>{previews.length>0&&<Panel title={'Prévia: '+previews.length+' competência(s)'} extra={<button className="secondary" onClick={()=>previewFiles(importFiles)}><RefreshCw size={15}/> Reler</button>}><div className="table-scroll"><table><thead><tr><th>Importar</th><th>Arquivo</th><th>Competência</th><th>Tipo</th><th>Formato</th><th>Proventos</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Férias/13º antecipados</th><th>Líquido financeiro estimado</th><th>Resultado</th></tr></thead><tbody>{previews.map(s=>{const key=s.sourceFile+'#'+s.page;return <tr key={key}><td><input type="checkbox" checked={importSelected.includes(key)} disabled={duplicatePprPreview(s)} title={duplicatePprPreview(s)?'PPR já importado':undefined} onChange={e=>setImportSelected(v=>e.target.checked?[...v,key]:v.filter(x=>x!==key))}/></td><td>{s.sourceFile} (p. {s.page})</td><td>{s.period||'Não encontrada'}</td><td>{s.documentType==='ppr'?<span className="pill">PPR</span>:s.documentType==='vacation'?<span className="pill">Férias</span>:s.documentType==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.format==='old'?'Antigo':'Novo'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.documentType==='thirteenth'?brl(s.thirteenthAdvance):s.documentType==='vacation'?'—':s.salaryAdvance===null?'A conferir':brl(s.salaryAdvance)}</td>
     <td>{s.documentType==='monthly'?brl(vacationAdvanceFromLines(s.lines)):'—'}</td>
     <td><strong>{s.documentType==='thirteenth'?brl(s.net??0):s.documentType==='vacation'?brl(s.net??0):s.documentType==='monthly'&&s.netReceived!==null?brl(s.netReceived+vacationAdvanceFromLines(s.lines)):s.netReceived===null?'A conferir':brl(s.netReceived)}</strong>
       {s.documentType==='vacation'&&<div className="subtle">Valor do recibo; não somar novamente</div>}{s.documentType==='thirteenth'&&<div className="subtle">Fechamento do 13º; adiantamento será conciliado ao salvar</div>}
-      {s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0&&<div className="subtle">Estimado; recibo opcional</div>}</td><td>{s.warnings.length?<span title={s.warnings.join('; ')} className="flag">{s.warnings.length} aviso(s)</span>:<span className="ok">OK</span>}</td></tr>})}</tbody></table></div>{previews.some(s=>s.documentType==='vacation'||(s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0))&&<div className="notice subtle-notice payslip-vacation-reconcile"><Info size={18}/><div><strong>Conciliação automática de férias</strong><p style={{margin:'5px 0 0'}}>A folha mensal é suficiente para registrar os adiantamentos identificados. O recibo de férias é opcional e confirma ou substitui esse valor. O pagamento antecipado nunca será contabilizado duas vezes. Caso exista diferença, ela será exibida no Histórico salarial.</p></div></div>}{previews.some(s=>s.documentType==='thirteenth')&&<div className="suggestion"><strong>13º salário: prévia do recibo anual</strong>{previews.filter(s=>s.documentType==='thirteenth').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: bruto {s.thirteenthGross===null?'A conferir':brl(s.thirteenthGross)}; adiantamento anterior {brl(s.thirteenthAdvance)}; fechamento {s.net===null?'A conferir':brl(s.net)}; INSS {brl(s.thirteenthInss)}; IRRF exclusivo {brl(s.thirteenthIrrf)}; pensão {brl(s.thirteenthPension)}; pago em {s.paymentDate?dateBR(s.paymentDate):'data não identificada'}.</span></div>)}<small>Ao confirmar, o recibo ficará separado da folha mensal e será vinculado aos adiantamentos já contabilizados nas férias. O sistema não duplicará essas parcelas.</small></div>}{previews.some(s=>s.documentType==='ppr')&&<div className="suggestion"><strong>Evento PPR automático após confirmação</strong>{previews.filter(s=>s.documentType==='ppr').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: PPR bruto {s.grossPpr===null?'Não encontrado':brl(s.grossPpr)}; IRRF PPR {brl(s.pprIncomeTax)}; contribuição negocial {brl(s.pprUnionContribution)}; líquido pago {s.net===null?'A conferir':brl(s.net)}; data {s.paymentDate?dateBR(s.paymentDate):'Não encontrada'}.</span></div>)}<small>O evento será criado apenas ao confirmar o documento, uma vez por holerite, e não altera a projeção salarial fixa.</small></div>}{suggestions.length>0&&<div className="suggestion"><strong>Possíveis mudanças encontradas</strong>{suggestions.map((s,i)=><div key={i}><span>{s.period}: {fieldNames[s.kind]||s.kind} → {brl(s.value)}. {s.reason}</span></div>)}<small>Alterações reconhecidas serão registradas automaticamente como eventos vinculados aos holerites, quando houver data de pagamento. Para documentos sem data, confirme uma data de referência provisória abaixo. Eventos manuais não serão alterados.</small></div>}{previews.some(s=>s.documentType==='monthly'&&!s.paymentDate&&importSelected.includes(s.sourceFile+'#'+s.page))&&<div className="detail-hint" role="group" aria-label="Data dos eventos automáticos">
+      {s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0&&<div className="subtle">Estimado; recibo opcional</div>}</td><td>{duplicatePprPreview(s)?<span className="flag">PPR duplicado, já importado</span>:s.warnings.length?<span title={s.warnings.join('; ')} className="flag">{s.warnings.length} aviso(s)</span>:<span className="ok">OK</span>}</td></tr>})}</tbody></table></div>{previews.some(s=>s.documentType==='vacation'||(s.documentType==='monthly'&&vacationAdvanceFromLines(s.lines)>0))&&<div className="notice subtle-notice payslip-vacation-reconcile"><Info size={18}/><div><strong>Conciliação automática de férias</strong><p style={{margin:'5px 0 0'}}>A folha mensal é suficiente para registrar os adiantamentos identificados. O recibo de férias é opcional e confirma ou substitui esse valor. O pagamento antecipado nunca será contabilizado duas vezes. Caso exista diferença, ela será exibida no Histórico salarial.</p></div></div>}{previews.some(s=>s.documentType==='thirteenth')&&<div className="suggestion"><strong>13º salário: prévia do recibo anual</strong>{previews.filter(s=>s.documentType==='thirteenth').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: bruto {s.thirteenthGross===null?'A conferir':brl(s.thirteenthGross)}; adiantamento anterior {brl(s.thirteenthAdvance)}; fechamento {s.net===null?'A conferir':brl(s.net)}; INSS {brl(s.thirteenthInss)}; IRRF exclusivo {brl(s.thirteenthIrrf)}; pensão {brl(s.thirteenthPension)}; pago em {s.paymentDate?dateBR(s.paymentDate):'data não identificada'}.</span></div>)}<small>Ao confirmar, o recibo ficará separado da folha mensal e será vinculado aos adiantamentos já contabilizados nas férias. O sistema não duplicará essas parcelas.</small></div>}{previews.some(s=>s.documentType==='ppr')&&<div className="suggestion"><strong>Evento PPR automático após confirmação</strong>{previews.filter(s=>s.documentType==='ppr').map(s=><div key={s.sourceFile+'#'+s.page}><span>{s.period}: PPR bruto {s.grossPpr===null?'Não encontrado':brl(s.grossPpr)}; IRRF PPR {brl(s.pprIncomeTax)}; contribuição negocial {brl(s.pprUnionContribution)}; líquido pago {s.net===null?'A conferir':brl(s.net)}; data {s.paymentDate?dateBR(s.paymentDate):'Não encontrada'}.</span></div>)}<small>O evento será criado apenas ao confirmar o documento, uma vez por holerite, e não altera a projeção salarial fixa.</small></div>}{suggestions.length>0&&<div className="suggestion"><strong>Possíveis mudanças encontradas</strong>{suggestions.map((s,i)=><div key={i}><span>{s.period}: {fieldNames[s.kind]||s.kind} → {brl(s.value)}. {s.reason}</span></div>)}<small>Alterações reconhecidas serão registradas automaticamente como eventos vinculados aos holerites, quando houver data de pagamento. Para documentos sem data, confirme uma data de referência provisória abaixo. Eventos manuais não serão alterados.</small></div>}{previews.some(s=>s.documentType==='monthly'&&!s.paymentDate&&importSelected.includes(s.sourceFile+'#'+s.page))&&<div className="detail-hint" role="group" aria-label="Data dos eventos automáticos">
  <Info size={18}/><div><strong>Data de pagamento não identificada em alguns holerites mensais</strong>
  <p>A criação de eventos exige uma data. O Payrep não inventará uma data de pagamento. Você pode escolher usar o último dia de cada competência como <strong>data de referência provisória</strong>, identificada como estimativa nos eventos, e corrigir depois.</p>
  <label className="checkbox-label"><input type="checkbox" checked={importUseCompetenceDate} onChange={e=>setImportUseCompetenceDate(e.target.checked)}/>Confirmo o uso da data provisória nos eventos dos holerites sem pagamento identificado.</label>
- </div></div>}<button className="primary payslip-import-confirm" disabled={busy||!db||importSelected.length===0} onClick={()=>task(async()=>{try{await saveStatements(previews,importFiles,importSelected,importUseCompetenceDate)}finally{await refresh()}setPreviews([]);setImportFiles([]);setImportSelected([]);setImportUseCompetenceDate(false);setPayslipTab('documents')},'Holerites salvos. Os eventos elegíveis foram sincronizados automaticamente, respeitando as datas de pagamento ou a data provisória expressamente autorizada.')}><Upload size={17}/> Confirmar {importSelected.length} documento(s)</button>{!db&&<p className="subtle">Configure o banco para habilitar o salvamento.</p>}</Panel>}</div>:<PayslipDocuments statements={statements} onRemoved={refresh}/>}
+ </div></div>}<button className="primary payslip-import-confirm" disabled={busy||!db||importSelected.length===0} onClick={()=>task(async()=>{try{await saveStatements(previews,importFiles,importSelected,importUseCompetenceDate)}finally{await refresh()}setPreviews([]);setImportFiles([]);setImportSelected([]);setImportUseCompetenceDate(false);setPayslipTab('documents')},'Holerites salvos. Os eventos elegíveis foram sincronizados automaticamente, respeitando as datas de pagamento ou a data provisória expressamente autorizada.')}><Upload size={17}/> Confirmar {importSelected.length} documento(s)</button>{!db&&<p className="subtle">Configure o banco para habilitar o salvamento.</p>}</Panel>}</div>:<PayslipDocuments statements={documentStatements} onRemoved={refresh}/>}
     </div>}
         {section==='admin'&&isAdmin&&<div className="stack"><div><button type="button" className="secondary" onClick={()=>setSection('admin-settings')}>Voltar às configurações</button></div><AdminDashboard/></div>}
     {section==='admin-support'&&isAdmin&&<AdminSupportTickets onBack={()=>setSection('admin-settings')}/>}
@@ -608,7 +642,7 @@ export default function App(){
     {section==='subscription'&&user&&<SubscriptionPage billingReturn={billingReturn} onBack={()=>{setBillingReturn(null);setSection('overview')}}/>}
     {section==='account-settings'&&user&&<AccountSecurityPage user={user} onBack={()=>setSection('overview')} onNavigateSubscription={()=>setSection('subscription')} onPayrollReset={async()=>{
       await refresh()
-      setSelectedStmt(null);setStatementLines([])
+      setSelectedStmt(null);setStatementLines([]);setDocumentStatements([])
       setPreviews([]);setImportFiles([]);setImportSelected([])
       setPensionOptions({...defaultPensionRule});setOverviewCards([...defaultOverviewCards])
       setYear('all');setEventsYear('all');setHoursAnchor(todayInSaoPaulo());setMonth(currentMonth())

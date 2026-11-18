@@ -9,19 +9,36 @@ export const overviewCardDefinitions=[
  ['fixedBenefit','Vale-benefício'],
  ['privatePension','Previdência'],
  ['childcareBenefit','Auxílio-creche'],
- ['espp','ESPP']
+ ['espp','ESPP'],
+ ['baseSalary','Salário Base'],
+ ['trienio','Triênio'],
+ ['privatePensionPercent','Previdência (%)'],
+ ['dependents','Dependentes'],
+ ['esppPercent','ESPP (%)'],
+ ['fixedPension','Pensão Fixa'],
+ ['advancePercent','Adiantamento (%)'],
+ ['salaryComposition','Composição do salário'],
+ ['competenceOvertime','Horas extras na competência']
 ] as const
 export type OverviewCardId=typeof overviewCardDefinitions[number][0]
+export const overviewWideSections=['salaryComposition','competenceOvertime'] as const
+export function isOverviewWideSection(id:OverviewCardId):boolean{
+ return (overviewWideSections as readonly string[]).includes(id)
+}
 export const defaultOverviewCards=overviewCardDefinitions.map(([id])=>id)
 const validCards=new Set<string>(defaultOverviewCards)
 export function normalizeOverviewCards(value:unknown):OverviewCardId[] {
  if(!Array.isArray(value))return [...defaultOverviewCards]
  const unique=new Set<string>()
  for(const item of value)if(typeof item==='string'&&validCards.has(item))unique.add(item)
+ // Older layouts only contained metric cards. Always retain the two movable,
+ // full-size sections, even if an old stored layout lacks them.
+ for(const section of overviewWideSections)unique.add(section)
  return [...unique] as OverviewCardId[]
 }
 export function changeCardVisibility(current:OverviewCardId[],id:OverviewCardId,show:boolean):OverviewCardId[]{
  const items=normalizeOverviewCards(current)
+ if(isOverviewWideSection(id))return items
  if(show)return items.includes(id)?items:[...items,id]
  return items.filter(x=>x!==id)
 }
