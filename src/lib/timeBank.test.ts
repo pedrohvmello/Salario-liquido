@@ -23,15 +23,15 @@ describe('cumulative hour bank',()=>{
   expect(movementForDay(first,dates,policies)).toBe(90)
   expect(movementForDay(second,dates,policies)).toBe(-30)
   expect(ledger.balanceMinutes).toBe(60)
-  expect(ledger.firstInsufficientDate).toBeNull()
+  expect(ledger.firstNegativeDate).toBeNull()
   expect(formatBankMinutes(ledger.balanceMinutes)).toBe('01:00')
  })
- it('prevents compensation before hours have been earned',()=>{
+ it('records compensation before hours have been earned as negative',()=>{
   const ledger=calculateBankLedger([
    entry('2026-11-17','17:00'),
    entry('2026-11-18','19:00')
   ],dates,policies)
-  expect(ledger.firstInsufficientDate).toBe('2026-11-17')
+  expect(ledger.firstNegativeDate).toBe('2026-11-17')
  })
  it('keeps overtime as paid when the box is unchecked',()=>{
   const regular=entry('2026-11-17','19:00',false)
@@ -53,12 +53,12 @@ describe('cumulative hour bank',()=>{
   ],dates,policies)
   expect(ledger.balanceMinutes).toBe(60)
  })
- it('uses minute precision and catches retroactive changes across months',()=>{
+ it('uses minute precision and keeps negative movements across months',()=>{
   const original=entry('2026-11-30','19:01')
   const withdrawal=entry('2026-12-01','17:59')
   expect(calculateBankLedger([withdrawal,original],dates,policies).balanceMinutes).toBe(60)
   expect(calculateBankLedger([withdrawal,{...original,end:'18:00'}],dates,policies)
-   .firstInsufficientDate).toBe('2026-12-01')
+   .firstNegativeDate).toBe('2026-12-01')
  })
  it('supports versions, custom factors and rejects expired policy for new credits',()=>{
   const current:TimeBankPolicy={
@@ -77,14 +77,14 @@ describe('cumulative hour bank',()=>{
   expect(movementForDay(blank,dates,policies)).toBe(-480)
   const earned=entry('2026-11-17','21:00') // 11 worked hours: +180 minutes
   const ledger=calculateBankLedger([earned,blank],dates,policies)
-  expect(ledger.firstInsufficientDate).toBe('2026-11-18')
+  expect(ledger.firstNegativeDate).toBe('2026-11-18')
  })
  it('allows an entire day off when prior bank credit covers the target',()=>{
   const first=entry('2026-11-17','23:00') // 13 worked hours, +300 minutes
   const second=entry('2026-11-18','23:00') // +300 minutes
   const dayOff={...entry('2026-11-19',''),start:'',lunchStart:'',lunchEnd:'',end:''}
   const result=calculateBankLedger([dayOff,second,first],dates,policies)
-  expect(result.firstInsufficientDate).toBeNull()
+  expect(result.firstNegativeDate).toBeNull()
   expect(result.balanceMinutes).toBe(120)
   expect(result.movements.get('2026-11-19')?.deltaMinutes).toBe(-480)
  })
@@ -105,6 +105,24 @@ describe('cumulative hour bank',()=>{
  it('does not debit blank weekends in the bank',()=>{
   const sunday={...entry('2026-11-22',''),start:'',lunchStart:'',lunchEnd:'',end:''}
   expect(movementForDay(sunday,dates,policies)).toBe(0)
+ })
+
+ it('permits a two-hour negative balance from zero and offsets it with later credit',()=>{
+  const short=entry('2026-11-17','16:00',true)
+  const credit=entry('2026-11-18','21:00',true)
+  const negative=calculateBankLedger([short],dates,policies)
+  expect(negative.balanceMinutes).toBe(-120)
+  expect(formatBankMinutes(negative.balanceMinutes)).toBe('-02:00')
+  const recovered=calculateBankLedger([credit,short],dates,policies)
+  expect(recovered.movements.get('2026-11-17')?.balanceMinutes).toBe(-120)
+  expect(recovered.balanceMinutes).toBe(60)
+ })
+ it('permits an eight-hour withdrawal without prior earned hours',()=>{
+  const dayOff={...entry('2026-11-18','',true),start:'',lunchStart:'',lunchEnd:'',end:''}
+  const ledger=calculateBankLedger([dayOff],dates,policies)
+  expect(ledger.balanceMinutes).toBe(-480)
+  expect(formatBankMinutes(ledger.balanceMinutes)).toBe('-08:00')
+  expect(ledger.firstNegativeDate).toBe('2026-11-18')
  })
 
 })

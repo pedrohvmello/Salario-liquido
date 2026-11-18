@@ -141,11 +141,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
    setError('Não existe política de Banco de Horas vigente em '+formatDate(hypothetical.firstMissingPolicyDate)+'. Solicite ao administrador uma nova vigência.')
    setSaving(false);return
   }
-  if(hypothetical.firstInsufficientDate){
-   setError('Saldo insuficiente no banco de horas em '+formatDate(hypothetical.firstInsufficientDate)+'.')
-   setSaving(false);return
-  }
-  try{
+    try{
    await saveTimeEntries(changed)
    setDrafts(previous=>{
     const next={...previous}
@@ -191,9 +187,9 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
     <div className="stat"><span>Total de horas extras</span><strong>{hours(totals.extra)}</strong></div>
     <div className="stat"><span>Total trabalhado</span><strong>{hours(totals.worked)}</strong></div>
     <div className="stat"><span>Saldo de Horas</span>
-     <strong>{formatBankMinutes(savedBank.balanceMinutes)} h</strong>
-     {dirtyCurrent.length>0&&!previewBank.firstInsufficientDate&&
-      <small>Após salvar: {formatBankMinutes(previewBank.balanceMinutes)} h</small>}
+     <strong className={savedBank.balanceMinutes<0?'fortnight-negative-balance':''}>{formatBankMinutes(savedBank.balanceMinutes)} h</strong>
+     {dirtyCurrent.length>0&&
+      <small className={previewBank.balanceMinutes<0?'fortnight-negative-balance':''}>Após salvar: {formatBankMinutes(previewBank.balanceMinutes)} h</small>}
     </div>
    </div>
    <p className="subtle fortnight-explanation">
@@ -289,10 +285,11 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
     <p className="error" role="alert">
      Nenhuma política de Banco de Horas vigente em {formatDate(previewBank.firstMissingPolicyDate)}.
     </p>}
-   {dirtyCurrent.length>0&&previewBank.firstInsufficientDate&&
-    <p className="error" role="alert">
-     Saldo de Horas insuficiente em {formatDate(previewBank.firstInsufficientDate)}.
-     Ajuste a jornada ou desmarque Banco de Horas para permitir o salvamento.
+   {dirtyCurrent.length>0&&previewBank.balanceMinutes<0&&
+    <p className="fortnight-negative-notice" role="status">
+     Saldo projetado negativo: {formatBankMinutes(previewBank.balanceMinutes)} h.
+     As horas devidas serão compensadas pelos próximos créditos no Banco de Horas.
+     O salvamento está permitido.
     </p>}
    {message&&<p className="auth-success" role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}

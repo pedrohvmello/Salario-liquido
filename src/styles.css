@@ -2006,3 +2006,13 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:520px){
  .user-bank-profile-factors{grid-template-columns:1fr}
 }
+
+/* A negative bank balance represents hours owed, not a save error. */
+.payrep-fortnight .fortnight-summary .stat strong.fortnight-negative-balance,
+.payrep-fortnight .fortnight-summary .stat small.fortnight-negative-balance{
+ color:#b44357;font-weight:800
+}
+.payrep-fortnight .fortnight-negative-notice{
+ color:#a73c51;font-size:12px;font-weight:600;
+ margin:10px 0 0;line-height:1.5
+}

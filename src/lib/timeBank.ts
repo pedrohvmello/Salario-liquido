@@ -12,7 +12,7 @@ export type BankRecord=DayEntry&{bankDeltaMinutes?:number|null;bankWeightedMinut
 export type BankMovement={date:string;deltaMinutes:number;balanceMinutes:number;paid:Overtime|null}
 export type BankLedger={
  balanceMinutes:number
- firstInsufficientDate:string|null
+ firstNegativeDate:string|null
  firstMissingPolicyDate:string|null
  movements:Map<string,BankMovement>
 }
@@ -87,14 +87,15 @@ export function paidOvertime(entry:DayEntry,dates:ReadonlySet<string>):Overtime{
  return entry.bankHours?{...calc,h60:0,h80:0,h100:0}:calc
 }
 
-/** Balance is chronological across ALL recorded periods, not the selected fortnight.
+/** Signed balance may be negative (hours owed), including if the user has no prior credits.
+ * Balance is chronological across ALL recorded periods, not the selected fortnight.
  * Saved rows can use the database's generated minute value. Draft edits
  * deliberately remove that field and are recalculated with the current calendar.
  */
 export function calculateBankLedger(entries:BankRecord[],dates:ReadonlySet<string>|null,policies:TimeBankPolicy[]):BankLedger{
  const byDate=new Map(entries.map(entry=>[entry.date,entry]))
  let balanceMinutes=0
- let firstInsufficientDate:string|null=null
+ let firstNegativeDate:string|null=null
  let firstMissingPolicyDate:string|null=null
  const movements=new Map<string,BankMovement>()
  for(const entry of [...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date))){
@@ -113,10 +114,10 @@ export function calculateBankLedger(entries:BankRecord[],dates:ReadonlySet<strin
    paid=null;deltaMinutes=0
   }
   balanceMinutes+=deltaMinutes
-  if(balanceMinutes<0&&!firstInsufficientDate)firstInsufficientDate=entry.date
+  if(balanceMinutes<0&&!firstNegativeDate)firstNegativeDate=entry.date
   movements.set(entry.date,{date:entry.date,deltaMinutes,balanceMinutes,paid})
  }
- return {balanceMinutes,firstInsufficientDate,firstMissingPolicyDate,movements}
+ return {balanceMinutes,firstNegativeDate,firstMissingPolicyDate,movements}
 }
 
 export function formatBankMinutes(value:number):string{
