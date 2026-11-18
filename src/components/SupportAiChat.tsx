@@ -73,7 +73,13 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
  }
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>{mode==='help'?'Pep Ajuda':'Pergunte ao Pep'}</h2>
-   <p>{mode==='help'?'Tire dúvidas sobre as funcionalidades e processos do Payrep.':'Consulte seus registros salariais com o Pep, conforme seu plano.'}</p></div>
+   <p>{mode==='help'?'Tire dúvidas sobre as funcionalidades e processos do Payrep.':<>
+    <strong>Seu especialista fiscal privado no Payrep.</strong> O Pep ajuda a compreender holerites,
+    IRRF, INSS, FGTS, PPR, férias, 13º salário, pensão e outros descontos.
+    Também pode esclarecer dúvidas sobre projeções salariais e diferenças entre competências
+    usando os dados disponíveis na sua conta. As orientações devem ser conferidas com seus
+    documentos e, quando necessário, com um profissional habilitado.
+   </>}</p></div>
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar</button>
   </div>
   <section className="panel payrep-ai-shell" aria-label="Conversa com o Assistente Payrep">
@@ -85,14 +91,14 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
      onClick={()=>{setMessages([]);setError('')}}><Trash2 size={15}/> Nova conversa</button>
    </div>
   </div>
-   <div className="pep-usage-counter" role="status" aria-live="polite">
-    {usageLoading?'Consultando sua franquia...':usage?.unlimited?'Consultas ilimitadas para administradores':
+   {(!usage?.unlimited)&&<div className="pep-usage-counter" role="status" aria-live="polite">
+    {usageLoading?'Consultando sua franquia...':
      usage?(mode==='help'
       ?'Pep Ajuda: '+usage.helpUsed+' de '+usage.helpLimit+' consultas utilizadas hoje'
       :usage.effectivePlan==='free'?'Disponível nos planos Basic e Full':
        'Pep '+(usage.effectivePlan==='full'?'Full':'Basic')+': '+usage.personalUsed+' de '+usage.personalLimit+' consultas utilizadas hoje')
       :'Não foi possível consultar a franquia neste momento.'}
-   </div>
+   </div>}
    <div className="payrep-ai-messages" role="log" aria-live="polite" aria-relevant="additions text">
     {messages.length===0&&<div className="payrep-ai-welcome"><Sparkles size={25}/><h3>Como posso ajudar?</h3>
       <p>{mode==='help'?'Posso explicar como usar o Payrep. Não consulto seus dados pessoais nesta área.':

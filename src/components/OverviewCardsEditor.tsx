@@ -1,6 +1,6 @@
 import {useEffect,useLayoutEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent,type ReactNode} from 'react'
 import {Check,Grip,Palette,RotateCcw,X} from 'lucide-react'
-import {normalizeOverviewCards,normalizeOverviewCardColors,reorderOverviewCardTo,isOverviewWideSection,setOverviewCardColor,overviewCardPalette,type OverviewCardId,type OverviewCardColor,type OverviewCardColors} from '../lib/overview'
+import {normalizeOverviewCards,restoreOverviewCards,defaultOverviewCards,normalizeOverviewCardColors,reorderOverviewCardTo,isOverviewWideSection,setOverviewCardColor,overviewCardPalette,type OverviewCardId,type OverviewCardColor,type OverviewCardColors} from '../lib/overview'
 
 type CardDetails=Record<OverviewCardId,{value:string;note:string}>
 type DragGhost={id:OverviewCardId;left:number;top:number;width:number;height:number}
@@ -122,9 +122,9 @@ export function OverviewCardsEditor({cards,colors,details,labels,sections,onComm
    const target=event.target
    if(!(target instanceof Element))return
    const card=target.closest('[data-overview-card]')
-   const done=target.closest('.overview-edit-done')
-   // A tap in the empty grid space, toolbar, or page exits edit mode.
-   if(!card&&!done)finishRef.current()
+   const toolbar=target.closest('.overview-edit-toolbar')
+   // Toolbar actions must not trigger an implicit save before their clicks run.
+   if(!card&&!toolbar)finishRef.current()
   }
   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')finishRef.current()}
   document.addEventListener('pointerdown',outside,true)
@@ -185,10 +185,17 @@ export function OverviewCardsEditor({cards,colors,details,labels,sections,onComm
   if(arrow[event.key]){event.preventDefault();const index=draftRef.current.indexOf(id);const target=index+arrow[event.key];setCards(reorderOverviewCardTo(draftRef.current,id,target))}
  }
  const list=editing?draft:cards
+ const hiddenCount=defaultOverviewCards.filter(id=>!list.includes(id)).length
+ const restoreHidden=()=>setCards(restoreOverviewCards(draftRef.current))
  return <div className={'overview-editor'+(editing?' is-editing':'')} ref={root}>
   {editing&&<div className="overview-edit-toolbar" aria-live="polite">
    <span><Grip size={16}/> Segure para arrastar. Use a paleta para escolher a cor ou X para ocultar.</span>
-   <button type="button" className="overview-edit-done" disabled={busy} onClick={finish}><Check size={16}/> Concluir</button>
+   <div className="overview-edit-actions">
+    {hiddenCount>0&&<button type="button" className="secondary" disabled={busy} onClick={restoreHidden}>
+     <RotateCcw size={14}/> Restaurar {hiddenCount} card(s)
+    </button>}
+    <button type="button" className="overview-edit-done" disabled={busy} onClick={finish}><Check size={16}/> Concluir</button>
+   </div>
   </div>}
   {error&&<div className="overview-edit-error" role="alert">{error}<button type="button" onClick={()=>setError('')} aria-label="Dispensar aviso"><X size={15}/></button></div>}
   <div className="stats-grid overview-stats" aria-label="Cartões de visão geral">
@@ -243,7 +250,7 @@ export function OverviewCardsEditor({cards,colors,details,labels,sections,onComm
    <span className="subtle">{labels[ghost.id]}</span>
    {!isOverviewWideSection(ghost.id)&&<><strong>{details[ghost.id].value}</strong>{details[ghost.id].note&&<small>{details[ghost.id].note}</small>}</>}
   </div>}
-  {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Os cartões ocultos podem ser restaurados em Definições. Ordem e cores são salvas em Concluir.</div>}
+  {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Ordem, cores e visibilidade são salvas ao tocar em Concluir.</div>}
   {busy&&<div className="overview-edit-hint" role="status">Salvando disposição...</div>}
  </div>
 }

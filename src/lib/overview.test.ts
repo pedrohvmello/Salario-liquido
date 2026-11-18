@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes} from './pensionRule'
-import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo,isOverviewWideSection,normalizeOverviewCardColors,setOverviewCardColor,overviewCardPalette} from './overview'
+import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo,isOverviewWideSection,restoreOverviewCards,normalizeOverviewCardColors,setOverviewCardColor,overviewCardPalette} from './overview'
 import {effectiveParams} from './data'
 import {calculatePayroll2026,defaults} from './money'
 describe('pension event semantics',()=>{
@@ -76,6 +76,21 @@ describe('new IRRF and INSS overview cards',()=>{
   const hidden=changeCardVisibility(changeCardVisibility(updated,'irrf',false),'inss',false)
   expect(normalizeOverviewCards(hidden,2)).not.toContain('irrf')
   expect(normalizeOverviewCards(hidden,2)).not.toContain('inss')
+ })
+})
+describe('restore hidden overview cards',()=>{
+ it('restores all hidden cards without losing the active order',()=>{
+  const layout=normalizeOverviewCards(['salaryComposition','gross','competenceOvertime','fgts'],2)
+  const restored=restoreOverviewCards(layout)
+  expect(restored.slice(0,layout.length)).toEqual(layout)
+  expect(restored).toHaveLength(defaultOverviewCards.length)
+  expect(new Set(restored).size).toBe(restored.length)
+  expect(restored).toContain('irrf')
+  expect(restored).toContain('inss')
+ })
+ it('does not duplicate cards when restoring again',()=>{
+  const layout=normalizeOverviewCards(['gross','fgts'],2)
+  expect(restoreOverviewCards(restoreOverviewCards(layout))).toEqual(restoreOverviewCards(layout))
  })
 })
 describe('pastel dashboard card colors',()=>{

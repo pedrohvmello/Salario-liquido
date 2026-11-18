@@ -86,6 +86,11 @@ export function changeCardVisibility(current:OverviewCardId[],id:OverviewCardId,
  if(show)return items.includes(id)?items:[...items,id]
  return items.filter(x=>x!==id)
 }
+/** Restore intentionally hidden metric cards, preserving the positions of visible ones. */
+export function restoreOverviewCards(current:OverviewCardId[]):OverviewCardId[]{
+ const visible=normalizeOverviewCards(current)
+ return [...visible,...defaultOverviewCards.filter(id=>!visible.includes(id))]
+}
 export function moveOverviewCard(current:OverviewCardId[],id:OverviewCardId,direction:-1|1):OverviewCardId[]{
  const items=normalizeOverviewCards(current),from=items.indexOf(id),to=from+direction
  if(from<0||to<0||to>=items.length)return items

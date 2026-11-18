@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles,ChevronLeft} from 'lucide-react'
+import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,ArrowUpRight,Bot,PanelLeftClose,PanelLeftOpen,Sparkles,ChevronLeft} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {type DayEntry} from './lib/calendar'
 import {paidOvertime,type TimeBankPolicy} from './lib/timeBank'
@@ -22,7 +22,7 @@ import {recordAppSession} from './lib/admin'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
 import {latestEffectiveEvent} from './lib/eventSources'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes,pensionRuleLabels,type PensionRule} from './lib/pensionRule'
-import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,normalizeOverviewCardColors,type OverviewCardId,type OverviewCardColors} from './lib/overview'
+import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,followingMonth,projectedMealBenefit,normalizeOverviewCardColors,type OverviewCardId,type OverviewCardColors} from './lib/overview'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
@@ -65,7 +65,7 @@ const nav=[
  {id:'hours',label:'Controle de horas',icon:Clock3},
  {id:'events',label:'Eventos e vigências',icon:CalendarClock},
  {id:'analytics',label:'Análises',icon:ChartNoAxesCombined},
- {id:'income-tax',label:'Informe IR (prévia)',icon:FileSpreadsheet},
+ {id:'income-tax',label:'Informe IR',icon:FileSpreadsheet},
  {id:'pep-personal',label:'Pergunte ao Pep',icon:Bot},
  {id:'imports',label:'Meus Holerites',icon:FileInput},
  {id:'definitions',label:'Definições',icon:Settings2},
@@ -644,7 +644,7 @@ export default function App(){
     {section==='help'&&user&&<SupportPage user={user}/>}
     {section==='pep-personal'&&user&&<PersonalPepPage
      onBack={()=>setSection('overview')} onSubscribe={()=>setSection('subscription')}/>}
-     {section==='definitions'&&<div className="stack"><UserBankProfileSettings onChanged={()=>refresh()}/><Panel title="Configurações da Visão Geral"><p className="subtle">Selecione e ordene os cartões. A lista é lida de cima para baixo na primeira coluna e depois na segunda, seguindo a numeração exibida.</p><div className="overview-config">{[...overviewCards,...overviewCardDefinitions.map(([id])=>id).filter(id=>!overviewCards.includes(id))].map(id=>{const label=overviewCardDefinitions.find(([key])=>key===id)?.[1]||id;const visible=overviewCards.includes(id);const position=overviewCards.indexOf(id);return <div className="overview-config-row" key={id}><label className="checkbox-label"><span className="overview-config-rank">{visible?position+1:'·'}</span><input type="checkbox" checked={visible} onChange={e=>setOverviewCards(v=>changeCardVisibility(v,id,e.target.checked))}/>{label}</label><div className="overview-config-actions"><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para cima'} title="Mover para cima" disabled={!visible||position===0} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,-1))}><ArrowUp size={16}/></button><button type="button" className="secondary icon-reorder" aria-label={'Mover '+label+' para baixo'} title="Mover para baixo" disabled={!visible||position===overviewCards.length-1} onClick={()=>setOverviewCards(v=>moveOverviewCard(v,id,1))}><ArrowDown size={16}/></button></div></div>})}</div><button className="primary" disabled={busy||!db} onClick={()=>task(async()=>{await persistOverviewCards(overviewCards);await refresh()},'Configurações da Visão Geral salvas')}><Save size={16}/> Salvar seleção e ordem</button></Panel><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel></div>}
+     {section==='definitions'&&<div className="stack"><UserBankProfileSettings onChanged={()=>refresh()}/><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel></div>}
    </div>
  )
  return <div className={'app'+(sidebarCollapsed?' app--sidebar-collapsed':'')}>
