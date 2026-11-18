@@ -632,7 +632,7 @@ export default function App(){
   </div></Panel></div>}
    </div>
  )
- return <div className="app">
+ return <div className={'app'+(sidebarCollapsed?' app--sidebar-collapsed':'')}>
   <aside id="payrep-sidebar" className={'sidebar'+(menu?' open':'')+(sidebarCollapsed?' sidebar--collapsed':'')}>
    <div className="sidebar-brand-row">
     <div className="brand brand--wordmark"><span className="brand-symbol-frame"><img src="/brand/payrep-symbol.svg" alt="Payrep" width="42" height="42"/></span><div className="brand-type"><strong>Payrep</strong><small>Controle salarial</small></div></div>

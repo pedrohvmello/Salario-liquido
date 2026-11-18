@@ -1778,3 +1778,67 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .payrep-fortnight .fortnight-summary .stat strong{font-size:18px}
  .payrep-fortnight .fortnight-actions .primary{width:100%}
 }
+
+
+/* Resize the work area when the desktop rail is collapsed. */
+@media(min-width:761px){
+ .app--sidebar-collapsed .main{flex:1 1 0;min-width:0}
+ .app--sidebar-collapsed .page-body{
+  width:100%;max-width:none;
+  padding-inline:clamp(16px,2vw,38px)
+ }
+ .app--sidebar-collapsed .topbar{padding-inline:clamp(16px,2vw,38px)}
+}
+
+/* Compact fortnight navigator with the calendar action beside the period. */
+.payrep-fortnight .fortnight-toolbar{
+ justify-content:center;gap:8px;flex-wrap:wrap
+}
+.payrep-fortnight .fortnight-toolbar>strong{
+ flex:0 1 auto;min-width:0;white-space:nowrap;margin-inline:10px
+}
+.payrep-fortnight .fortnight-toolbar .secondary{min-height:41px}
+.payrep-date-trigger--icon{
+ display:inline-flex;flex:none;align-items:center;justify-content:center;
+ width:41px!important;min-width:41px!important;height:41px;
+ padding:8px!important;border-radius:9px
+}
+
+/* More useful data per desktop row, with stable date/day columns. */
+.payrep-fortnight .fortnight-table{min-width:1250px}
+.payrep-fortnight .fortnight-table th,
+.payrep-fortnight .fortnight-table td{text-align:center}
+.payrep-fortnight .fortnight-table th{padding:11px 5px;vertical-align:middle}
+.payrep-fortnight .fortnight-table td{padding:6px 5px}
+.payrep-fortnight .fortnight-table th:first-child,
+.payrep-fortnight .fortnight-table td:first-child{
+ width:99px;min-width:99px;max-width:99px
+}
+.payrep-fortnight .fortnight-table th:nth-child(2),
+.payrep-fortnight .fortnight-table td:nth-child(2){
+ left:99px;width:125px;min-width:125px;max-width:125px
+}
+.payrep-fortnight .fortnight-table .fortnight-time-input{
+ display:block;margin-inline:auto;width:82px;min-width:82px;
+ padding:7px 5px;text-align:center
+}
+.payrep-fortnight .fortnight-table .fortnight-calculated{
+ min-width:76px;text-align:center
+}
+.payrep-fortnight .fortnight-table .fortnight-comment{
+ min-width:165px;max-width:280px;text-align:left
+}
+.payrep-fortnight .fortnight-table tr.fortnight-weekend td{background:#faf7fd}
+.payrep-fortnight .fortnight-table tr.fortnight-holiday td{background:#eaf8f0}
+.payrep-fortnight .fortnight-table tr.fortnight-today td{background:#fff8dc}
+.payrep-fortnight .fortnight-table tr.fortnight-dirty td{
+ box-shadow:inset 0 -1px 0 #d9c0ef
+}
+.payrep-fortnight .fortnight-table tr.fortnight-invalid td{background:#fff0f0}
+
+@media(max-width:760px){
+ .payrep-fortnight .fortnight-toolbar{justify-content:center;gap:7px}
+ .payrep-fortnight .fortnight-toolbar>strong{
+  order:-1;flex:0 0 100%;margin:0 0 4px;white-space:normal
+ }
+}

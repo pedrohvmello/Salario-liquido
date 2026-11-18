@@ -2,7 +2,7 @@ import {useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
 import {PayrepDatePicker} from './PayrepDatePicker'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
-import {fortnightDays,getFortnight,shiftFortnight} from '../lib/fortnight'
+import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 
 type TimeRow=DayEntry&{id:string}
@@ -34,6 +34,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  const [message,setMessage]=useState('')
  const period=getFortnight(anchor)
  const dates=fortnightDays(anchor)
+ const today=todayInSaoPaulo()
  const byDate=useMemo(()=>new Map(records.map(row=>[row.date,row])),[records])
  const read=(date:string)=>drafts[date]??byDate.get(date)??empty(date)
  const change=(date:string,patch:Partial<DayEntry>)=>{
@@ -114,11 +115,10 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
     <button type="button" className="secondary" aria-label="Quinzena anterior"
      onClick={()=>onAnchorChange(shiftFortnight(anchor,-1))}><ChevronLeft size={17}/> Anterior</button>
     <strong aria-live="polite">{period.label}</strong>
+    <PayrepDatePicker iconOnly value={anchor} onChange={onAnchorChange}
+     title="Selecionar dia e quinzena"/>
     <button type="button" className="secondary" aria-label="Próxima quinzena"
      onClick={()=>onAnchorChange(shiftFortnight(anchor,1))}>Próxima <ChevronRight size={17}/></button>
-    <label className="fortnight-calendar-label">Selecionar dia
-     <PayrepDatePicker value={anchor} onChange={onAnchorChange} title="Selecionar dia e quinzena"/>
-    </label>
    </div>
    <div className="fortnight-summary" aria-label="Totais da quinzena">
     <div className="stat"><span>Extras 60%</span><strong>{hours(totals.h60)}</strong></div>
@@ -128,7 +128,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
     <div className="stat"><span>Total trabalhado</span><strong>{hours(totals.worked)}</strong></div>
    </div>
    <p className="subtle fortnight-explanation">
-    Horários e horas adicionais em HH:MM. Somente jornadas completas entram nos totais.
+    Somente jornadas completas entram nos totais.
     Horas adicionais são somadas às horas trabalhadas e classificadas nas faixas de horas extras.
     {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
    </p>
@@ -140,12 +140,12 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
      <thead><tr>
       <th>Data</th><th>Dia da semana</th><th>Entrada</th><th>Almoço início</th>
       <th>Almoço fim</th><th>Saída</th><th>Horas Adicionais</th>
-      <th>Horas Trabalhadas</th><th>Hora Extra</th><th>60%</th><th>80%</th>
+      <th>Hora Extra</th><th>60%</th><th>80%</th>
       <th>100%</th><th>Feriado</th><th>Comentários</th>
      </tr></thead>
      <tbody>{rows.map(row=>{
       const dow=new Date(row.date+'T12:00:00Z').getUTCDay()
-      const typed=(key:Field,label:string,placeholder='HH:MM')=><input
+      const typed=(key:Field,label:string,placeholder='00:00')=><input
        type="text" inputMode={key==='comments'?'text':'numeric'}
        className={key==='comments'?'fortnight-comment':'fortnight-time-input'}
        aria-label={label+' em '+formatDate(row.date)}
@@ -158,8 +158,13 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
         if(normalized!==(row.entry[key]||''))change(row.date,{[key]:normalized})
        }}
       />
-      return <tr key={row.date} className={(dow===0||dow===6?'fortnight-weekend ':'')+
-       (dirtyCurrent.includes(row.date)?'fortnight-dirty ':'')+(row.invalid?'fortnight-invalid':'')}>
+      return <tr key={row.date} className={[
+       dow===0||dow===6?'fortnight-weekend':'',
+       row.holiday?'fortnight-holiday':'',
+       row.date===today?'fortnight-today':'',
+       dirtyCurrent.includes(row.date)?'fortnight-dirty':'',
+       row.invalid?'fortnight-invalid':''
+      ].filter(Boolean).join(' ')}>
        <td><strong>{formatDate(row.date)}</strong></td>
        <td>{weekday(row.date)}</td>
        <td>{typed('start','Entrada')}</td>
@@ -167,8 +172,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
        <td>{typed('lunchEnd','Almoço fim')}</td>
        <td>{typed('end','Saída')}</td>
        <td>{typed('additionalHours','Horas adicionais','00:00')}</td>
-       <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.total):'—'}</td>
-       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
+       <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
        <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60):'—'}</td>
        <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h80):'—'}</td>
        <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h100):'—'}</td>

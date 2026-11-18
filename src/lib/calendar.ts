@@ -26,7 +26,7 @@ export function classifyHours(entry:DayEntry,holidayDates?:ReadonlySet<string>):
   const a=mins(entry.start),b=mins(entry.lunchStart),c=mins(entry.lunchEnd),d=mins(entry.end)
   if (![a,b,c,d].every(Number.isFinite) || !(a<=b&&b<=c&&c<=d)) throw new Error('Horários inválidos: entrada, almoço e saída devem estar em ordem')
   const additional=entry.additionalHours?.trim()||''
-  const match=additional? /^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(additional):null
+  const match=additional? /^([01]\d|2[0-3]):([0-5]\d)$/.exec(additional):null
   if(additional&&!match)throw new Error('Horas adicionais inválidas: use HH:MM')
   const added=match?Number(match[1])*60+Number(match[2]):0
   const total = roundMoney(((b-a)+(d-c)+added)/60)

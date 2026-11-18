@@ -5,6 +5,7 @@ import {makePprEvent} from './ppr'
 import {validateThirteenthPay} from './thirteenth'
 import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
+import {timePayload} from './timeEntryPayload'
 import type {SalaryParameters} from './money'
 import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
@@ -94,26 +95,6 @@ export async function removeEvent(id:string){
   if(!db)throw new Error('Banco não configurado')
   const {error}=await db.from('salary_events').delete().eq('id',id).eq('user_id',await identity())
   if(error)throw new Error(error.message)
-}
-const timePayload=(entry:DayEntry,user_id:string,id?:string)=>{
- const time=(value:string,name:string)=>{
-  if(!value)return null
-  if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value))throw Error(name+': use HH:MM (00:00 a 23:59).')
-  return value
- }
- const extra=entry.additionalHours?.trim()||''
- const additional=extra? /^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(extra):null
- if(extra&&!additional)throw Error('Horas adicionais: use HH:MM (00:00 a 23:59).')
- const comments=entry.comments?.trim()||null
- if(comments&&comments.length>500)throw Error('Comentários devem ter no máximo 500 caracteres.')
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(entry.date))throw Error('Data inválida.')
- return {
-  ...(id?{id}:{}),user_id,date:entry.date,
-  start_at:time(entry.start,'Entrada'),lunch_start:time(entry.lunchStart,'Início do almoço'),
-  lunch_end:time(entry.lunchEnd,'Fim do almoço'),end_at:time(entry.end,'Saída'),
-  additional_minutes:additional?Number(additional[1])*60+Number(additional[2]):0,
-  holiday_override:entry.holidayOverride,comments
- }
 }
 export async function saveTimeEntries(entries:DayEntry[]){
  if(!db)throw new Error('Banco não configurado')

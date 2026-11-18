@@ -25,6 +25,7 @@ type Props={
  id?:string
  required?:boolean
  disabled?:boolean
+ iconOnly?:boolean
  // Opt in for birth dates without changing other Payrep calendar instances.
  yearSelection?:boolean
  minYear?:number
@@ -37,7 +38,7 @@ export function selectableYears(minYear:number,maxYear:number,query=''){
 }
 const weekdays=['D','S','T','Q','Q','S','S']
 export function PayrepDatePicker({
- value,onChange,title='Selecionar data',id,disabled=false,
+ value,onChange,title='Selecionar data',id,disabled=false,iconOnly=false,
  yearSelection=false,minYear=1900,maxYear=new Date().getFullYear()
 }:Props){
  const initial=parseDate(value)||new Date()
@@ -68,9 +69,11 @@ export function PayrepDatePicker({
   setShown(false)
  }
  return <>
-  <button id={id} type="button" disabled={disabled} className="payrep-select-trigger payrep-date-trigger" aria-haspopup="dialog" aria-expanded={shown}
+  <button id={id} type="button" disabled={disabled} className={'payrep-select-trigger payrep-date-trigger'+(iconOnly?' payrep-date-trigger--icon':'')}
+    aria-haspopup="dialog" aria-expanded={shown} aria-label={iconOnly?title:undefined} title={iconOnly?title:undefined}
    onClick={()=>{const chosen=parseDate(value)||new Date();setYear(chosen.getFullYear());setMonth(chosen.getMonth());setSelectingYear(false);setYearQuery('');setShown(true)}}>
-   <span className={!date?'payrep-select-placeholder':''}>{display(value)}</span><CalendarDays size={17} aria-hidden="true"/>
+   {!iconOnly&&<span className={!date?'payrep-select-placeholder':''}>{display(value)}</span>}
+    <CalendarDays size={17} aria-hidden="true"/>
   </button>
   {shown&&<PayrepPickerDialog title={title} onClose={()=>setShown(false)} className="payrep-date-modal">
    <div className="payrep-calendar-controls">
