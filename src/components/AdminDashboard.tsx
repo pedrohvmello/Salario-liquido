@@ -4,6 +4,8 @@ import {PayrepConfirmDialog} from './PayrepConfirmDialog'
 import {RefreshCw,ShieldCheck,UsersRound,UserCheck,Clock3,ShieldAlert,Activity,Info,CreditCard,MapPin} from 'lucide-react'
 import {AdminUserDetailDialog} from './AdminUserDetail'
 import {AdminAvatar} from './AdminAvatar'
+import {AdminKpiCardsEditor,type AdminKpiData} from './AdminKpiCardsEditor'
+import type {AdminKpiId} from '../lib/adminKpiLayout'
 import {localityCounts,planCount,planLabels,type Plan} from '../lib/adminMetrics'
 import {fetchAdminDashboard,fetchAdminUserDetail,changeUserStatus,type AdminUserDetail,type AdminDashboardData,type AdminUser,type AccessStatus} from '../lib/admin'
 
@@ -12,10 +14,6 @@ const statuses:Record<AccessStatus,string>={
 }
 const dateTime=(raw:string|null)=>raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'
 const smallDate=(raw:string|null)=>raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'
-function Kpi({label,value,note,icon:Icon}:{label:string;value:number|string;note:string;icon:typeof UsersRound}){
- return <div className="stat"><div className="admin-kpi-label"><Icon size={15}/><span>{label}</span></div><strong>{value}</strong><small>{note}</small></div>
-}
-
 export function AdminDashboard(){
  const [data,setData]=useState<AdminDashboardData|null>(null)
  const [error,setError]=useState('')
@@ -81,18 +79,18 @@ export function AdminDashboard(){
   {message&&<div className="payrep-feedback-toast" role="status">{message}<button type="button" onClick={()=>setMessage('')} aria-label="Fechar mensagem">×</button></div>}
   {loading&&!data?<div className="panel">Carregando usuários...</div>:null}
   {data&&<>
-   <div className="admin-kpis">
-    <Kpi label="Cadastrados" value={counts.total} note={counts.new30+' novos em 30 dias'} icon={UsersRound}/>
-    <Kpi label="Aprovados" value={counts.approved} note="Contas com acesso liberado" icon={UserCheck}/>
-    <Kpi label="Pendentes" value={counts.pending} note="Aguardando decisão" icon={Clock3}/>
-    <Kpi label="Suspensos / rejeitados" value={counts.blocked} note="Acesso aos dados bloqueado" icon={ShieldAlert}/>
-    <Kpi label="Sessões iniciadas (30 dias)" value={data.sessions30d} note="Cada sessão única conta uma vez" icon={Activity}/>
-    <Kpi label="Usuários que acessaram (30 dias)" value={data.uniqueUsers30d} note="Contas distintas com sessão registrada" icon={ShieldCheck}/>
-    <Kpi label="Free" value={planCounts.free} note="Plano gratuito" icon={CreditCard}/>
-    <Kpi label="Basic" value={planCounts.basic} note="Assinaturas Basic" icon={CreditCard}/>
-    <Kpi label="Full" value={planCounts.full} note="Assinaturas Full" icon={CreditCard}/>
-    <Kpi label="Localidades" value={locations.filter(x=>x.location!=='Não informado').length} note="Cidades com cadastro informado" icon={MapPin}/>
-   </div>
+   <AdminKpiCardsEditor cards={{
+    registered:{label:'Cadastrados',value:counts.total,note:counts.new30+' novos em 30 dias',icon:UsersRound},
+    approved:{label:'Aprovados',value:counts.approved,note:'Contas com acesso liberado',icon:UserCheck},
+    pending:{label:'Pendentes',value:counts.pending,note:'Aguardando decisão',icon:Clock3},
+    blocked:{label:'Suspensos / rejeitados',value:counts.blocked,note:'Acesso aos dados bloqueado',icon:ShieldAlert},
+    sessions30d:{label:'Sessões iniciadas (30 dias)',value:data.sessions30d,note:'Cada sessão única conta uma vez',icon:Activity},
+    uniqueUsers30d:{label:'Usuários que acessaram (30 dias)',value:data.uniqueUsers30d,note:'Contas distintas com sessão registrada',icon:ShieldCheck},
+    free:{label:'Free',value:planCounts.free,note:'Plano gratuito',icon:CreditCard},
+    basic:{label:'Basic',value:planCounts.basic,note:'Assinaturas Basic',icon:CreditCard},
+    full:{label:'Full',value:planCounts.full,note:'Assinaturas Full',icon:CreditCard},
+    locations:{label:'Localidades',value:locations.filter(x=>x.location!=='Não informado').length,note:'Cidades com cadastro informado',icon:MapPin}
+   } satisfies Record<AdminKpiId,AdminKpiData>}/>
    <section className="panel">
     <div className="panel-heading"><h2>Usuários cadastrados</h2><span className="pill">{filtered.length} usuário(s)</span></div>
     <div className="admin-filters">
