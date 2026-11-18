@@ -5,20 +5,27 @@ import {fetchAdminDashboard,type AdminUser} from '../lib/admin'
 import {PayrepSelect} from './PayrepSelect'
 import {PayrepDatePicker} from './PayrepDatePicker'
 import type {TimeBankPolicy} from '../lib/timeBank'
+type CatalogVersion={
+ id:string;profile_id:string;version:number;valid_from:string;valid_until:string;
+ weekday_factor:number;saturday_factor:number;sunday_factor:number;holiday_factor:number;
+ daily_target_minutes:number;settlement_interval_months:number;settlement_months:number[];settlement_half:number
+}
+type CatalogProfile={id:string;name:string;organization:string;uf:string}
 
 type PolicyDraft={
- id?:string;user_id:string;title:string;source_reference:string;
+ id?:string;user_id:string;title:string;source_reference:string;catalog_profile_version_id?:string|null;
  valid_from:string;valid_until:string;
  weekday_factor:string;saturday_factor:string;sunday_factor:string;holiday_factor:string;
  daily_target_minutes:string;settlement_interval_months:string;settlement_months:string;settlement_half:string
 }
 const blank=(userId:string):PolicyDraft=>({
- user_id:userId,title:'',source_reference:'',valid_from:'',valid_until:'',
+ user_id:userId,title:'',source_reference:'',catalog_profile_version_id:null,valid_from:'',valid_until:'',
  weekday_factor:'1',saturday_factor:'1',sunday_factor:'1',holiday_factor:'1',
  daily_target_minutes:'480',settlement_interval_months:'6',settlement_months:'2,8',settlement_half:'1'
 })
 const fromPolicy=(p:TimeBankPolicy):PolicyDraft=>({
  id:p.id,user_id:p.user_id,title:p.title,source_reference:p.source_reference,
+ catalog_profile_version_id:(p as TimeBankPolicy&{catalog_profile_version_id?:string|null}).catalog_profile_version_id??null,
  valid_from:p.valid_from,valid_until:p.valid_until,
  weekday_factor:String(p.weekday_factor),saturday_factor:String(p.saturday_factor),
  sunday_factor:String(p.sunday_factor),holiday_factor:String(p.holiday_factor),
@@ -42,6 +49,9 @@ const number=(v:string,name:string,min:number,max:number)=>{
 export function AdminTimeBankPolicies(){
  const [users,setUsers]=useState<AdminUser[]>([])
  const [policies,setPolicies]=useState<TimeBankPolicy[]>([])
+ const [catalog,setCatalog]=useState<CatalogProfile[]>([])
+ const [catalogVersions,setCatalogVersions]=useState<CatalogVersion[]>([])
+ const [selectedCatalog,setSelectedCatalog]=useState('')
  const [userId,setUserId]=useState('')
  const [draft,setDraft]=useState<PolicyDraft>(()=>blank(''))
  const [busy,setBusy]=useState(false)
@@ -50,13 +60,18 @@ export function AdminTimeBankPolicies(){
  const [message,setMessage]=useState('')
  const refresh=useCallback(async()=>{
   if(!db)throw Error('Supabase não configurado')
-  const [dashboard,response]=await Promise.all([
+  const [dashboard,response,catalogProfiles,versions]=await Promise.all([
    fetchAdminDashboard(),
-   db.from('time_bank_policies').select('*').order('valid_from',{ascending:false})
+   db.from('time_bank_policies').select('*').order('valid_from',{ascending:false}),
+   db.from('collective_profiles').select('id,name,organization,uf'),
+   db.from('collective_profile_versions').select('*').order('published_at',{ascending:false})
   ])
-  if(response.error)throw Error(response.error.message)
+  if(response.error||catalogProfiles.error||versions.error)
+   throw Error(response.error?.message||catalogProfiles.error?.message||versions.error?.message||'Erro da biblioteca.')
   setUsers(dashboard.users)
   setPolicies((response.data||[]) as TimeBankPolicy[])
+  setCatalog((catalogProfiles.data||[]) as CatalogProfile[])
+  setCatalogVersions((versions.data||[]) as CatalogVersion[])
  },[])
  useEffect(()=>{
   let mounted=true
@@ -89,6 +104,7 @@ export function AdminTimeBankPolicies(){
    const payload={
     ...(draft.id?{id:draft.id}:{}),
     user_id:draft.user_id,title:draft.title.trim(),source_reference:draft.source_reference.trim(),
+    catalog_profile_version_id:draft.catalog_profile_version_id??null,
     valid_from:draft.valid_from,valid_until:draft.valid_until,...factors,
     daily_target_minutes:Math.round(number(draft.daily_target_minutes,'Jornada de referência (minutos)',60,720)),
     settlement_interval_months:Math.round(number(draft.settlement_interval_months,'Prazo de compensação (meses)',1,12)),
@@ -130,6 +146,34 @@ export function AdminTimeBankPolicies(){
       onClick={()=>{setDraft(fromPolicy(p));setError('');setMessage('')}}
       disabled={busy}>{p.title} · {dateBR(p.valid_from)} a {dateBR(p.valid_until)}</button>)}
     </div>
+    {catalogVersions.length>0&&<div className="collective-assignment">
+     <label>Importar perfil verificado da biblioteca
+      <PayrepSelect value={selectedCatalog} title="Perfil e versão publicada" onChange={value=>{
+       setSelectedCatalog(value)
+       const version=catalogVersions.find(v=>v.id===value)
+       const profile=catalog.find(p=>p.id===version?.profile_id)
+       if(!version||!profile)return
+       patch({
+        ...blank(userId),title:profile.name,
+        source_reference:'Biblioteca Payrep · '+profile.organization+' / '+profile.uf+' · versão '+version.version,
+        catalog_profile_version_id:version.id,
+        valid_from:version.valid_from,valid_until:version.valid_until,
+        weekday_factor:String(version.weekday_factor),saturday_factor:String(version.saturday_factor),
+        sunday_factor:String(version.sunday_factor),holiday_factor:String(version.holiday_factor),
+        daily_target_minutes:String(version.daily_target_minutes),
+        settlement_interval_months:String(version.settlement_interval_months),
+        settlement_months:version.settlement_months.join(','),
+        settlement_half:String(version.settlement_half)
+       })
+      }}>
+       <option value="">Selecionar versão verificada</option>
+       {catalogVersions.map(v=>{const p=catalog.find(p=>p.id===v.profile_id);return <option key={v.id} value={v.id}>
+        {p?.organization||'Perfil'} · {p?.name||''} · {v.valid_from} a {v.valid_until}
+       </option>})}
+      </PayrepSelect>
+     </label>
+     <p className="subtle">Os parâmetros importados podem ser revisados antes de atribuir. A vigência não pode se sobrepor à política já existente do usuário.</p>
+    </div>}
     <div className="admin-settings-actions">
      <button type="button" className="secondary" disabled={busy} onClick={()=>patch(blank(userId))}>Nova vigência</button>
      <button type="button" className="secondary" disabled={busy} onClick={()=>patch(accentureTemplate(userId))}>Usar modelo Accenture 2025/2026</button>

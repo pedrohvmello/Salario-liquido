@@ -1,11 +1,12 @@
 import {useCallback,useEffect,useState} from 'react'
-import {ArrowLeft,ShieldCheck,Save,BookOpen,UsersRound,LifeBuoy,LockKeyhole,CalendarClock} from 'lucide-react'
+import {ArrowLeft,ShieldCheck,Save,BookOpen,UsersRound,LifeBuoy,LockKeyhole,CalendarClock,LibraryBig} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
 import {AdminPasswordPolicy} from './AdminPasswordPolicy'
 import {AdminTimeBankPolicies} from './AdminTimeBankPolicies'
+import {AdminCollectiveLibrary} from './AdminCollectiveLibrary'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 
-type SettingsSection='approval'|'password'|'legal'|'bank'|null
+type SettingsSection='approval'|'password'|'legal'|'bank'|'collectives'|null
 
 export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-support')=>void}){
  const [activeSection,setActiveSection]=useState<SettingsSection>(null)
@@ -42,6 +43,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
   </section>}
   {activeSection==='password'&&<AdminPasswordPolicy/>}
   {activeSection==='bank'&&<AdminTimeBankPolicies/>}
+  {activeSection==='collectives'&&<AdminCollectiveLibrary/>}
   {activeSection==='legal'&&<section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
    <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
@@ -75,6 +77,11 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    <div className="panel-heading"><h2><CalendarClock size={18}/> Regras do Banco de Horas</h2></div>
    <p>Configure os multiplicadores por dia da semana, jornadas de referência, vigência e referência de acordos coletivos por usuário.</p>
    <button type="button" className="primary" onClick={()=>setActiveSection('bank')}><CalendarClock size={17}/> Configurar Banco de Horas</button>
+  </section>
+  <section className="panel">
+   <div className="panel-heading"><h2><LibraryBig size={18}/> Biblioteca de ACTs e CCTs</h2></div>
+   <p>Monitore fontes oficiais, revise documentos, publique perfis versionados e acompanhe solicitações de empresas.</p>
+   <button type="button" className="primary" onClick={()=>setActiveSection('collectives')}><LibraryBig size={17}/> Gerenciar biblioteca</button>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>

@@ -1,6 +1,7 @@
 import {useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
 import {PayrepDatePicker} from './PayrepDatePicker'
+import {CollectiveProfileExplorer} from './CollectiveProfileExplorer'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
 import {calculateBankLedger,formatBankMinutes,paidOvertime,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
@@ -254,6 +255,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
    {message&&<p className="auth-success" role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}
   </section>
+  <CollectiveProfileExplorer onAssigned={onSaved}/>
   <p className="subtle">Base utilizada para os feriados: {baseName}.
    As regras de fechamento e DSR de 16 a 15 permanecem aplicadas às projeções salariais.</p>
  </div>

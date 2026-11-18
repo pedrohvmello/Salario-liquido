@@ -2,7 +2,7 @@ name: Tests and build
 on:
   pull_request:
   push:
-    branches: [codex/foundation-multiuser-payroll]
+    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml]
 permissions:
   contents: read
 jobs:
