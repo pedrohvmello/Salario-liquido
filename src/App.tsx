@@ -599,7 +599,7 @@ export default function App(){
       Carregando calendário de feriados para {base?baseLabel(base):'a Base'}...</div>}
      {holidayStatus==='failed'&&<div className="notice warning"><AlertTriangle size={18}/>
       Não foi possível preparar o calendário de feriados. Verifique sua conexão antes de calcular horas.</div>}
-     <FortnightTimesheet anchor={hoursAnchor} onAnchorChange={setHoursAnchor}
+     <FortnightTimesheet anchor={hoursAnchor}
       records={records} holidayDates={holidayDates} policies={timeBankPolicies}
       baseName={base?baseLabel(base):'Não configurada'} onSaved={()=>refresh()}/>
     </div>}

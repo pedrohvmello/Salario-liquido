@@ -10,7 +10,6 @@ type Field='start'|'lunchStart'|'lunchEnd'|'end'|'additionalHours'|'comments'
 type GridRow={date:string;entry:DayEntry;calculated:Overtime|null;complete:boolean;invalid:boolean;holiday:boolean;automaticHoliday:boolean}
 type Props={
  anchor:string
- onAnchorChange:(date:string)=>void
  records:TimeRow[]
  holidayDates:ReadonlySet<string>|null
  policies:TimeBankPolicy[]
@@ -28,7 +27,7 @@ const hours=(value:number)=>value.toLocaleString('pt-BR',{minimumFractionDigits:
 const clock=/^([01]\d|2[0-3]):[0-5]\d$/
 const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim());return m?m[1].padStart(2,'0')+':'+m[2]:value.trim()}
 
-export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,policies,baseName,onSaved}:Props){
+export function FortnightTimesheet({anchor,records,holidayDates,policies,baseName,onSaved}:Props){
  const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
  const [saving,setSaving]=useState(false)
  const [manuallySetBank,setManuallySetBank]=useState<Record<string,boolean>>({})
