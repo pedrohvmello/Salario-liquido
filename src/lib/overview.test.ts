@@ -56,6 +56,27 @@ describe('overview cards and advance month VR',()=>{
  })
 })
 
+describe('new IRRF and INSS overview cards',()=>{
+ it('uses the same monthly payroll values and makes the cards visible by default',()=>{
+  const payroll=calculatePayroll2026({...defaults,salary:16000})
+  expect(payroll.irrf).toBeGreaterThan(0)
+  expect(payroll.inss).toBeGreaterThan(0)
+  expect(defaultOverviewCards).toContain('irrf')
+  expect(defaultOverviewCards).toContain('inss')
+ })
+ it('adds both cards once to a legacy saved layout and retains its relative order',()=>{
+  expect(normalizeOverviewCards(['gross','fgts'],1))
+   .toEqual(['gross','fgts','irrf','inss','salaryComposition','competenceOvertime'])
+  expect(normalizeOverviewCards(['gross','irrf','fgts'],1))
+   .toEqual(['gross','irrf','fgts','inss','salaryComposition','competenceOvertime'])
+ })
+ it('respects deliberately hidden cards after the layout is saved as version 2',()=>{
+  const updated=normalizeOverviewCards(['gross','fgts','irrf','inss'],2)
+  const hidden=changeCardVisibility(changeCardVisibility(updated,'irrf',false),'inss',false)
+  expect(normalizeOverviewCards(hidden,2)).not.toContain('irrf')
+  expect(normalizeOverviewCards(hidden,2)).not.toContain('inss')
+ })
+})
 describe('mobile overview card rearrangement',()=>{
  it('allows sections to occupy and move among metric-card grid slots',()=>{
   expect(isOverviewWideSection('salaryComposition')).toBe(true)

@@ -320,7 +320,7 @@ export default function App(){
    bankWeightedMinutes:x.bank_weighted_minutes??0
   })))
   setParams({...defaults,...d.settings})
-  setOverviewCards(normalizeOverviewCards(d.overviewCards))
+  setOverviewCards(normalizeOverviewCards(d.overviewCards,d.overviewCardsVersion??0))
   setBase(d.base)
   setIsAdmin(membership?.role==='admin')
   setAccessDecision({userId:checkedUserId,state:'approved'})
@@ -537,6 +537,8 @@ export default function App(){
    salaryComposition:{value:'',note:''},
    competenceOvertime:{value:'',note:''},
   deductions:{value:brl(payroll.gross-payroll.netMonth),note:'INSS, IRRF, pensão e contribuições'},
+  irrf:{value:brl(payroll.irrf),note:'Imposto de renda retido na fonte (estimado)'},
+  inss:{value:brl(payroll.inss),note:'Contribuição previdenciária (estimada)'},
   fgts:{value:brl(payroll.fgts),note:'Informativo; não é desconto'},
   pensionPercent:{value:effective.pensionMethod==='old26'?formatEventValue(effective.pensionPercent,'pensionPercent')+'%':'—',note:effective.pensionMethod==='old26'?'Percentual vigente':'Cadastre o evento de pensão'},
   pensionAmount:{value:hasPension?brl(payroll.pension):'—',note:hasPension?'Estimativa da folha mensal':'Sem evento de pensão'},

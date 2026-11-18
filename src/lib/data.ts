@@ -66,7 +66,7 @@ export async function getData(){
   return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null;bank_weighted_minutes:number|null;bank_policy_id:string|null;bank_profile_id:string|null}>,
   bankPolicies:(profiles.data||[]).filter(p=>p.id===profileChoice.data?.profile_id)
    .map(p=>({...p,title:p.name,source_reference:p.source_note})) as TimeBankPolicy[],
-  settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,overviewCardsVersion:settings.data?.parameters?.overviewCardsVersion as number|undefined,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')
@@ -80,7 +80,7 @@ export async function saveOverviewCards(cards:string[]){
  const user_id=await identity()
  const {data:current,error:readError}=await db.from('user_settings').select('parameters').eq('user_id',user_id).maybeSingle()
  if(readError)throw new Error(readError.message)
- const parameters={...(current?.parameters||{}),overviewCards:cards}
+ const parameters={...(current?.parameters||{}),overviewCards:cards,overviewCardsVersion:2}
  const {error}=await db.from('user_settings').upsert({user_id,parameters,updated_at:new Date().toISOString()})
  if(error)throw new Error(error.message)
 }

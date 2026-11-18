@@ -2,6 +2,8 @@ import {roundMoney} from './money'
 export const overviewCardDefinitions=[
  ['gross','Remuneração bruta'],
  ['deductions','Descontos totais'],
+ ['irrf','IRRF'],
+ ['inss','INSS'],
  ['fgts','FGTS informativo'],
  ['pensionPercent','Pensão (%)'],
  ['pensionAmount','Valor pensão'],
@@ -27,10 +29,18 @@ export function isOverviewWideSection(id:OverviewCardId):boolean{
 }
 export const defaultOverviewCards=overviewCardDefinitions.map(([id])=>id)
 const validCards=new Set<string>(defaultOverviewCards)
-export function normalizeOverviewCards(value:unknown):OverviewCardId[] {
+// v2 adds the two payroll tax cards to existing saved layouts once.
+export const OVERVIEW_CARDS_SCHEMA_VERSION=2
+export function normalizeOverviewCards(value:unknown,schemaVersion=OVERVIEW_CARDS_SCHEMA_VERSION):OverviewCardId[] {
  if(!Array.isArray(value))return [...defaultOverviewCards]
  const unique=new Set<string>()
  for(const item of value)if(typeof item==='string'&&validCards.has(item))unique.add(item)
+ // Existing users should see the new cards, but may hide them afterward.
+ // Their next layout save stores v2 so intentionally hidden cards stay hidden.
+ if(schemaVersion<OVERVIEW_CARDS_SCHEMA_VERSION){
+  unique.add('irrf')
+  unique.add('inss')
+ }
  // Older layouts only contained metric cards. Always retain the two movable,
  // full-size sections, even if an old stored layout lacks them.
  for(const section of overviewWideSections)unique.add(section)
