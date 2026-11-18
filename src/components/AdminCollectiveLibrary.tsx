@@ -5,7 +5,7 @@ import {PayrepSelect} from './PayrepSelect'
 import {PayrepDatePicker} from './PayrepDatePicker'
 
 type Source={id:string;organization:string;uf:string;source_url:string|null;enabled:boolean;status:string;last_checked_at:string|null;last_error:string|null}
-type Document={id:string;source_id:string|null;title:string;document_type:string;registration_code:string|null;source_url:string|null;storage_path:string|null;raw_text:string|null;bank_clause_excerpt:string|null;valid_from:string|null;valid_until:string|null;review_status:string;imported_at:string}
+type Document={id:string;source_id:string|null;title:string;document_type:string;registration_code:string|null;source_url:string|null;storage_path:string|null;raw_text:string|null;bank_clause_excerpt:string|null;valid_from:string|null;valid_until:string|null;review_status:string;review_note:string|null;imported_at:string}
 type Profile={id:string;organization:string;uf:string;name:string}
 type Version={id:string;profile_id:string;version:number;valid_from:string;valid_until:string;published_at:string}
 type Run={id:string;source_id:string;status:string;status_code:number|null;started_at:string;error_message:string|null}
@@ -13,6 +13,20 @@ type Request={id:string;organization:string;uf:string;status:string;created_at:s
 const official=/^https:\/\/(mediador\.trabalho\.gov\.br|www\.gov\.br)\/[A-Za-z0-9/_?&=%.,~+-]*$/i
 const blankReview={title:'',registration_code:'',document_type:'UNKNOWN',valid_from:'',valid_until:'',review_note:''}
 const blankFactors={weekday_factor:'1',saturday_factor:'1',sunday_factor:'2',holiday_factor:'2',daily_target_minutes:'480',settlement_interval_months:'6',settlement_months:'2,8',settlement_half:'1'}
+const decodeEntities=(value:string)=>value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,(_,key:string)=>{
+ const map:Record<string,string>={
+  amp:'&',quot:'"',apos:"'",nbsp:' ',ccedil:'ç',Ccedil:'Ç',
+  atilde:'ã',Atilde:'Ã',otilde:'õ',Otilde:'Õ',aacute:'á',
+  Aacute:'Á',eacute:'é',Eacute:'É',iacute:'í',Iacute:'Í',
+  oacute:'ó',Oacute:'Ó',uacute:'ú',Uacute:'Ú',acirc:'â',
+  Acirc:'Â',ecirc:'ê',Ecirc:'Ê',ocirc:'ô',Ocirc:'Ô',
+  agrave:'à',Agrave:'À',ldquo:'“',rdquo:'”',deg:'°'
+ }
+ if(key.startsWith('#')){const num=key[1]?.toLowerCase()==='x'
+  ?parseInt(key.slice(2),16):parseInt(key.slice(1),10)
+  return Number.isInteger(num)&&num>0&&num<=0x10ffff?String.fromCodePoint(num):'&'+key+';'}
+ return map[key]??'&'+key+';'
+})
 const excerpt=(raw:string)=>{const text=raw.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ')
  const match=/banco de horas|compensa[cç][aã]o|horas extraordin/i.exec(text)
  return match?text.slice(Math.max(0,match.index-150),match.index+950):''}
@@ -42,7 +56,7 @@ export function AdminCollectiveLibrary(){
   if(!db)throw Error('Supabase não configurado')
   const q=await Promise.all([
    db.from('collective_sources').select('*').order('organization'),
-   db.from('collective_documents').select('*').order('imported_at',{ascending:false}).limit(100),
+   db.from('collective_documents').select('id,source_id,title,document_type,registration_code,source_url,storage_path,bank_clause_excerpt,valid_from,valid_until,review_status,review_note,imported_at').order('imported_at',{ascending:false}).limit(100),
    db.from('collective_profiles').select('*').order('organization'),
    db.from('collective_profile_versions').select('*').order('published_at',{ascending:false}),
    db.from('collective_scan_runs').select('*').order('started_at',{ascending:false}).limit(30),
@@ -66,7 +80,7 @@ export function AdminCollectiveLibrary(){
  const choose=(d:Document)=>{
   setSelectedId(d.id)
   setReview({title:d.title,registration_code:d.registration_code||'',document_type:d.document_type,
-   valid_from:d.valid_from||'',valid_until:d.valid_until||'',review_note:''})
+   valid_from:d.valid_from||'',valid_until:d.valid_until||'',review_note:d.review_note||''})
   const origin=sources.find(s=>s.id===d.source_id)
   setProfileName(origin?origin.organization+' · '+origin.uf:d.title)
  }
@@ -151,11 +165,16 @@ export function AdminCollectiveLibrary(){
  },'Perfil publicado com rastreabilidade. Nenhuma política pessoal foi alterada.')
  const openOriginal=async(d:Document)=>{
   if(!db)return
-  if(d.storage_path){
+  // Never execute saved external HTML under the Supabase Storage origin.
+  if(d.storage_path&&/\.(pdf|txt)$/i.test(d.storage_path)){
    const {data,error}=await db.storage.from('collective-agreements').createSignedUrl(d.storage_path,120)
    if(error){setError(error.message);return}
    window.open(data.signedUrl,'_blank','noopener,noreferrer')
-  }else if(d.source_url&&official.test(d.source_url))window.open(d.source_url,'_blank','noopener,noreferrer')
+  }else if(d.source_url&&official.test(d.source_url)){
+   window.open(d.source_url,'_blank','noopener,noreferrer')
+  }else if(d.storage_path?.toLowerCase().endsWith('.html')){
+   setError('O HTML original foi arquivado, mas sua execução direta está bloqueada. Verifique o texto importado e os metadados na revisão.')
+  }
  }
  return <div className="stack">
   <div className="page-intro"><div><h2>Biblioteca de ACTs e CCTs</h2>
@@ -226,7 +245,7 @@ export function AdminCollectiveLibrary(){
    {selected&&<div className="collective-review-panel">
     <h3>Revisão: {selected.title}</h3>
     <p className="subtle">{selected.bank_clause_excerpt?
-     'Trecho sugerido (não verificado): '+selected.bank_clause_excerpt.slice(0,800):
+     'Trecho sugerido (não verificado): '+decodeEntities(selected.bank_clause_excerpt).slice(0,1600):
      'Nenhuma cláusula de Banco de Horas extraída. Examine o original.'}</p>
     <div className="form-grid">
      <label>Título<input value={review.title} onChange={e=>setReview(x=>({...x,title:e.target.value}))}/></label>
