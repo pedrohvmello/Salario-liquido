@@ -163,6 +163,7 @@ export function AdminCollectiveLibrary(){
   <div className="admin-settings-actions">
    <button type="button" className="secondary" disabled={busy||loading} onClick={()=>void act(async()=>{
     if(!db)throw Error('Supabase não configurado')
+    if(!sources.some(source=>source.enabled&&source.source_url))throw Error('Nenhuma URL oficial direta está habilitada.')
     const {data,error}=await db.rpc('run_collective_source_check')
     if(error)throw Error(error.message)
     if(!data)throw Error('Nenhuma URL oficial direta está ativa.')
@@ -172,7 +173,7 @@ export function AdminCollectiveLibrary(){
    <button type="button" className="secondary" disabled={busy} onClick={()=>void act(async()=>{},'Lista atualizada.')}>
     <RefreshCw size={16}/> Atualizar</button>
   </div>
-  <p className="subtle">Verificação automática toda segunda, às 08h (São Paulo). O Mediador pode bloquear acessos automáticos. PDFs precisam de revisão e importação manual quando a extração direta não for viável.</p>
+  <p className="subtle">Verificação automática toda segunda, às 08h (São Paulo). O Mediador pode bloquear acessos automáticos. PDFs obtidos por URL direta são arquivados automaticamente, mas a interpretação das cláusulas exige revisão humana.</p>
   {error&&<p className="error" role="alert">{error}</p>}
   {message&&<p className="auth-success" role="status">{message}</p>}
   <section className="panel"><div className="panel-heading"><h2>Fontes ({sources.length})</h2></div>
@@ -197,7 +198,7 @@ export function AdminCollectiveLibrary(){
    </table></div>
   </section>
   <section className="panel"><div className="panel-heading"><h2><Upload size={18}/> Importar documento</h2></div>
-   <p className="subtle">PDF, TXT ou HTML até 10 MB. PDF fica armazenado em espaço privado; copie o trecho relevante para permitir a revisão dos fatores.</p>
+   <p className="subtle">Importe manualmente PDF, TXT ou HTML até 10 MB quando o download oficial não for possível. Copie o trecho relevante para facilitar a revisão.</p>
    <div className="form-grid">
     <label>Título<input value={manualTitle} onChange={e=>setManualTitle(e.target.value)}/></label>
     <label>Empresa / UF<PayrepSelect value={sourceId} onChange={setSourceId} title="Fonte">
