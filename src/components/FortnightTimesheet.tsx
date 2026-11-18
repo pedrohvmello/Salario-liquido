@@ -44,7 +44,9 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
  const change=(date:string,patch:Partial<DayEntry>)=>{
   const explicitBank=Object.prototype.hasOwnProperty.call(patch,'bankHours')
   const existing=read(date)
-  const next:DayEntry={...existing,...patch,bankDeltaMinutes:undefined,bankWeightedMinutes:undefined}
+  const affectsBank=['start','lunchStart','lunchEnd','end','additionalHours','bankHours','holidayOverride']
+   .some(key=>Object.prototype.hasOwnProperty.call(patch,key))
+  const next:DayEntry={...existing,...patch,...(affectsBank?{bankDeltaMinutes:undefined,bankWeightedMinutes:undefined}:{})}
   if(explicitBank){
    setManuallySetBank(previous=>({...previous,[date]:true}))
    setAutomaticallyMarked(previous=>({...previous,[date]:false}))
@@ -90,9 +92,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
   ...records.filter(row=>!dirtyCurrent.includes(row.date)),
   ...dirtyCurrent.map(date=>({
    ...read(date),
-   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
-   bankDeltaMinutes:undefined,
-    bankWeightedMinutes:undefined
+   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false)
   }))
  ]
  const previewBank=calculateBankLedger(previewEntries,holidayDates,policies)
@@ -107,9 +107,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,p
   setSaving(true);setError('');setMessage('')
   const changed=dirtyCurrent.map(date=>({
    ...read(date),
-   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
-   bankDeltaMinutes:undefined,
-    bankWeightedMinutes:undefined
+   effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false)
   }))
   for(const entry of changed){
    for(const field of [...timeFields,'additionalHours'] as const){
