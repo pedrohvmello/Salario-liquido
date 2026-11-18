@@ -2063,3 +2063,44 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .fortnight-page-navigation .secondary{padding:9px}
  .overview-stats .overview-wide-card{grid-column:span 2}
 }
+
+
+/* Dashboard: six independent slots across desktop. The large sections occupy
+   multiple slots without stretching neighboring metric cards vertically. */
+.overview-editor .overview-stats{
+ grid-template-columns:repeat(6,minmax(0,1fr));
+ grid-auto-rows:minmax(130px,auto);
+ align-items:start;
+}
+.overview-editor .overview-stats>.stat.overview-card{
+ align-self:start;
+ min-height:130px;
+ height:auto;
+}
+.overview-editor .overview-stats>.overview-wide-card{
+ grid-column:span 3;
+ grid-row:span 3;
+ align-self:stretch;
+}
+.overview-editor .overview-stats>[data-overview-card="competenceOvertime"]{
+ grid-row:span 2;
+}
+.overview-editor .overview-stats>.overview-wide-card>.panel{
+ height:100%;
+}
+/* Keep the intended reading and drag order, even when wide sections leave gaps. */
+.overview-editor .overview-stats{grid-auto-flow:row}
+@media(max-width:1280px){
+ .overview-editor .overview-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .overview-editor .overview-stats>.overview-wide-card{grid-column:span 2;grid-row:span 3}
+ .overview-editor .overview-stats>[data-overview-card="competenceOvertime"]{grid-row:span 2}
+}
+@media(max-width:900px){
+ .overview-editor .overview-stats{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto}
+ .overview-editor .overview-stats>.overview-wide-card,
+ .overview-editor .overview-stats>[data-overview-card="competenceOvertime"]{
+  grid-column:span 2;
+  grid-row:auto;
+ }
+ .overview-editor .overview-stats>.stat.overview-card{min-height:118px}
+}
