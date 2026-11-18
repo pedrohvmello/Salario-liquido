@@ -1906,3 +1906,20 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:760px){
  .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Configurable per-user hour bank policies. */
+.time-bank-policy-list{
+ display:flex;flex-wrap:wrap;align-items:center;gap:9px;
+ padding:12px 0;border-top:1px solid #f0e5fa;border-bottom:1px solid #f0e5fa
+}
+.time-bank-policy-list>strong{flex-basis:100%;font-size:13px;color:#4b236b}
+.time-bank-policy-list>.subtle{margin-bottom:0}
+.time-bank-policy-list .secondary{white-space:normal;text-align:left}
+.time-bank-policy-factors{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px
+}
+.time-bank-policy-factors label{display:flex;flex-direction:column;gap:7px;color:#5b327a;font-size:12px;font-weight:700}
+.time-bank-policy-factors input{text-align:center}
+@media(max-width:850px){.time-bank-policy-factors{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.time-bank-policy-factors{grid-template-columns:1fr}}

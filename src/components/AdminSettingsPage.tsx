@@ -1,10 +1,11 @@
 import {useCallback,useEffect,useState} from 'react'
-import {ArrowLeft,ShieldCheck,Save,BookOpen,UsersRound,LifeBuoy,LockKeyhole} from 'lucide-react'
+import {ArrowLeft,ShieldCheck,Save,BookOpen,UsersRound,LifeBuoy,LockKeyhole,CalendarClock} from 'lucide-react'
 import {LegalHistoryViewer} from './LegalHistoryViewer'
 import {AdminPasswordPolicy} from './AdminPasswordPolicy'
+import {AdminTimeBankPolicies} from './AdminTimeBankPolicies'
 import {fetchAdminDashboard,changeApprovalRequirement} from '../lib/admin'
 
-type SettingsSection='approval'|'password'|'legal'|null
+type SettingsSection='approval'|'password'|'legal'|'bank'|null
 
 export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-support')=>void}){
  const [activeSection,setActiveSection]=useState<SettingsSection>(null)
@@ -40,6 +41,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    <p className="subtle">A política de aprovação controla o acesso ao Payrep, não a criação de usuários no Supabase Auth.</p>
   </section>}
   {activeSection==='password'&&<AdminPasswordPolicy/>}
+  {activeSection==='bank'&&<AdminTimeBankPolicies/>}
   {activeSection==='legal'&&<section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>
    <p className="subtle">Selecione uma revisão da Política de Privacidade ou dos Termos de Uso e abra a versão arquivada. Antes da abertura pública, todas as revisões permanecem identificadas como V1.0.</p>
@@ -48,7 +50,7 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
  </div>
 
  return <div className="stack">
-  <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas globais do Payrep, disponíveis apenas para administradores.</p></div></div>
+  <div className="page-intro"><div><h2>Configurações administrativas</h2><p>Políticas administrativas do Payrep, incluindo regras específicas por usuário.</p></div></div>
   <section className="panel">
    <div className="panel-heading"><h2><UsersRound size={18}/> Gestão de usuários</h2></div>
    <p>Consulte contas cadastradas, aprove novos acessos, gerencie situações dos usuários e acompanhe indicadores de utilização.</p>
@@ -68,6 +70,11 @@ export function AdminSettingsPage({onNavigate}:{onNavigate:(view:'admin'|'admin-
    <div className="panel-heading"><h2><LockKeyhole size={18}/> Requisitos de senha</h2></div>
    <p>Consulte e ajuste os requisitos de senha, sincronizados com o Supabase Auth.</p>
    <button type="button" className="primary" onClick={()=>setActiveSection('password')}><LockKeyhole size={17}/> Configurar requisitos de senha</button>
+  </section>
+  <section className="panel">
+   <div className="panel-heading"><h2><CalendarClock size={18}/> Regras do Banco de Horas</h2></div>
+   <p>Configure os multiplicadores por dia da semana, jornadas de referência, vigência e referência de acordos coletivos por usuário.</p>
+   <button type="button" className="primary" onClick={()=>setActiveSection('bank')}><CalendarClock size={17}/> Configurar Banco de Horas</button>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><BookOpen size={18}/> Histórico dos documentos legais</h2></div>

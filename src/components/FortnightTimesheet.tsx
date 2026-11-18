@@ -2,7 +2,7 @@ import {useMemo,useState} from 'react'
 import {ChevronLeft,ChevronRight,Info,RotateCcw,Save} from 'lucide-react'
 import {PayrepDatePicker} from './PayrepDatePicker'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
-import {calculateBankLedger,formatBankMinutes,paidOvertime} from '../lib/timeBank'
+import {calculateBankLedger,formatBankMinutes,paidOvertime,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,shiftFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 
@@ -14,6 +14,7 @@ type Props={
  onAnchorChange:(date:string)=>void
  records:TimeRow[]
  holidayDates:ReadonlySet<string>|null
+ policies:TimeBankPolicy[]
  baseName:string
  onSaved:()=>Promise<void>
 }
@@ -28,7 +29,7 @@ const hours=(value:number)=>value.toLocaleString('pt-BR',{minimumFractionDigits:
 const clock=/^([01]\d|2[0-3]):[0-5]\d$/
 const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim());return m?m[1].padStart(2,'0')+':'+m[2]:value.trim()}
 
-export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,baseName,onSaved}:Props){
+export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,policies,baseName,onSaved}:Props){
  const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
  const [saving,setSaving]=useState(false)
  const [error,setError]=useState('')
@@ -39,7 +40,7 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  const byDate=useMemo(()=>new Map(records.map(row=>[row.date,row])),[records])
  const read=(date:string)=>drafts[date]??byDate.get(date)??empty(date)
  const change=(date:string,patch:Partial<DayEntry>)=>{
-  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch,bankDeltaMinutes:undefined}}))
+  setDrafts(previous=>({...previous,[date]:{...(previous[date]??byDate.get(date)??empty(date)),...patch,bankDeltaMinutes:undefined,bankWeightedMinutes:undefined}}))
   setMessage('');setError('')
  }
  const rows:GridRow[]=dates.map(date=>{
@@ -62,16 +63,17 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
  })
  const dirtyCurrent=dates.filter(date=>Object.prototype.hasOwnProperty.call(drafts,date))
  const dirtyOutside=Object.keys(drafts).filter(date=>!dates.includes(date)).length
- const savedBank=calculateBankLedger(records,holidayDates)
+ const savedBank=calculateBankLedger(records,holidayDates,policies)
  const previewEntries=[
   ...records.filter(row=>!dirtyCurrent.includes(row.date)),
   ...dirtyCurrent.map(date=>({
    ...read(date),
    effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
-   bankDeltaMinutes:undefined
+   bankDeltaMinutes:undefined,
+    bankWeightedMinutes:undefined
   }))
  ]
- const previewBank=calculateBankLedger(previewEntries,holidayDates)
+ const previewBank=calculateBankLedger(previewEntries,holidayDates,policies)
  const calculated=rows.map(row=>row.calculated).filter((value):value is Overtime=>value!==null)
  const totals=calculated.reduce((result,calc)=>({
   worked:result.worked+calc.total,
@@ -84,7 +86,8 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
   const changed=dirtyCurrent.map(date=>({
    ...read(date),
    effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false),
-   bankDeltaMinutes:undefined
+   bankDeltaMinutes:undefined,
+    bankWeightedMinutes:undefined
   }))
   for(const entry of changed){
    for(const field of [...timeFields,'additionalHours'] as const){
@@ -113,7 +116,11 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
   const hypothetical=calculateBankLedger([
    ...records.filter(row=>!dirtyCurrent.includes(row.date)),
    ...changed
-  ],holidayDates)
+  ],holidayDates,policies)
+  if(hypothetical.firstMissingPolicyDate){
+   setError('Não existe política de Banco de Horas vigente em '+formatDate(hypothetical.firstMissingPolicyDate)+'. Solicite ao administrador uma nova vigência.')
+   setSaving(false);return
+  }
   if(hypothetical.firstInsufficientDate){
    setError('Saldo insuficiente no banco de horas em '+formatDate(hypothetical.firstInsufficientDate)+'.')
    setSaving(false);return
@@ -235,6 +242,10 @@ export function FortnightTimesheet({anchor,onAnchorChange,records,holidayDates,b
      <Save size={17}/>{saving?'Salvando...':'Salvar quinzena'}
     </button>
    </div>
+   {dirtyCurrent.length>0&&previewBank.firstMissingPolicyDate&&
+    <p className="error" role="alert">
+     Nenhuma política de Banco de Horas vigente em {formatDate(previewBank.firstMissingPolicyDate)}.
+    </p>}
    {dirtyCurrent.length>0&&previewBank.firstInsufficientDate&&
     <p className="error" role="alert">
      Saldo de Horas insuficiente em {formatDate(previewBank.firstInsufficientDate)}.

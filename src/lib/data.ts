@@ -6,6 +6,7 @@ import {validateThirteenthPay} from './thirteenth'
 import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
 import {timePayload} from './timeEntryPayload'
+import type {TimeBankPolicy} from './timeBank'
 import type {SalaryParameters} from './money'
 import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
@@ -51,15 +52,16 @@ async function listAllStatementRubrics(id:string):Promise<StatementRubric[]>{
 }
 export async function getData(){
   const id=await identity();if(!db)throw new Error('Banco não configurado')
-  const [statements,events,entries,settings,lines]=await Promise.all([
+  const [statements,events,entries,settings,lines,bankPolicies]=await Promise.all([
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
     db.from('salary_events').select('*').eq('user_id',id).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
     db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
-    listAllStatementRubrics(id)
+    listAllStatementRubrics(id),
+    db.from('time_bank_policies').select('*').eq('user_id',id).order('valid_from',{ascending:true})
   ])
-  for(const r of [statements,events,entries,settings])if(r.error)throw new Error(r.error.message)
-  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null}>,settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  for(const r of [statements,events,entries,settings,bankPolicies])if(r.error)throw new Error(r.error.message)
+  return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null;bank_weighted_minutes:number|null;bank_policy_id:string|null}>,bankPolicies:(bankPolicies.data||[]) as TimeBankPolicy[],settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')

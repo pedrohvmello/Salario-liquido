@@ -3,7 +3,7 @@ import type {User} from '@supabase/supabase-js'
 import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInput,Settings2,FileSpreadsheet,Wallet,ContactRound,Plus,Trash2,Pencil,FileText,ShieldCheck,AlertTriangle,CheckCircle2,Menu,ChevronRight,Upload,RefreshCw,Info,Save,ArrowUpRight,ArrowUp,ArrowDown,Bot,PanelLeftClose,PanelLeftOpen,Sparkles} from 'lucide-react'
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {type DayEntry} from './lib/calendar'
-import {paidOvertime} from './lib/timeBank'
+import {paidOvertime,type TimeBankPolicy} from './lib/timeBank'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
 import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
@@ -193,6 +193,7 @@ export default function App(){
  const [eventsYear,setEventsYear]=useState('all')
  const [hoursAnchor,setHoursAnchor]=useState(todayInSaoPaulo)
  const [records,setRecords]=useState<TimeRecord[]>([])
+ const [timeBankPolicies,setTimeBankPolicies]=useState<TimeBankPolicy[]>([])
  const [base,setBase]=useState<BaseLocation|null>(null)
  const [holidayCalendar,setHolidayCalendar]=useState<HolidayCatalog|null>(null)
  const [holidayStatus,setHolidayStatus]=useState<'unconfigured'|'loading'|'ready'|'failed'>('unconfigured')
@@ -300,6 +301,7 @@ export default function App(){
   const d=await getData()
   if(!isCurrent())return
   setStatements(d.statements);setAllLines(d.lines);setEvents(d.events)
+  setTimeBankPolicies(d.bankPolicies)
   setRecords(d.entries.map(x=>({
    id:x.id,date:x.date,
    start:x.start_at?.slice(0,5)||'',lunchStart:x.lunch_start?.slice(0,5)||'',
@@ -310,7 +312,8 @@ export default function App(){
    comments:x.comments||'',
    bankHours:x.bank_hours??false,
    effectiveHoliday:x.effective_holiday??false,
-   bankDeltaMinutes:x.bank_delta_minutes??0
+   bankDeltaMinutes:x.bank_delta_minutes??0,
+   bankWeightedMinutes:x.bank_weighted_minutes??0
   })))
   setParams({...defaults,...d.settings})
   setOverviewCards(normalizeOverviewCards(d.overviewCards))
@@ -333,7 +336,7 @@ export default function App(){
   }else{
    setAccessDecision(null)
    setIsAdmin(false)
-   setStatements([]);setAllLines([]);setEvents([]);setRecords([])
+   setStatements([]);setAllLines([]);setEvents([]);setRecords([]);setTimeBankPolicies([])
   }
   return ()=>{current=false}
  // User metadata updates (e.g. saving a profile) must not unmount the active screen.
@@ -562,7 +565,7 @@ export default function App(){
      {holidayStatus==='failed'&&<div className="notice warning"><AlertTriangle size={18}/>
       Não foi possível preparar o calendário de feriados. Verifique sua conexão antes de calcular horas.</div>}
      <FortnightTimesheet anchor={hoursAnchor} onAnchorChange={setHoursAnchor}
-      records={records} holidayDates={holidayDates}
+      records={records} holidayDates={holidayDates} policies={timeBankPolicies}
       baseName={base?baseLabel(base):'Não configurada'} onSaved={()=>refresh()}/>
     </div>}
     {section==='events'&&<div className="stack"><div className="page-intro"><div><h2>Parâmetros com data de início</h2><p>Alterações permanentes afetam as projeções a partir da vigência. Ocorrências pontuais não alteram o salário-base.</p></div></div><div className="two-col"><Panel title={eventId?'Editar evento':'Novo evento'}><form className="form" onSubmit={e=>{e.preventDefault();saveNewEvent()}}><label>Evento<PayrepSelect value={eventKind} onChange={next=>{setEventKind(next);setPensionOptions({...defaultPensionRule})}} title="Tipo de evento">{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}</PayrepSelect></label><label>Valor / quantidade<input type="text" inputMode="decimal" required value={eventValue} onChange={e=>setEventValue(e.target.value)} onBlur={()=>setEventValue(value=>formatEventInput(value,eventKind))} placeholder={eventKind==='dependents'?'0':'0,00'} autoComplete="off"/></label>{eventKind==='mealBenefit'&&<div className="detail-hint"><Info size={16}/>Informe o valor diário. A previsão recebida em uma competência corresponde aos dias úteis do mês seguinte, excluindo sábados, domingos e feriados da Base.</div>}{eventKind==='pensionPercent'&&<div className="pension-criteria"><p className="subtle">Defina os critérios de incidência. A projeção mensal aplica os descontos selecionados; 13º, férias e PPR têm cálculos próprios, separados da folha mensal.</p><div className="pension-criteria-grid"><fieldset><legend>Excluir da base</legend>{(['excludeInss','excludeIrrf'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset><fieldset><legend>Incluir na base</legend>{(['includeOvertime','includeVacation','includeVacationThird','includeThirteenth','includePpr'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset></div></div>}<label>Data de início<PayrepDatePicker required value={eventDate} onChange={setEventDate} title="Data de início"/></label><label>Observação<textarea value={eventNote} onChange={e=>setEventNote(e.target.value)} rows={2} placeholder="Opcional"/></label><button className="primary" disabled={busy||!db} type="submit"><Plus size={17}/>{eventId?'Atualizar evento':'Adicionar evento'}</button></form></Panel><Panel title="Como funcionam as vigências"><div className="instruction"><div className="step">01</div><p>Cadastre uma mudança com o valor novo, não a diferença.</p></div><div className="instruction"><div className="step">02</div><p>A data define a primeira competência da nova regra. Eventos antigos permanecem no histórico.</p></div><div className="instruction"><div className="step">03</div><p>Importações de holerites sugerem mudanças, mas nunca criam eventos permanentes sem confirmação.</p></div></Panel></div><Panel title="Eventos cadastrados"><div className="filterbar events-filterbar"><label htmlFor="events-year-filter">Ano</label><PayrepSelect id="events-year-filter" value={eventsYear} onChange={setEventsYear} title="Ano do evento"><option value="all">Todos os anos</option>{eventYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><span className="pill">{filteredEvents.length} evento(s)</span></div>{filteredEvents.length?<div className="table-scroll"><table className="events-table"><colgroup><col className="event-col-name"/><col className="event-col-date"/><col className="event-col-value"/><col className="event-col-status"/><col className="event-col-notes"/><col className="event-col-actions"/></colgroup><thead><tr><th>Evento</th><th>Vigência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>{filteredEvents.map(x=><tr key={x.id}><td>{eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind}</td><td>{dateBR(x.effective_date)}</td><td>{formatEventValue(x.value,x.kind)}</td><td>{x.source_statement_id?<span className="pill">Importado do PDF</span>:<span className="subtle">Manual</span>}</td><td className="events-notes-cell"><span className="events-note-preview" title={eventNotesText(x)}>{eventNotesText(x)||'—'}</span></td><td className="events-actions-cell">{x.source_statement_id?<span className="subtle">Vinculado ao holerite</span>:<><button className="icon-button" onClick={()=>{setEventId(x.id);setEventKind(x.kind);setEventDate(x.effective_date);setEventValue(formatEventValue(x.value,x.kind));setEventNote(x.kind==='pensionPercent'?parsePensionNotes(x.notes).note:x.notes);setPensionOptions(x.kind==='pensionPercent'?parsePensionNotes(x.notes).rule:{...defaultPensionRule})}}><Pencil size={15}/></button><button className="icon-button" onClick={()=>task(async()=>{await removeEvent(x.id);await refresh()},'Evento excluído')}><Trash2 size={15}/></button></>}</td></tr>)}</tbody></table></div>:<Empty text={events.length?'Nenhum evento cadastrado para '+eventsYear+'.':'Nenhum evento cadastrado.'}/>}</Panel><VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
