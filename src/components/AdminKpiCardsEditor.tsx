@@ -113,12 +113,12 @@ export function AdminKpiCardsEditor({cards}:Props){
    JSON.stringify(nextColors)===JSON.stringify(colors))return
   if(!db||!userId){setError('Não foi possível identificar o administrador.');setEdit(true);return}
   savingRef.current=true;setSaving(true);setError('')
-  void db.from('admin_dashboard_preferences').upsert({
+  void Promise.resolve(db.from('admin_dashboard_preferences').upsert({
    user_id:userId,card_order:next,card_colors:nextColors,updated_at:new Date().toISOString()
-  },{onConflict:'user_id'}).then(({error:saveError})=>{
+  },{onConflict:'user_id'})).then(({error:saveError})=>{
    if(saveError)throw Error(saveError.message)
    setOrder(next);setColors(nextColors)
-  }).catch(e=>{
+  }).catch((e:unknown)=>{
    orderRef.current=next;colorsRef.current=nextColors
    setError('Não foi possível salvar os cards: '+(e instanceof Error?e.message:'erro inesperado'))
    setEdit(true)

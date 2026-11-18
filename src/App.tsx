@@ -90,18 +90,6 @@ function eventNotesText(event:SalaryEvent):string {
 }
 const fieldNames:Record<string,string>={salary:'Salário-base',trienio:'Triênio',dependents:'Dependentes',mealBenefit:'Vale-refeição (por dia útil)',fixedBenefit:'Vale-benefício',childcareBenefit:'Auxílio-creche',esppPercent:'ESPP (%)',privatePensionPercent:'Previdência (%)',privatePensionAmount:'Previdência (R$)',pensionPercent:'Pensão (%)',fixedPension:'Pensão fixa',advancePercent:'Adiantamento (%)'}
 
-const percentageFields=new Set<keyof SalaryParameters>(['esppPercent','privatePensionPercent','pensionPercent','advancePercent'])
-function displayEffectiveParameter(key:keyof SalaryParameters,value:number):string{
- if(key==='dependents')return formatEventValue(value,key)
- if(percentageFields.has(key))return formatEventValue(value,key)+'%'
- return brl(value)
-}
-const pensionMethods:Record<SalaryParameters['pensionMethod'],string>={
- old26:'Percentual sobre a base definida no evento de pensão',
- fixed:'Valor fixo informado',
- none:'Sem pensão'
-}
-
 /**
  * Desktop guests see the public Home first. Keep the direct sign-in experience
  * on phones and at /login; never redirect OAuth callbacks or recovery links.
