@@ -23,6 +23,40 @@ export const overviewCardDefinitions=[
  ['competenceOvertime','Horas extras na competência']
 ] as const
 export type OverviewCardId=typeof overviewCardDefinitions[number][0]
+export const overviewCardPalette=[
+ {id:'default',label:'Branco'},
+ {id:'lavender',label:'Lavanda'},
+ {id:'blue',label:'Azul-claro'},
+ {id:'green',label:'Verde-claro'},
+ {id:'yellow',label:'Amarelo-claro'},
+ {id:'pink',label:'Rosa-claro'},
+ {id:'peach',label:'Pêssego'},
+ {id:'gray',label:'Cinza-claro'}
+] as const
+export type OverviewCardColor=typeof overviewCardPalette[number]['id']
+export type OverviewCardColors=Partial<Record<OverviewCardId,OverviewCardColor>>
+const allowedCardColors=new Set<string>(overviewCardPalette.map(color=>color.id))
+/** Sanitize saved user preferences; never accept arbitrary CSS values. */
+export function normalizeOverviewCardColors(value:unknown):OverviewCardColors{
+ if(!value||typeof value!=='object'||Array.isArray(value))return {}
+ const candidate=value as Record<string,unknown>
+ const cleaned:OverviewCardColors={}
+ for(const [id] of overviewCardDefinitions){
+  const color=candidate[id]
+  if(typeof color==='string'&&color!=='default'&&allowedCardColors.has(color))
+   cleaned[id]=color as OverviewCardColor
+ }
+ return cleaned
+}
+export function setOverviewCardColor(
+ current:OverviewCardColors,id:OverviewCardId,color:OverviewCardColor
+):OverviewCardColors{
+ const next=normalizeOverviewCardColors(current)
+ if(color==='default')delete next[id]
+ else next[id]=color
+ return next
+}
+
 export const overviewWideSections=['salaryComposition','competenceOvertime'] as const
 export function isOverviewWideSection(id:OverviewCardId):boolean{
  return (overviewWideSections as readonly string[]).includes(id)

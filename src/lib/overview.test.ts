@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes} from './pensionRule'
-import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo,isOverviewWideSection} from './overview'
+import {changeCardVisibility,defaultOverviewCards,followingMonth,moveOverviewCard,normalizeOverviewCards,projectedMealBenefit,workingDays,selectCompetence,reorderOverviewCardTo,isOverviewWideSection,normalizeOverviewCardColors,setOverviewCardColor,overviewCardPalette} from './overview'
 import {effectiveParams} from './data'
 import {calculatePayroll2026,defaults} from './money'
 describe('pension event semantics',()=>{
@@ -77,6 +77,26 @@ describe('new IRRF and INSS overview cards',()=>{
   expect(normalizeOverviewCards(hidden,2)).not.toContain('inss')
  })
 })
+describe('pastel dashboard card colors',()=>{
+ it('offers a constrained soft palette, including a reset option',()=>{
+  expect(overviewCardPalette.map(x=>x.id)).toEqual([
+   'default','lavender','blue','green','yellow','pink','peach','gray'
+  ])
+ })
+ it('preserves independent colors and removes the default override',()=>{
+  const colored=setOverviewCardColor({},'irrf','blue')
+  const both=setOverviewCardColor(colored,'inss','green')
+  expect(both).toEqual({irrf:'blue',inss:'green'})
+  expect(setOverviewCardColor(both,'irrf','default')).toEqual({inss:'green'})
+ })
+ it('discards unknown card IDs and injected or invalid CSS colors',()=>{
+  expect(normalizeOverviewCardColors({
+   irrf:'lavender',inss:'red; background:url(javascript:alert(1))',
+   unknown:'blue',salaryComposition:'peach'
+  })).toEqual({irrf:'lavender',salaryComposition:'peach'})
+ })
+})
+
 describe('mobile overview card rearrangement',()=>{
  it('allows sections to occupy and move among metric-card grid slots',()=>{
   expect(isOverviewWideSection('salaryComposition')).toBe(true)

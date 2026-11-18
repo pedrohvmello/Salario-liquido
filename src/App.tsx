@@ -22,7 +22,7 @@ import {recordAppSession} from './lib/admin'
 import {formatEventInput,formatEventValue,parseEventValue} from './lib/eventValue'
 import {latestEffectiveEvent} from './lib/eventSources'
 import {defaultPensionRule,encodePensionNotes,parsePensionNotes,pensionRuleLabels,type PensionRule} from './lib/pensionRule'
-import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,type OverviewCardId} from './lib/overview'
+import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,changeCardVisibility,moveOverviewCard,followingMonth,projectedMealBenefit,normalizeOverviewCardColors,type OverviewCardId,type OverviewCardColors} from './lib/overview'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
@@ -225,6 +225,7 @@ export default function App(){
  const [eventNote,setEventNote]=useState('')
  const [pensionOptions,setPensionOptions]=useState<PensionRule>({...defaultPensionRule})
  const [overviewCards,setOverviewCards]=useState<OverviewCardId[]>([...defaultOverviewCards])
+ const [overviewCardColors,setOverviewCardColors]=useState<OverviewCardColors>({})
 
  useEffect(()=>{
   const authClient=db
@@ -321,6 +322,7 @@ export default function App(){
   })))
   setParams({...defaults,...d.settings})
   setOverviewCards(normalizeOverviewCards(d.overviewCards,d.overviewCardsVersion??0))
+  setOverviewCardColors(normalizeOverviewCardColors(d.overviewCardColors))
   setBase(d.base)
   setIsAdmin(membership?.role==='admin')
   setAccessDecision({userId:checkedUserId,state:'approved'})
@@ -362,11 +364,13 @@ export default function App(){
   setBusy(true);setError('');setNotice('')
   try{await fn();setNotice(success)}catch(e){setError(e instanceof Error?e.message:'Falha inesperada')}finally{setBusy(false)}
  }
- const persistOverviewCards=async(next:OverviewCardId[])=>{
+ const persistOverviewCards=async(next:OverviewCardId[],selectedColors?:OverviewCardColors)=>{
   if(!db||!user)throw Error('Faça login para salvar os cartões.')
   const cards=normalizeOverviewCards(next)
-  await saveOverviewCards(cards)
+  const colors=normalizeOverviewCardColors(selectedColors??overviewCardColors)
+  await saveOverviewCards(cards,colors)
   setOverviewCards(cards)
+  setOverviewCardColors(colors)
  }
  const benefitReferenceMonth=followingMonth(month)
  const holidayYears=useMemo(()=>[...new Set([Number(hoursAnchor.slice(0,4)),Number(month.slice(0,4)),Number(benefitReferenceMonth.slice(0,4)),...records.map(r=>Number(r.date.slice(0,4)))])].sort(),[records,hoursAnchor,month,benefitReferenceMonth])
@@ -560,7 +564,7 @@ export default function App(){
     {notice&&<div className="notice success payrep-feedback-toast" role="status"><CheckCircle2 size={18}/>{notice}<button onClick={()=>setNotice('')}>Fechar</button></div>}
     {section==='overview'&&<div className="stack">
      <div className="hero"><div><CompetencePicker month={month} onChange={setMonth}/><h2>Seu salário, com todos os detalhes.</h2><p>Projeção independente da folha. Valores efetivos são registrados separadamente pelo holerite.</p><button className="hero-link" onClick={()=>setSection('imports')}>Conferir com holerite <ArrowUpRight size={17}/></button></div><div className="hero-amount"><span>Líquido mensal estimado</span><strong>{brl(payroll.netMonth)}</strong></div></div>
-     <OverviewCardsEditor cards={overviewCards} details={cardDetails} sections={overviewSections}
+     <OverviewCardsEditor cards={overviewCards} colors={overviewCardColors} details={cardDetails} sections={overviewSections}
        labels={Object.fromEntries(overviewCardDefinitions.map(([id,label])=>[id,label])) as Record<OverviewCardId,string>}
        onCommit={persistOverviewCards}
        onSaved={()=>setNotice('Disposição dos cartões salva com sucesso')}/>
@@ -646,7 +650,7 @@ export default function App(){
       await refresh()
       setSelectedStmt(null);setStatementLines([]);setDocumentStatements([])
       setPreviews([]);setImportFiles([]);setImportSelected([])
-      setPensionOptions({...defaultPensionRule});setOverviewCards([...defaultOverviewCards])
+      setPensionOptions({...defaultPensionRule});setOverviewCards([...defaultOverviewCards]);setOverviewCardColors({})
       setYear('all');setEventsYear('all');setHoursAnchor(todayInSaoPaulo());setMonth(currentMonth())
     }}/>}
     {section==='help'&&user&&<SupportPage user={user}/>}

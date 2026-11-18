@@ -1,24 +1,27 @@
 import {useEffect,useLayoutEffect,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent as ReactKeyboardEvent,type ReactNode} from 'react'
-import {Check,Grip,RotateCcw,X} from 'lucide-react'
-import {normalizeOverviewCards,reorderOverviewCardTo,isOverviewWideSection,type OverviewCardId} from '../lib/overview'
+import {Check,Grip,Palette,RotateCcw,X} from 'lucide-react'
+import {normalizeOverviewCards,normalizeOverviewCardColors,reorderOverviewCardTo,isOverviewWideSection,setOverviewCardColor,overviewCardPalette,type OverviewCardId,type OverviewCardColor,type OverviewCardColors} from '../lib/overview'
 
 type CardDetails=Record<OverviewCardId,{value:string;note:string}>
 type DragGhost={id:OverviewCardId;left:number;top:number;width:number;height:number}
 type Props={
  cards:OverviewCardId[]
+ colors:OverviewCardColors
  details:CardDetails
  labels:Record<OverviewCardId,string>
  sections?:Partial<Record<OverviewCardId,ReactNode>>
- onCommit:(cards:OverviewCardId[])=>Promise<void>
+ onCommit:(cards:OverviewCardId[],colors:OverviewCardColors)=>Promise<void>
  onSaved?:()=>void
 }
 const ACTIVATION_MS=1000
 const DRAG_MS=280
 const MOVE_TOLERANCE=12
 
-export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSaved}:Props){
+export function OverviewCardsEditor({cards,colors,details,labels,sections,onCommit,onSaved}:Props){
  const [editing,setEditing]=useState(false)
  const [draft,setDraft]=useState<OverviewCardId[]>(cards)
+ const [draftColors,setDraftColors]=useState<OverviewCardColors>(()=>normalizeOverviewCardColors(colors))
+ const [openPalette,setOpenPalette]=useState<OverviewCardId|null>(null)
  const [dragging,setDragging]=useState<OverviewCardId|null>(null)
  const [ghost,setGhost]=useState<DragGhost|null>(null)
  const [busy,setBusy]=useState(false)
@@ -30,10 +33,17 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
  const holdTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
  const pointer=useRef<{id:number;x:number;y:number;card:OverviewCardId}|null>(null)
  const draftRef=useRef<OverviewCardId[]>(cards)
+ const colorRef=useRef<OverviewCardColors>(normalizeOverviewCardColors(colors))
  const editingRef=useRef(false)
  const dragRef=useRef<OverviewCardId|null>(null)
  const busyRef=useRef(false)
  const finishRef=useRef<()=>void>(()=>{})
+ const chooseColor=(id:OverviewCardId,color:OverviewCardColor)=>{
+  const next=setOverviewCardColor(colorRef.current,id,color)
+  colorRef.current=next
+  setDraftColors(next)
+  setOpenPalette(null)
+ }
  const setCards=(next:OverviewCardId[])=>{
   if(editingRef.current&&root.current){
    const rects=new Map<OverviewCardId,DOMRect>()
@@ -86,17 +96,26 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
   if(!editingRef.current||busyRef.current)return
   endDrag()
   setEditor(false)
+  setOpenPalette(null)
   const next=normalizeOverviewCards(draftRef.current)
-  if(JSON.stringify(next)===JSON.stringify(cards))return
+  const chosen=normalizeOverviewCardColors(colorRef.current)
+  if(JSON.stringify(next)===JSON.stringify(cards)&&
+   JSON.stringify(chosen)===JSON.stringify(normalizeOverviewCardColors(colors)))return
   busyRef.current=true;setBusy(true);setError('')
-  void onCommit(next).then(()=>{onSaved?.()}).catch(e=>{
+  void onCommit(next,chosen).then(()=>{onSaved?.()}).catch(e=>{
    setCards(cards)
+   colorRef.current=normalizeOverviewCardColors(colors)
+   setDraftColors(colorRef.current)
    setError('Não foi possível salvar a ordem dos cartões: '+(e instanceof Error?e.message:'erro inesperado'))
    setEditor(true)
   }).finally(()=>{busyRef.current=false;setBusy(false)})
  }
  finishRef.current=finish
  useEffect(()=>{if(!editingRef.current){draftRef.current=cards;setDraft(cards)}},[cards])
+ useEffect(()=>{if(!editingRef.current){
+  colorRef.current=normalizeOverviewCardColors(colors)
+  setDraftColors(colorRef.current)
+ }},[colors])
  useEffect(()=>{
   if(!editing)return
   const outside=(event:PointerEvent)=>{
@@ -158,6 +177,7 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
   if(event.currentTarget.hasPointerCapture?.(event.pointerId)){try{event.currentTarget.releasePointerCapture(event.pointerId)}catch{}}
  }
  const cardKey=(event:ReactKeyboardEvent<HTMLDivElement>,id:OverviewCardId)=>{
+  if(event.target!==event.currentTarget)return
   if(event.key==='Enter'&&!editingRef.current){event.preventDefault();setCards([...cards]);setEditor(true)}
   if(!editingRef.current)return
   if((event.key==='Delete'||event.key==='Backspace')&&!isOverviewWideSection(id)){event.preventDefault();setCards(draftRef.current.filter(x=>x!==id))}
@@ -167,7 +187,7 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
  const list=editing?draft:cards
  return <div className={'overview-editor'+(editing?' is-editing':'')} ref={root}>
   {editing&&<div className="overview-edit-toolbar" aria-live="polite">
-   <span><Grip size={16}/> Arraste um cartão após segurar. Toque no X para ocultar.</span>
+   <span><Grip size={16}/> Segure para arrastar. Use a paleta para escolher a cor ou X para ocultar.</span>
    <button type="button" className="overview-edit-done" disabled={busy} onClick={finish}><Check size={16}/> Concluir</button>
   </div>}
   {error&&<div className="overview-edit-error" role="alert">{error}<button type="button" onClick={()=>setError('')} aria-label="Dispensar aviso"><X size={15}/></button></div>}
@@ -175,6 +195,7 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
    {list.map(id=><div key={id}
     className={(isOverviewWideSection(id)?'overview-wide-card ':'stat ')+'overview-card'+(editing?' overview-card-editing':'')+(dragging===id?' overview-card-dragging':'')}
     data-overview-card={id}
+    data-overview-color={editing?(draftColors[id]||'default'):(colors[id]||'default')}
     tabIndex={0}
     role="button"
     aria-label={editing?'Reordenar '+labels[id]+'. Segure e arraste, use as setas, ou exclua com Delete.':'Cartão '+labels[id]+'. Segure por um segundo para editar.'}
@@ -185,7 +206,32 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
     onContextMenu={e=>e.preventDefault()}
     onKeyDown={e=>cardKey(e,id)}
    >
-    {editing&&!isOverviewWideSection(id)&&<button type="button" className="overview-remove-card" aria-label={'Ocultar cartão '+labels[id]} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();endDrag();setCards(draftRef.current.filter(x=>x!==id))}}><X size={15}/></button>}
+    {editing&&<div className="overview-card-actions" onPointerDown={e=>e.stopPropagation()}>
+     <button type="button" className="overview-color-button" aria-label={'Escolher cor de '+labels[id]}
+      aria-expanded={openPalette===id} aria-haspopup="true"
+      onClick={e=>{e.stopPropagation();setOpenPalette(x=>x===id?null:id)}}>
+      <Palette size={15}/>
+     </button>
+     {!isOverviewWideSection(id)&&<button type="button" className="overview-remove-card"
+      aria-label={'Ocultar cartão '+labels[id]}
+      onClick={e=>{e.stopPropagation();endDrag();setOpenPalette(null);setCards(draftRef.current.filter(x=>x!==id))}}>
+      <X size={15}/>
+     </button>}
+    </div>}
+    {editing&&openPalette===id&&<div className="overview-card-palette"
+     role="group" aria-label={'Cores para '+labels[id]} onPointerDown={e=>e.stopPropagation()}
+     onClick={e=>e.stopPropagation()}>
+     <span className="overview-card-palette-title">Cor do card</span>
+     <div className="overview-card-swatches">
+      {overviewCardPalette.map(option=><button type="button" key={option.id}
+       className={'overview-card-swatch'+((draftColors[id]||'default')===option.id?' selected':'')}
+       data-palette-color={option.id}
+       aria-label={option.label} aria-pressed={(draftColors[id]||'default')===option.id}
+       title={option.label} onClick={()=>chooseColor(id,option.id)}>
+       {(draftColors[id]||'default')===option.id&&<Check size={13}/>}
+      </button>)}
+     </div>
+    </div>}
     {isOverviewWideSection(id)&&sections?.[id]?sections[id]:<>
      <span className="subtle">{labels[id]}</span>
      <strong>{details[id].value}</strong>
@@ -193,11 +239,11 @@ export function OverviewCardsEditor({cards,details,labels,sections,onCommit,onSa
     </>}
    </div>)}
   </div>
-  {ghost&&<div className="stat overview-drag-ghost" ref={ghostRef} aria-hidden="true" style={{left:ghost.left,top:ghost.top,width:ghost.width,height:ghost.height}}>
+  {ghost&&<div className="stat overview-drag-ghost" ref={ghostRef} aria-hidden="true" data-overview-color={draftColors[ghost.id]||'default'} style={{left:ghost.left,top:ghost.top,width:ghost.width,height:ghost.height}}>
    <span className="subtle">{labels[ghost.id]}</span>
    {!isOverviewWideSection(ghost.id)&&<><strong>{details[ghost.id].value}</strong>{details[ghost.id].note&&<small>{details[ghost.id].note}</small>}</>}
   </div>}
-  {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Os cartões ocultos podem ser restaurados em Configurações. Toque fora ou em Concluir para salvar.</div>}
+  {editing&&<div className="overview-edit-hint"><RotateCcw size={14}/> Os cartões ocultos podem ser restaurados em Definições. Ordem e cores são salvas em Concluir.</div>}
   {busy&&<div className="overview-edit-hint" role="status">Salvando disposição...</div>}
  </div>
 }
