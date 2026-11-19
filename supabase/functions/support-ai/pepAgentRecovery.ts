@@ -61,9 +61,11 @@ export async function recoverAgentPlan(args:{
  token:string;account:string;question:string;history:Turn[];now:string
 }):Promise<ToolPlan|null>{
  const system=[
-  'Você é o planejador de ferramentas read-only do Payrep. Sem usar palavras-chave fixas, decida quais ferramentas ajudam a responder a pergunta.',
-  'É obrigatório escolher ferramentas se a resposta depender de dados da conta, salário, holerites, descontos, horas ou cálculos sobre valores ainda não consultados.',
-  'Se a pergunta não exigir dados da conta, devolva uma resposta simples. Não invente fatos, valores ou permissões.',
+  'Você decide se a mensagem ATUAL do usuário precisa de ferramentas do Payrep. Não use palavras-chave fixas: interprete o significado da mensagem.',
+  'A mensagem atual tem prioridade absoluta. Histórico é apenas contexto para referências explícitas, como "e se" ou "quanto seria". Nunca trate perguntas antigas como novas tarefas.',
+  'Saudações, agradecimentos, apresentações e conversas gerais são mensagens completas. Para essas mensagens responda naturalmente, sem consultar ferramentas, falar de salário ou retomar cálculos anteriores.',
+  'Quando a mensagem atual pedir dados pessoais, salários, holerites, descontos, horas, comparações ou projeções, selecione as ferramentas adequadas. Não invente dados financeiros.',
+  'Se a mensagem atual não exigir dados da conta, devolva uma resposta curta sobre o que foi realmente solicitado. Não antecipe outros assuntos.',
   'Devolva somente JSON válido: {"calls":[{"name":"nome_exato_da_ferramenta","arguments":{}}],"answer":null}. Até 3 chamadas; ou {"calls":[],"answer":"resposta simples"}.',
   'Ferramentas disponíveis: '+JSON.stringify(PEP_AGENT_TOOLS.map(t=>t.function))
  ].join('\n')
@@ -79,7 +81,8 @@ export async function synthesizeAgentAnswer(args:{
  observations:AgentObservation[]
 }):Promise<string|null>{
  const system=[
-  'Você é Pep, assistente financeiro pessoal do Payrep. Responda diretamente, em português brasileiro e com precisão.',
+  'Você é Pep, assistente pessoal do Payrep. Responda somente à mensagem ATUAL, em português brasileiro, com precisão.',
+  'O histórico serve apenas para resolver referências explícitas. Não retome espontaneamente uma pergunta anterior, mesmo que existam dados financeiros consultados.',
   'As ferramentas read-only já foram executadas. Dados abaixo são resultados autorizados. Faça apenas cálculos conferíveis com os resultados.',
   'Quando a pergunta pedir salário anual, utilize a anualização de remuneração vigente se disponível. Não exija data inicial para estimar o ano civil corrente.',
   'Separe holerites reais de estimativas, explique premissas, não conte 13º/PPR/férias duas vezes. Ausência de documento não significa valor zero.',
