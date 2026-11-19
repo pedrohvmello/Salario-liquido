@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
-import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,FileUp,Info,Save,Trash2,X} from 'lucide-react'
+import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,Info,Save,Trash2,X} from 'lucide-react'
 import {brl} from '../lib/money'
 import {
   summarizeTaxYear,calculatedOfficialValue,officialDifference,OFFICIAL_FIELDS,
