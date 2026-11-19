@@ -145,6 +145,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   finally{setCancelBusy(false)}
  }
  const current=data.subscription
+ const adminAccess=access?.isAdmin===true
  const pendingCheckout=current.plan_code==='free'?checkoutHistory.find(intent=>intent.status==='paid'):undefined
  const paidCheckoutPending=Boolean(pendingCheckout)
  const pendingPlanName=pendingCheckout?names[pendingCheckout.plan_code]:null
@@ -174,16 +175,16 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2>
-     <span className="pill">{access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
+     <span className="pill">{adminAccess?'Administrador':access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
       access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>{access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
+    <div className="subscription-current"><strong>{adminAccess?'Acesso administrativo integral':access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
       access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
-     {access?.promoApplied?'Acesso promocional gratuito. O plano pago cadastrado permanece '+names[current.plan_code]+'.':
+     {adminAccess?'Acesso completo a todas as funcionalidades, sem vínculo com um plano comercial.':access?.promoApplied?'Acesso promocional gratuito. O plano pago cadastrado permanece '+names[current.plan_code]+'.':
       access?.trialActive?'Acesso temporário concedido pelo Payrep, sem cartão e sem cobrança. A assinatura financeira permanece Free.'
       :current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.')
       :current.status==='active'?'Assinatura ativa':'Situação: '+current.status}
     </span></div>
-    {access?.promoActive&&access.promoEndsAt&&<div className="payrep-billing-help">
+    {!adminAccess&&access?.promoActive&&access.promoEndsAt&&<div className="payrep-billing-help">
      <strong>Código promocional ativado: {names[access.promoPlan||'free']}</strong>
      <p>Válido até {new Intl.DateTimeFormat('pt-BR',{
       timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'
@@ -191,7 +192,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      Depois, seu acesso volta ao plano pago vigente, ou ao Free se não houver assinatura ativa.
      O resgate não criou pagamento e não suspende cobranças de uma assinatura já existente.</p>
     </div>}
-    {access?.trialActive&&<div className="payrep-billing-help">
+    {!adminAccess&&access?.trialActive&&<div className="payrep-billing-help">
      <strong>Período de avaliação Full</strong>
      <p>Válido até {date(access.trialEndsAt)}. Ao expirar, o acesso retorna automaticamente ao Free, sem renovação ou cobrança automática. Não é necessário cancelar.</p>
     </div>}
@@ -201,7 +202,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     {!paidCheckoutPending&&reconciliationMessage&&<p className="subtle" role="status">{reconciliationMessage}</p>}
     {current.current_period_end&&<p className="subtle">Fim do período atual: {date(current.current_period_end)}</p>}
     {current.plan_code!=='free'&&<div className="payrep-billing-help">
-     <strong>Gerenciamento e cancelamento da assinatura</strong>
+     <strong>{adminAccess?'Assinatura histórica vinculada à conta':'Gerenciamento e cancelamento da assinatura'}</strong>
      {current.cancel_at_period_end
       ?<p role="status">Renovação automática interrompida. Seu acesso ao plano pago permanece até {date(current.current_period_end)}. Cobranças já geradas no Asaas não são canceladas automaticamente.</p>
       :<>
@@ -233,7 +234,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     </button>
    </section>}
    {promoMessage&&<div className="auth-success" role="status">{promoMessage}</div>}
-   <section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
+   {!adminAccess&&<section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
      return <div key={code} className={'subscription-plan '+(access?.effectivePlan===code?'subscription-plan-active':'')}>
@@ -245,7 +246,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
          onClick={()=>openSubscription(code)}>Assinar</button>}
      </div>
     })}</div>
-   </section>
+   </section>}
    {checkoutHistory.length>0&&<section className="panel">
     <div className="panel-heading"><h2>Checkouts de homologação</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>

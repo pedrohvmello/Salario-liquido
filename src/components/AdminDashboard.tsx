@@ -65,10 +65,10 @@ export function AdminDashboard(){
   blocked:users.filter(u=>u.status==='suspended'||u.status==='rejected').length,
   new30:users.filter(u=>Date.now()-new Date(u.createdAt).getTime()<=30*86400_000).length
  }),[users])
- const planCounts=useMemo(()=>planCount(users),[users])
+ const planCounts=useMemo(()=>planCount(users.filter(u=>u.role!=='admin')),[users])
  const locations=useMemo(()=>localityCounts(users),[users])
  const filtered=useMemo(()=>users.filter(u=>
-  (filter==='all'||u.status===filter)&&(planFilter==='all'||u.plan===planFilter)&&
+  (filter==='all'||u.status===filter)&&(planFilter==='all'||(u.role!=='admin'&&u.plan===planFilter))&&
   ((u.email||'').toLowerCase().includes(query.trim().toLowerCase())||u.id.includes(query.trim()))
  ),[users,filter,planFilter,query])
  return <div className="stack">
@@ -112,7 +112,7 @@ export function AdminDashboard(){
       <td><div className="admin-user-identity"><AdminAvatar userId={u.id} email={u.email} name={u.displayName}/><div className="admin-user-identity-text"><strong>{u.displayName||u.email||'E-mail não disponível'}</strong><div className="subtle">{u.email||'E-mail não disponível'}</div></div></div></td>
       <td>{smallDate(u.createdAt)}</td><td>{dateTime(u.lastSignInAt)}</td>
       <td>{dateTime(u.lastAppAccess)}</td><td>{u.sessions30d}</td>
-      <td><span className="pill">{planLabels[u.plan||'free']}</span></td>
+      <td><span className="pill">{u.role==='admin'?'Administrador':planLabels[u.plan||'free']}</span></td>
       <td>{u.city?(u.city+(u.state?' / '+u.state:'')):'Não informado'}</td>
       <td><span className={'admin-state admin-state-'+u.status}>{statuses[u.status]}</span></td>
       <td><div className="admin-actions" onClick={e=>e.stopPropagation()} onKeyDown={e=>e.stopPropagation()}><button type="button" className="secondary" onClick={()=>void openDetails(u.id)}>Detalhes</button>{u.role==='admin'?

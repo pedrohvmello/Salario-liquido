@@ -18,7 +18,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 // Fail closed on HML if its published URL or key is accidentally changed to PRD.
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
-export type SavedStatement={id:string;duplicate_of?:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;duplicate_of?:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;dependents_total?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -143,6 +143,60 @@ export async function downloadPayslipPdf(statementId:string):Promise<{blob:Blob;
   :source
  return {blob:data,page:single?1:Number(statement.source_page)||1,filename:name.toLowerCase().endsWith('.pdf')?name:name+'.pdf'}
 }
+export type ReprocessedDependentResult={
+ updated:number;withoutFields:number;failed:number;documentsChecked:number
+}
+/** Recover only missing dependent counts from existing private PDFs.
+ * No original PDF, salary amount, or already recorded dependent count is replaced.
+ */
+export async function reprocessMyPayslipDependents(
+ statements:SavedStatement[],
+ progress?:(finished:number,total:number)=>void
+):Promise<ReprocessedDependentResult>{
+ if(!db)throw new Error('Banco não configurado.')
+ const userId=await identity()
+ const candidates=statements.filter(s=>s.document_type==='monthly'&&!s.duplicate_of
+  &&(s.dependents_irrf==null||s.dependents_total==null))
+ const {parsePdf}=await import('./parse')
+ let updated=0,withoutFields=0,failed=0,finished=0
+ let updatedIrrf=false
+ for(const saved of candidates){
+  try{
+   const pdf=await downloadPayslipPdf(saved.id)
+   const source=new File([pdf.blob],pdf.filename,{type:'application/pdf'})
+   const pages=await parsePdf(source)
+   const parsed=pages[pdf.page-1]
+   // Never transfer a value from a different page, type, or competence.
+   if(!parsed||parsed.period!==saved.period||parsed.documentType!=='monthly'){
+    withoutFields++
+    continue
+   }
+   const patch:Record<string,number>={}
+   if(saved.dependents_irrf==null&&parsed.dependentsIrrf!=null)
+    patch.dependents_irrf=parsed.dependentsIrrf
+   if(saved.dependents_total==null&&parsed.dependentsTotal!=null)
+    patch.dependents_total=parsed.dependentsTotal
+   if(!Object.keys(patch).length){withoutFields++;continue}
+   const {data,error}=await db.from('statements').update(patch)
+    .eq('user_id',userId).eq('id',saved.id).select('id').maybeSingle()
+   if(error||!data)throw new Error(error?.message||'Atualização não confirmada.')
+   updated++
+   if(patch.dependents_irrf!==undefined)updatedIrrf=true
+  }catch{
+   failed++
+  }finally{
+   finished++
+   progress?.(finished,candidates.length)
+  }
+ }
+ if(updatedIrrf){
+  const {error}=await db.rpc('sync_my_monthly_salary_events',{
+   p_use_competence_end:false,p_document_ids:null
+  })
+  if(error)throw new Error('Dependentes recuperados, mas a atualização dos eventos do IRRF falhou: '+error.message)
+ }
+ return {updated,withoutFields,failed,documentsChecked:candidates.length}
+}
 export async function deletePayslipStatement(statementId:string):Promise<{deleted:boolean;fileDeleted:boolean;remainingRecords?:number;cleanupPending?:boolean;message?:string}>{
  if(!db)throw new Error('Banco não configurado')
  const {data,error}=await db.functions.invoke('payslip-delete',{body:{id:statementId}})
@@ -255,7 +309,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       thirteenth_gross:s.thirteenthGross,thirteenth_advance:s.thirteenthAdvance,
       thirteenth_inss:s.thirteenthInss,thirteenth_irrf:s.thirteenthIrrf,
       thirteenth_pension:s.thirteenthPension,
-      salary_contract:s.salaryContract,trienio:s.trienio,dependents_irrf:s.dependentsIrrf??null,
+      salary_contract:s.salaryContract,trienio:s.trienio,dependents_irrf:s.dependentsIrrf??null,dependents_total:s.dependentsTotal??null,
       credits:s.credits,debits:s.debits,net:s.net,salary_advance:s.salaryAdvance,net_received:s.netReceived,ir_base:s.irBase,fgts:s.fgts,warnings:s.warnings
     }).select('id').single()
     if(error){

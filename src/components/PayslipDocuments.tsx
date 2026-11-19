@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
-import {Download,Eye,FileText,FolderOpen,Trash2,X,ShieldCheck,Info,Files} from 'lucide-react'
-import {deletePayslipStatement,downloadPayslipPdf,type SavedStatement} from '../lib/data'
+import {Download,Eye,FileText,FolderOpen,Trash2,X,ShieldCheck,Info,Files,RefreshCw} from 'lucide-react'
+import {deletePayslipStatement,downloadPayslipPdf,reprocessMyPayslipDependents,type SavedStatement} from '../lib/data'
 import {PayslipPdfViewer} from './PayslipPdfViewer'
 import {PayrepSelect} from './PayrepSelect'
 
@@ -23,6 +23,8 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
  const [batchDialog,setBatchDialog]=useState(false)
  const [batchMode,setBatchMode]=useState<'merged'|'individual'>('merged')
  const [batchBusy,setBatchBusy]=useState(false)
+ const [recovering,setRecovering]=useState(false)
+ const [recoverProgress,setRecoverProgress]=useState('')
  const [batchError,setBatchError]=useState('')
  const [batchNotice,setBatchNotice]=useState('')
  const [preparedPdfs,setPreparedPdfs]=useState<PreparedPdf[]>([])
@@ -33,6 +35,22 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
   (year==='all'||s.period.startsWith(year))&&
   (month==='all'||s.period.slice(5,7)===month)
  ).sort((a,b)=>b.period.localeCompare(a.period)||a.document_type.localeCompare(b.document_type)||a.source_page-b.source_page),[statements,kind,year,month])
+ const missingDependents=statements.filter(s=>s.document_type==='monthly'&&!s.duplicate_of
+  &&(s.dependents_irrf==null||s.dependents_total==null)).length
+ const recoverDependents=async()=>{
+  if(recovering||batchBusy)return
+  setRecovering(true);setError('');setNotice('');setRecoverProgress('Preparando recuperação...')
+  try{
+   const result=await reprocessMyPayslipDependents(statements,(done,total)=>{
+    setRecoverProgress('Analisando PDF '+done+' de '+total)
+   })
+   await onRemoved()
+   setNotice(result.updated+' holerite(s) atualizados com dependentes. '+
+    result.withoutFields+' documento(s) sem números identificáveis; '+
+    result.failed+' erro(s). Nenhum PDF ou valor financeiro foi substituído.')
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao recuperar dependentes.')}
+  finally{setRecovering(false);setRecoverProgress('')}
+ }
  const periodLabel=(period:string)=>{const [y,m]=period.split('-');return m+'/'+y}
  const selectedDocs=useMemo(()=>statements.filter(s=>selectedIds.includes(s.id)).sort((a,b)=>
   a.period.localeCompare(b.period)||a.document_type.localeCompare(b.document_type)||a.source_page-b.source_page
@@ -184,8 +202,12 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
      <span>Selecionar todos <small>({visibleSelected} de {filtered.length} visíveis)</small></span>
     </label>
     <div className="payslip-batch-actions">
+     {missingDependents>0&&<button type="button" className="secondary" disabled={recovering||batchBusy||!!busyId}
+      onClick={()=>void recoverDependents()} title="Ler novamente os números de dependentes nos PDFs privados já importados">
+      <RefreshCw size={15}/>{recovering?recoverProgress:'Recuperar dependentes'}
+     </button>}
      {selectedIds.length>0&&<button type="button" className="payslip-clear-selection" onClick={()=>setSelectedIds([])} disabled={batchBusy}>Limpar seleção</button>}
-     <button type="button" className="primary" disabled={!selectedIds.length||batchBusy||!!busyId} onClick={openBatch}>
+     <button type="button" className="primary" disabled={!selectedIds.length||batchBusy||recovering||!!busyId} onClick={openBatch}>
       <Download size={17}/> Baixar Selecionados <span className="payslip-batch-count">{selectedIds.length}</span>
      </button>
     </div>

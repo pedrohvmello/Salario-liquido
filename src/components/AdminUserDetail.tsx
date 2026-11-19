@@ -33,8 +33,8 @@ export function AdminUserDetailDialog({user,totalAccesses,loading,error,onClose}
       <Detail title="País" value={orBlank(p?.country)}/>
      </div></section>
      <section className="admin-detail-section"><h3><CreditCard size={17}/> Assinatura</h3><div className="admin-detail-grid">
-      <Detail title="Plano" value={planLabels[s?.plan||'free']}/>
-      <Detail title="Status da assinatura" value={s?.status||'active'}/>
+      <Detail title="Plano" value={user.role==='admin'?'Administrador · acesso integral':planLabels[s?.plan||'free']}/>
+      <Detail title="Status da assinatura" value={user.role==='admin'?'Não condiciona acesso':s?.status||'active'}/>
       <Detail title="Provedor de pagamentos" value={orBlank(s?.provider)}/>
       <Detail title="Identificador da assinatura" value={orBlank(s?.providerSubscriptionId)}/>
       <Detail title="Identificador do cliente no provedor" value={orBlank(s?.providerCustomerId)}/>

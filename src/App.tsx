@@ -517,12 +517,22 @@ export default function App(){
   ['Adiantamento',brl(payroll.advance)]
  ]
  const activeEvent=(kind:string)=>latestEffectiveEvent(events,kind,month)
+ const dependentsSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
+  &&s.period<=month&&s.dependents_total!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
+  [statements,month])
+ const dependentTaxSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
+  &&s.period<=month&&s.dependents_irrf!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
+  [statements,month])
  const cardDetails:Record<OverviewCardId,{value:string;note:string}>={
   gross:{value:brl(payroll.gross),note:'Salário + triênio + extras + DSR'},
    baseSalary:{value:brl(effective.salary),note:'Salário-base vigente'},
    trienio:{value:brl(effective.trienio),note:'Adicional por tempo de serviço'},
    privatePensionPercent:{value:formatEventValue(effective.privatePensionPercent,'privatePensionPercent')+'%',note:'Percentual da previdência individual'},
-   dependents:{value:String(effective.dependents),note:'Dependentes informados'},
+   dependents:{value:dependentsSnapshot?.dependents_total!=null?String(dependentsSnapshot.dependents_total):'—',
+    note:dependentsSnapshot
+     ?'Total do holerite'+(dependentTaxSnapshot?.dependents_irrf!=null
+       ?' · '+dependentTaxSnapshot.dependents_irrf+' para IRRF':'')
+     :'Total não identificado. Recupere os dados em Meus Holerites.'},
    esppPercent:{value:formatEventValue(effective.esppPercent,'esppPercent')+'%',note:'Percentual de contribuição ESPP'},
    fixedPension:{value:effective.pensionMethod==='fixed'?brl(effective.fixedPension):'—',note:effective.pensionMethod==='fixed'?'Valor de pensão fixa vigente':'Sem pensão fixa configurada'},
    advancePercent:{value:formatEventValue(effective.advancePercent,'advancePercent')+'%',note:'Percentual de adiantamento salarial'},

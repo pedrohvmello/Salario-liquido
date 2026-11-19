@@ -6,6 +6,7 @@
 import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import {extractOldTotals} from './oldTotals'
+import {readDependentCounts} from './dependents'
 import {netMonthlyReceived,salaryAdvanceFromLines} from './netReceived'
 import {isPprPayslip,paymentDateFromHeader,pprDetails} from './ppr'
 import {isVacationPayslip,vacationPeriodFromHeader} from './vacationDocument'
@@ -13,7 +14,7 @@ import {isThirteenthPayslip,thirteenthFigures} from './thirteenth'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
 export type ParsedStatement={
- period:string; format:'old'|'new'; documentType:'monthly'|'ppr'|'vacation'|'thirteenth'; vacationStart:string|null; vacationEnd:string|null; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; thirteenthGross:number|null; thirteenthAdvance:number; thirteenthInss:number; thirteenthIrrf:number; thirteenthPension:number; salaryContract:number|null; trienio:number|null; dependentsIrrf:number|null;
+ period:string; format:'old'|'new'; documentType:'monthly'|'ppr'|'vacation'|'thirteenth'; vacationStart:string|null; vacationEnd:string|null; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; thirteenthGross:number|null; thirteenthAdvance:number; thirteenthInss:number; thirteenthIrrf:number; thirteenthPension:number; salaryContract:number|null; trienio:number|null; dependentsIrrf:number|null; dependentsTotal?:number|null;
  credits:number|null; debits:number|null; net:number|null; salaryAdvance:number|null; netReceived:number|null; irBase:number|null; fgts:number|null;
  lines:PayrollLine[]; warnings:string[]; sourceFile:string; page:number
 }
@@ -36,19 +37,6 @@ function group(items:Item[]):Row[]{
   return groups.sort((a,b)=>b.y-a.y)
 }
 function rowValue(row:Pick<Row,'items'>,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
-/** Numeric IRRF-dependent counts only; never infer from pension amounts. */
-function dependentCount(rows:Row[]):number|null{
- for(let i=0;i<rows.length;i++){
-  const row=rows[i].text
-  const direct=row.match(/(?:n[úu]mero de )?dependentes?\s*(?:de\s*)?(?:IRRF|I\.R\.R\.F\.)?\s*[:=]\s*(\d{1,2})\b/i)
-  if(direct&&Number(direct[1])<=30)return Number(direct[1])
-  if(/^(?:dependentes?\s*(?:IRRF|I\.R\.R\.F\.)?\s*:)$/i.test(row.trim())){
-   const neighbor=rows[i+1]?.text?.trim()||''
-   if(/^\d{1,2}$/.test(neighbor)&&Number(neighbor)<=30)return Number(neighbor)
-  }
- }
- return null
-}
 function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const isPpr=isPprPayslip(rows)
   const isVacation=isVacationPayslip(rows)
@@ -77,6 +65,7 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const trienio=lines.find(l=>l.code==='00135')?.amount??null
   const ppr=isPpr?pprDetails(lines):null
   const thirteenth=isThirteenth?thirteenthFigures(lines):null
+  const dependents=readDependentCounts(rows)
   const result:ParsedStatement={period,format:'old',documentType:isPpr?'ppr':isVacation?'vacation':isThirteenth?'thirteenth':'monthly',
     vacationStart:vacationDates.start,vacationEnd:vacationDates.end,
     paymentDate:paymentDateFromHeader(rows),grossPpr:ppr?.gross??null,
@@ -85,7 +74,8 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
     thirteenthInss:thirteenth?.inss??0,thirteenthIrrf:thirteenth?.irrf??0,
     thirteenthPension:thirteenth?.pension??0,
     salaryContract:isPpr||isVacation||isThirteenth?null:salaryContract,trienio:isPpr||isVacation||isThirteenth?null:trienio,
-    dependentsIrrf:isPpr||isVacation||isThirteenth?null:dependentCount(rows),
+    dependentsIrrf:isPpr||isVacation||isThirteenth?null:dependents.irrf,
+    dependentsTotal:isPpr||isVacation||isThirteenth?null:dependents.total,
     credits,debits,net,salaryAdvance:null,netReceived:null,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
   return validate(result,rows)
 }
@@ -111,8 +101,9 @@ function newParse(rows:Row[],name:string,page:number):ParsedStatement{
   const baseIndex=rows.findIndex(r=>r.text.includes('Base IR')&&r.text.includes('Base INSS'))
   const bases=baseIndex>=0?allMoney((rows[baseIndex+1]||{text:''}).text):[]
   const trienio=lines.find(l=>l.code==='3301')?.amount??null
+  const dependents=readDependentCounts(rows)
   return validate({period,format:'new',documentType:'monthly',vacationStart:null,vacationEnd:null,paymentDate:paymentDateFromHeader(rows),grossPpr:null,pprIncomeTax:0,pprUnionContribution:0,thirteenthGross:null,thirteenthAdvance:0,
-    thirteenthInss:0,thirteenthIrrf:0,thirteenthPension:0,salaryContract,trienio,dependentsIrrf:dependentCount(rows),
+    thirteenthInss:0,thirteenthIrrf:0,thirteenthPension:0,salaryContract,trienio,dependentsIrrf:dependents.irrf,dependentsTotal:dependents.total,
     credits:totals.length>=2?money(totals[0]):null,
     debits:totals.length>=2?money(totals[1]):null,
     net:bases.length>=6?money(bases.at(-1)!):null,salaryAdvance:null,netReceived:null,
