@@ -219,7 +219,7 @@ async function incomeTaxReport(access:AgentAccess,args:Json):Promise<AgentToolRe
   note:'Nenhum Informe de Rendimentos PDF carregado neste ano. Não atribua valor oficial a projeções.'},sources:[]}
  if(!data.confirmed_at)return {data:{year,document_present:true,reviewed:false,official_values:null,
   note:'PDF privado existente, mas ainda não conferido. Valores extraídos ou estimados não são oficiais.'},sources:[]}
- const known=new Set(['ppr_gross','ppr_irrf','taxable_salary','inss','salary_irrf','thirteenth',
+ const known=new Set(['ppr_gross','ppr_net','ppr_irrf','taxable_salary','inss','salary_irrf','thirteenth','thirteenth_net',
   'thirteenth_irrf','private_pension','alimony'])
  const values:Record<string,number>={}
  if(data.reviewed_values&&typeof data.reviewed_values==='object'&&!Array.isArray(data.reviewed_values)){
@@ -230,7 +230,7 @@ async function incomeTaxReport(access:AgentAccess,args:Json):Promise<AgentToolRe
  }
  return {data:{year,document_present:true,reviewed:true,official_values:values,
   source:'Informe de rendimentos da empresa (PDF privado, valores conferidos pelo usuário)',
-  note:'A ausência de um campo não significa zero; não substitua por projeções sem sinalizar.'},
+  note:'A ausência de um campo não significa zero. thirteenth_net e ppr_net são rendimentos LÍQUIDOS sujeitos à tributação exclusiva, não equivalem a thirteenth e ppr_gross brutos. Não substitua por projeções sem sinalizar.'},
   sources:['Informe IR '+year+' · documento conferido']}
 }
 async function events(access:AgentAccess,args:Json):Promise<AgentToolResult>{
