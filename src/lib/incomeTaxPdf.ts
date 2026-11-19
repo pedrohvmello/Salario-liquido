@@ -57,55 +57,72 @@ export function inferCalendarYear(text:string):number|null{
  }
  return exercise.length===1?exercise[0]-1:null
 }
-const patterns:Record<OfficialField,RegExp[]>={
- taxable_salary:[/total (?:dos )?rendimentos(?: tributaveis)?(?: inclusive ferias)?/,/rendimentos tributaveis (?:de salarios|recebidos)/],
- inss:[/contribuic(?:ao|oes) (?:previdenciaria )?oficial/,/previdencia oficial.*inss/],
- salary_irrf:[/imposto (?:sobre a renda )?retido na fonte/,/imposto de renda retido na fonte/],
- private_pension:[/previdencia complementar/,/previdencia privada dedutivel/],
- alimony:[/pensao alimenticia/],
- thirteenth:[/decimo terceiro salario/,/13[ºo°] salario/],
- thirteenth_irrf:[/irrf.*(?:13[ºo°]|decimo terceiro)/,/(?:13[ºo°]|decimo terceiro).*irrf/,/imposto.*(?:13[ºo°]|decimo terceiro)/],
- ppr_gross:[/participac(?:ao|oes) nos lucros(?: e resultados)?/,/ppr\/?plr/,/rendimento(?:s)? de ppr/],
- ppr_irrf:[/irrf.*(?:participac|ppr|plr)/,/imposto.*(?:participac|ppr|plr)/]
-}
-type Section='taxable'|'exclusive'|'other'
+type Section='taxable'|'exclusive_net'|'exclusive_other'|'other'
 function sectionOf(text:string):Section|null{
- const n=normalize(text)
- if(/rendimentos tributaveis.*(?:deduc|imposto)/.test(n))return 'taxable'
- if(/rendimentos sujeitos a tributacao exclusiva/.test(n))return 'exclusive'
- if(/rendimentos isentos|informacoes complementares|responsavel pelas informacoes|dados da fonte pagadora/.test(n))return 'other'
+ const row=normalize(text)
+ // We only accept section headers, not incidental references in other rows.
+ if(/^(?:3[.]\s*)?rendimentos tributaveis\s*,?\s*deduc/.test(row))return 'taxable'
+ if(/^(?:5[.]\s*)?rendimentos sujeitos a tributacao exclusiva/.test(row)){
+  return /\brendimento(?:s)? liquido(?:s)?\b/.test(row)?'exclusive_net':'exclusive_other'
+ }
+ if(/^[1-8][.]\s*(?:fonte pagadora|pessoa fisica beneficiaria|rendimentos isentos|rendimentos recebidos acumuladamente|informacoes complementares|responsavel pelas informacoes)/.test(row))
+  return 'other'
  return null
 }
-/** Require a section and a label-plus-amount line. No guessed figures and no
- * cross-section IRRF mixing. Scanned or unfamiliar layouts remain review-only. */
+const is13=/\b(?:13[ºo°]\s*(?:\(\s*decimo terceiro\s*\)\s*)?salario|decimo terceiro\s*salario)\b/
+const isPlr=/\b(?:ppr|plr)\b|participac(?:ao|oes)\s+(?:nos|de)\s+lucros/
+function fieldsOnLine(row:string,section:Section):OfficialField[]{
+ const n=normalize(row)
+ if(section==='taxable'){
+  const matches:OfficialField[]=[]
+  if(/\btotal dos rendimentos\b|\brendimentos tributaveis recebidos\b/.test(n))matches.push('taxable_salary')
+  if(/contribuic(?:ao|oes) previdenciaria oficial|\bprevidencia oficial\b/.test(n))matches.push('inss')
+  if(/previdencia complementar|\bprevidencia privada dedutivel\b/.test(n))matches.push('private_pension')
+  if(/pensao alimenticia/.test(n))matches.push('alimony')
+  if(/imposto (?:sobre a renda )?retido na fonte|\birrf\b/.test(n)&&
+   !/(?:13[ºo°]|decimo terceiro|\bplr\b|\bppr\b)/.test(n))matches.push('salary_irrf')
+  return matches
+ }
+ if(section!=='exclusive_net'&&section!=='exclusive_other')return []
+ // RFB's "rendimento líquido" table is not equivalent to gross salary/PPR.
+ const explicitNet=section==='exclusive_net'||/\bliquido\b/.test(n)
+ const isWithholding=/\b(?:irrf|imposto|retido)\b/.test(n)
+ if(is13.test(n)){
+  if(isWithholding)return ['thirteenth_irrf']
+  if(/\bbrut[oa]\b/.test(n))return ['thirteenth']
+  return explicitNet?['thirteenth_net']:[]
+ }
+ if(isPlr.test(n)){
+  if(isWithholding)return ['ppr_irrf']
+  if(/\bbrut[oa]\b/.test(n))return ['ppr_gross']
+  return explicitNet?['ppr_net']:[]
+ }
+ return []
+}
+/** Use labeled rows within their actual section; adjacent RRA/zero-value rows
+ * must never be treated as the 13th or PLR of section 5. */
 export function extractTaxFieldsFromLines(lines:Line[]):{fields:OfficialValues;warnings:string[]}{
  const fields:OfficialValues={}
  const warnings:string[]=[]
  const found=new Map<OfficialField,number[]>()
  let section:Section='other'
  for(let i=0;i<lines.length;i++){
-  const row=lines[i],n=normalize(row.text)
-  const maybeSection=sectionOf(n)
-  if(maybeSection){section=maybeSection;continue}
+  const row=lines[i]
+  const nextSection=sectionOf(row.text)
+  if(nextSection){section=nextSection;continue}
   if(section==='other')continue
-  for(const [key,patternsForKey] of Object.entries(patterns) as [OfficialField,RegExp[]][]){
-   if(key==='salary_irrf'&&section!=='taxable')continue
-   if(['taxable_salary','inss','private_pension','alimony'].includes(key)&&section!=='taxable')continue
-   if(['thirteenth','thirteenth_irrf','ppr_gross','ppr_irrf'].includes(key)&&section!=='exclusive')continue
-   if(!patternsForKey.some(rx=>rx.test(n)))continue
-   // Avoid classifying a PPR/13th line as generic salary withholding.
-   if(key==='salary_irrf'&&/(?:ppr|plr|decimo terceiro|13[ºo°])/.test(n))continue
-   if(key==='thirteenth'&&/(?:irrf|imposto|retido)/.test(n))continue
-   if(key==='ppr_gross'&&/(?:irrf|imposto|retido)/.test(n))continue
-   let amount=amountOnRow(row.text)
-   if(amount===null&&i+1<lines.length&&lines[i+1].page===row.page){
-    const next=lines[i+1].text.trim()
-    // Only accept a following line containing an amount alone, not a new label.
-    if(/^(?:R\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+),\d{2}$/.test(next))amount=amountOnRow(next)
-   }
-   if(amount===null)continue
+  const matches=fieldsOnLine(row.text,section)
+  if(!matches.length)continue
+  let amount=amountOnRow(row.text)
+  if(amount===null&&i+1<lines.length&&lines[i+1].page===row.page){
+   const next=lines[i+1].text.trim()
+   if(/^(?:R\$\s*)?(?:\d{1,3}(?:\.\d{3})+|\d+),\d{2}$/.test(next))amount=amountOnRow(next)
+  }
+  if(amount===null)continue
+  for(const key of matches){
    const existing=found.get(key)||[]
-   existing.push(amount);found.set(key,existing)
+   existing.push(amount)
+   found.set(key,existing)
   }
  }
  for(const [key,amounts] of found){
