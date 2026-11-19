@@ -4,6 +4,7 @@ import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
 import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
+import {clearedFortnightHours} from '../lib/fortnightReset'
 import {PayrepConfirmDialog} from './PayrepConfirmDialog'
 
 type TimeRow=DayEntry&{id:string}
@@ -107,10 +108,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   setSaving(true);setError('');setMessage('')
   try{
    const targets=dates.filter(date=>byDate.has(date)||Object.prototype.hasOwnProperty.call(drafts,date))
-   const cleared=targets.map(date=>({
-    ...read(date),start:'',lunchStart:'',lunchEnd:'',end:'',
-    additionalHours:'',bankHours:false,bankDeltaMinutes:null,bankWeightedMinutes:null
-   }))
+   const cleared=targets.map(date=>clearedFortnightHours(read(date)))
    if(cleared.length)await saveTimeEntries(cleared)
    setDrafts(previous=>{
     const next={...previous}
