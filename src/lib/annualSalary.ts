@@ -23,8 +23,14 @@ const monthlyIrrf=(r:StatementRubric)=>r.side==='debit'&&
   (/(?:irrf|tributo\s*ir)/.test(normalize(r.description))||r.code==='/401')
 const monthlyInss=(r:StatementRubric)=>r.side==='debit'&&
   /\binss\b/.test(normalize(r.description))
+const vacationIrrf=(r:StatementRubric)=>monthlyIrrf(r)&&
+  (/^(07060|07065)$/.test(r.code)||/feria/.test(normalize(r.description)))
+const vacationInss=(r:StatementRubric)=>monthlyInss(r)&&
+  (/^(07030|07040)$/.test(r.code)||/feria/.test(normalize(r.description)))
 const pension=(r:StatementRubric)=>r.side==='debit'&&
   /pensao\s*(?:alim|pg|reg|alimenticia)/.test(normalize(r.description))
+const vacationPension=(r:StatementRubric)=>pension(r)&&
+  (/^(07145|07155)$/.test(r.code)||/feria/.test(normalize(r.description)))
 const retirement=(r:StatementRubric)=>r.side==='debit'&&
   /(vgbl|previdencia\s*privada|previdencia\s*individual)/.test(normalize(r.description))
 const espp=(r:StatementRubric)=>r.side==='debit'&&/\bespp\b/.test(normalize(r.description))
@@ -58,9 +64,9 @@ export function annualSalarySummary(
  const seenPpr=new Set<string>()
  const receiptById=new Map(statements.map(s=>[s.id,s]))
  const monthlyVacationById=new Map<string,number>()
- const monthlyIrrfById=new Map<string,number>()
- const monthlyInssById=new Map<string,number>()
- const monthlyPensionById=new Map<string,number>()
+ const monthlyVacationIrrfById=new Map<string,number>()
+ const monthlyVacationInssById=new Map<string,number>()
+ const monthlyVacationPensionById=new Map<string,number>()
  const yearsWithFullThirteenth=new Set(thirteenth.occurrences.map(x=>x.year))
  // Count monthly payroll as the source of record for salaries, vacation
  // earnings, trienio and their withholdings.
@@ -79,8 +85,9 @@ export function annualSalarySummary(
    monthlyVacationById.set(s.id,vac)
    yearItem.vacationGross+=vac
    const irrf=total(rows,monthlyIrrf),inss=total(rows,monthlyInss),pens=total(rows,pension)
-   monthlyIrrfById.set(s.id,irrf);monthlyInssById.set(s.id,inss)
-   monthlyPensionById.set(s.id,pens)
+   monthlyVacationIrrfById.set(s.id,total(rows,vacationIrrf))
+   monthlyVacationInssById.set(s.id,total(rows,vacationInss))
+   monthlyVacationPensionById.set(s.id,total(rows,vacationPension))
    yearItem.irrfTotal+=irrf
    yearItem.inss+=inss
    yearItem.pension+=pens
@@ -137,23 +144,15 @@ export function annualSalarySummary(
   const uncovered=Math.max(0,receiptGross-bookedMonthly)
   item.vacationGross+=uncovered
   item.gross+=uncovered
-  // When the receipt is the sole evidence of a vacation, include its
-  // withholdings. Otherwise the monthly payroll remains authoritative.
-  if(matchedMonthlyIds.length===0){
-   item.irrfTotal+=total(rows,monthlyIrrf)
-   item.inss+=total(rows,monthlyInss)
-   item.pension+=total(rows,pension)
-  }else{
-   const irrfAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyIrrfById.get(id)||0),0)
-   const inssAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyInssById.get(id)||0),0)
-   const pensionAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyPensionById.get(id)||0),0)
-   // Never add a second tax deduction for the same underlying vacation.
-   // Fallback is appropriate only where the linked monthly records have no
-   // withholding evidence at all.
-   if(irrfAlready===0)item.irrfTotal+=total(rows,monthlyIrrf)
-   if(inssAlready===0)item.inss+=total(rows,monthlyInss)
-   if(pensionAlready===0)item.pension+=total(rows,pension)
-  }
+  // The vacation receipt contains the complete tax/deduction for its period.
+  // Monthly statements may already have some or all of those amounts.
+  // Include only the unaccounted difference, not all taxes from a salary month.
+  const knownIrrf=matchedMonthlyIds.reduce((n,id)=>n+(monthlyVacationIrrfById.get(id)||0),0)
+  const knownInss=matchedMonthlyIds.reduce((n,id)=>n+(monthlyVacationInssById.get(id)||0),0)
+  const knownPension=matchedMonthlyIds.reduce((n,id)=>n+(monthlyVacationPensionById.get(id)||0),0)
+  item.irrfTotal+=Math.max(0,total(rows,vacationIrrf)-knownIrrf)
+  item.inss+=Math.max(0,total(rows,vacationInss)-knownInss)
+  item.pension+=Math.max(0,total(rows,vacationPension)-knownPension)
  }
  for(const item of map.values()){
   for(const key of ['gross','vacationGross','thirteenthGross','fgts','irrfTotal','trienio',

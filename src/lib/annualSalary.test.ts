@@ -54,6 +54,34 @@ describe('historical annual gross and statutory deductions',()=>{
   expect(summary.privatePension).toBe(200)
   expect(summary.espp).toBe(1000)
  })
+ it('reconciles only the missing vacation withholding when monthly payroll has partial values',()=>{
+  const month=statement('month','monthly','2023-11',{credits:12000,net:8000})
+  const vacation=statement('vac','vacation','2023-11',{
+   vacation_start:'2023-11-01',vacation_end:'2023-11-30',
+   payment_date:'2023-10-30',credits:2600,net:1800
+  })
+  const rubrics=[
+   line('month','1000','Salário','credit',10000),
+   line('month','02800','Férias mês','credit',2000),
+   line('month','07050','IRRF mês','debit',1700),
+   line('month','07065','IRRF descontado férias I','debit',300),
+   line('month','07020','INSS mês','debit',900),
+   line('month','07040','INSS descontado férias I','debit',100),
+   line('month','07150','Pensão alimentícia mês','debit',400),
+   line('month','07145','Desconto pensão alimentícia férias','debit',80),
+   line('vac','02000','Férias 1ª ocorrência','credit',2600),
+   line('vac','07060','IRRF férias normais','debit',500),
+   line('vac','07030','INSS férias','debit',200),
+   line('vac','07155','Pensão alimentícia férias','debit',150)
+  ]
+  const report=calculate([month,vacation],rubrics)[0]
+  expect(report.gross).toBe(12600)
+  expect(report.vacationGross).toBe(2600)
+  expect(report.irrfTotal).toBe(2200)
+  expect(report.inss).toBe(1100)
+  expect(report.pension).toBe(550)
+  expect(report.netBeforeOtherDeductions).toBe(9300)
+ })
  it('preserves the 13th advance as a partial gross until the final receipt is available',()=>{
   const monthly=statement('month','monthly','2026-11',{credits:16000})
   const report=calculate([monthly],[line('month','02880','Adiantamento 13º salário férias','credit',7000)])
