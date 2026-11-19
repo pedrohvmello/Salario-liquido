@@ -99,7 +99,7 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
     throw Error(errors[code]||errors.ai_unavailable)
    }
    if(!data||typeof data.answer!=='string'||!data.answer.trim())throw Error(errors.ai_invalid_response)
-   setMessages([...prior,{role:'user',content:question},{role:'assistant',content:data.answer.slice(0,1300),sources:Array.isArray(data.sources)?data.sources.filter((x:unknown)=>typeof x==='string').slice(0,2):[]}])
+   setMessages([...prior,{role:'user',content:question},{role:'assistant',content:data.answer.slice(0,2400),sources:Array.isArray(data.sources)?data.sources.filter((x:unknown)=>typeof x==='string').slice(0,2):[]}])
    void fetchMyPepUsage().then(setUsage).catch(()=>{})
   }catch(err){
    setMessages(prior)
@@ -117,9 +117,9 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>{mode==='help'?'Pep Ajuda':'Pergunte ao Pep'}</h2>
    <p>{mode==='help'?'Tire dúvidas sobre as funcionalidades e processos do Payrep.':<>
-    <strong>Seu especialista fiscal privado no Payrep.</strong> O Pep ajuda a compreender holerites,
+    <strong>Seu assistente financeiro pessoal no Payrep.</strong> O Pep pode analisar seus dados, calcular cenários e explicar holerites,
     IRRF, INSS, FGTS, PPR, férias, 13º salário, pensão e outros descontos.
-    Também pode esclarecer dúvidas sobre projeções salariais e diferenças entre competências
+    Também pode responder perguntas livres sobre projeções salariais e diferenças entre competências
     usando os dados disponíveis na sua conta. As orientações devem ser conferidas com seus
     documentos e, quando necessário, com um profissional habilitado.
    </>}</p></div>
