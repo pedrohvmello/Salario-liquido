@@ -123,9 +123,22 @@ Deno.serve(async req=>{
   })
  }
 
+ // Personalization is display-only and comes from the authenticated user's server-side profile.
+ // Never accept a name or identity override from the browser request.
+ const {data:pepProfile}=mode==='personal'
+  ?await db.from('user_profiles').select('display_name').eq('user_id',user.id).maybeSingle()
+  :{data:null}
+ const rawFirstName=typeof pepProfile?.display_name==='string'
+  ?pepProfile.display_name.trim().split(/\s+/)[0]:''
+ const firstName=rawFirstName.replace(/[^\p{L}'-]/gu,'').slice(0,32)
+ const personalStyle=firstName
+  ?'TOM: converse de modo próximo e natural, sem formalidade exagerada. O primeiro nome cadastrado do usuário é '+firstName+'. Chame-o por esse nome nas respostas, sem repetir cumprimentos ou presumir intimidade pessoal. A precisão financeira e as restrições acima continuam prioritárias.'
+  :'TOM: converse de modo próximo e natural, mas sem inventar o nome do usuário ou presumir intimidade pessoal.'
+
  const messages=[
   {role:'system',content:SYSTEM},
   {role:'system',content:mode==='help'?HELP_RULES:PERSONAL_RULES},
+  ...(mode==='personal'?[{role:'system',content:personalStyle}]:[]),
   ...(context?[{role:'system',content:
    'RESUMO FINANCEIRO AUTORIZADO, dados somente leitura, sem documentos originais: '+context.facts+
    '. Estes valores vêm de registros do usuário autenticado; não crie nem estime dados ausentes. Se a competência pedida não tiver documento, informe explicitamente.'}]:[]),
