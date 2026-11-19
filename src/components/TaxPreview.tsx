@@ -1,270 +1,388 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
+import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,FileUp,Info,Save,ShieldCheck,Trash2,X} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
-import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,Info,Save,Trash2,X} from 'lucide-react'
-import {brl} from '../lib/money'
-import {
-  summarizeTaxYear,calculatedOfficialValue,officialDifference,OFFICIAL_FIELDS,
-  type OfficialValues,type TaxStatement
-} from '../lib/annualTax'
-import {db} from '../lib/data'
 import {PayslipPdfViewer} from './PayslipPdfViewer'
+import {brl} from '../lib/money'
+import {db} from '../lib/data'
 import {loadMyEffectivePayrepPlan} from '../lib/account'
-import {confirmIncomeTaxReport,deleteIncomeTaxReport,downloadIncomeTaxReport,loadIncomeTaxReport,loadIncomeTaxYears,uploadIncomeTaxReport,type IncomeTaxReport} from '../lib/incomeTaxReports'
+import {
+ summarizeTaxYear,calculatedOfficialValue,officialDifference,OFFICIAL_FIELDS,
+ type OfficialField,type OfficialValues,type TaxStatement
+} from '../lib/annualTax'
+import {extractIncomeTaxPdf,type ExtractedTaxReport} from '../lib/incomeTaxPdf'
+import {
+ confirmIncomeTaxReport,deleteIncomeTaxReport,downloadIncomeTaxReport,
+ loadIncomeTaxReport,loadIncomeTaxYears,uploadIncomeTaxReport,type IncomeTaxReport
+} from '../lib/incomeTaxReports'
 
-function blankValues():OfficialValues{return {}}
-function numberOrNull(text:string):number|null{
- if(text.trim()==='')return null
- const n=Number(text.replace(',','.'))
- return Number.isFinite(n)&&n>=0?Math.round(n*100)/100:null
+const taxableFields:readonly OfficialField[]=[
+ 'taxable_salary','inss','private_pension','alimony','salary_irrf'
+]
+const exclusiveFields:readonly OfficialField[]=[
+ 'thirteenth','thirteenth_irrf','ppr_gross','ppr_irrf'
+]
+const moneyLabel=(key:OfficialField)=>OFFICIAL_FIELDS.find(field=>field.key===key)?.title||key
+const parseAmount=(raw:string):number|null=>{
+ const value=raw.trim().replace(/\s/g,'').replace(/R\$/ig,'')
+ if(!value)return null
+ const normalized=value.includes(',')?value.replace(/\./g,'').replace(',','.'):value
+ const number=Number(normalized)
+ return Number.isFinite(number)&&number>=0&&number<=1e9?Math.round(number*100)/100:null
 }
+const formatAmount=(value:number|null|undefined)=>
+ typeof value==='number'?value.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):''
+const draftsFrom=(values:OfficialValues):Record<string,string>=>Object.fromEntries(
+ OFFICIAL_FIELDS.map(field=>[field.key,formatAmount(values[field.key])])
+)
+type PendingImport={
+ file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null
+}
+
 export function TaxPreview({userId,statements}:{userId:string|null;statements:TaxStatement[]}){
- const current=new Date().getFullYear()
+ const today=new Date().getFullYear()
+ const defaultYear=Math.max(1990,today-1)
+ const [year,setYear]=useState(defaultYear)
  const [reportYears,setReportYears]=useState<number[]>([])
  const [report,setReport]=useState<IncomeTaxReport|null>(null)
  const [canUpload,setCanUpload]=useState(false)
- const [reportBusy,setReportBusy]=useState(false)
- const [reportWarnings,setReportWarnings]=useState<string[]>([])
- const [fileToReplace,setFileToReplace]=useState<File|null>(null)
- const [deleteConfirm,setDeleteConfirm]=useState(false)
- const [approved,setApproved]=useState(false)
- const [viewer,setViewer]=useState<{blob:Blob;name:string}|null>(null)
- const fileRef=useRef<HTMLInputElement|null>(null)
- const years=useMemo(()=>[...new Set([
-   ...Array.from({length:Math.max(1,current-1999)},(_,i)=>current-i),
-   ...reportYears,...statements.map(x=>Number(x.payment_date?.slice(0,4)||x.period.slice(0,4)))
-  ])].filter(x=>Number.isInteger(x)&&x>=1990&&x<=current).sort((a,b)=>b-a),[statements,current,reportYears])
- const [year,setYear]=useState(current)
- const [official,setOfficial]=useState<OfficialValues>(blankValues)
  const [loading,setLoading]=useState(false)
+ const [busy,setBusy]=useState(false)
  const [saving,setSaving]=useState(false)
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
+ const [warnings,setWarnings]=useState<string[]>([])
+ const [values,setValues]=useState<OfficialValues>({})
+ const [drafts,setDrafts]=useState<Record<string,string>>({})
+ const [confirmedByUser,setConfirmedByUser]=useState(false)
+ const [pending,setPending]=useState<PendingImport|null>(null)
+ const [manualYear,setManualYear]=useState(defaultYear)
+ const [deleteConfirm,setDeleteConfirm]=useState(false)
+ const [viewer,setViewer]=useState<{blob:Blob;name:string}|null>(null)
+ const [legacyCount,setLegacyCount]=useState(0)
+ const fileRef=useRef<HTMLInputElement|null>(null)
  const summary=useMemo(()=>summarizeTaxYear(statements,year),[statements,year])
+ const sourceConfirmed=Boolean(report?.confirmed_at)
+ const viewingYears=useMemo(()=>[...new Set(reportYears)].sort((a,b)=>b-a),[reportYears])
+ const inferredYearOptions=useMemo(()=>Array.from({length:Math.max(1,today-1989)},(_,i)=>today-i),[today])
+
+ function present(values:OfficialValues){
+  setValues(values)
+  setDrafts(draftsFrom(values))
+ }
+
  useEffect(()=>{
   let active=true
-  if(!db||!userId){setReport(null);setOfficial(blankValues());return}
+  if(!db||!userId){setReport(null);setCanUpload(false);return}
   void Promise.all([loadIncomeTaxYears(),loadMyEffectivePayrepPlan()])
-   .then(([years,plan])=>{
+   .then(([loaded,plan])=>{
     if(!active)return
-    setReportYears(years)
+    setReportYears(loaded)
+    setYear(loaded[0]??defaultYear)
     setCanUpload(plan.isAdmin===true||plan.effectivePlan==='basic'||plan.effectivePlan==='full')
-   })
-   .catch(()=>{if(active)setCanUpload(false)})
+   }).catch(e=>{if(active)setError(e instanceof Error?e.message:'Não foi possível carregar os informes disponíveis.')})
   return ()=>{active=false}
- },[userId])
+ },[userId,defaultYear])
+
  useEffect(()=>{
-  if(!db||!userId){setOfficial(blankValues());setReport(null);return}
   let active=true
-  setLoading(true);setMessage('');setError('');setOfficial(blankValues());setReport(null)
-  setReportWarnings([]);setApproved(false);setFileToReplace(null);setDeleteConfirm(false)
+  if(!db||!userId){setReport(null);present({});return}
+  setLoading(true);setReport(null);setWarnings([]);setConfirmedByUser(false)
   void Promise.all([
+   loadIncomeTaxReport(year),
    db.from('annual_tax_comparisons').select('official_values')
-    .eq('user_id',userId).eq('calendar_year',year).maybeSingle(),
-   loadIncomeTaxReport(year)
-  ]).then(([manual,uploaded])=>{
+    .eq('user_id',userId).eq('calendar_year',year).maybeSingle()
+  ]).then(([stored,legacy])=>{
    if(!active)return
-   if(manual.error)throw manual.error
-   setReport(uploaded)
-   setOfficial(uploaded
-    ?uploaded.confirmed_at?uploaded.reviewed_values:uploaded.extracted_values
-    :(manual.data?.official_values||{}) as OfficialValues)
-   setApproved(Boolean(uploaded?.confirmed_at))
-  }).catch(e=>{
-   if(active)setError(e instanceof Error?e.message:'Não foi possível carregar o informe do ano selecionado.')
-  }).finally(()=>{if(active)setLoading(false)})
+   if(legacy.error)throw legacy.error
+   setReport(stored)
+   present(stored?(stored.confirmed_at?stored.reviewed_values:stored.extracted_values):{})
+   setLegacyCount(Object.keys(legacy.data?.official_values||{}).length)
+  }).catch(e=>{if(active)setError(e instanceof Error?e.message:'Falha ao consultar informe do ano.')})
+   .finally(()=>{if(active)setLoading(false)})
   return ()=>{active=false}
  },[userId,year])
 
- async function upload(file:File){
-  if(!canUpload||reportBusy)return
-  setReportBusy(true);setError('');setMessage('');setFileToReplace(null)
+ async function commitImport(file:File,analysis:ExtractedTaxReport,targetYear:number){
+  setBusy(true);setError('');setMessage('')
   try{
-   const {report:stored,extraction,alreadyStored}=await uploadIncomeTaxReport(year,file)
+   const {report:stored,alreadyStored}=await uploadIncomeTaxReport(targetYear,file,analysis)
+   setReportYears(old=>[...new Set([...old,targetYear])])
+   setYear(targetYear)
    setReport(stored)
-   setReportWarnings(extraction.warnings)
-   setOfficial(stored.confirmed_at?stored.reviewed_values:stored.extracted_values)
-   setApproved(Boolean(stored.confirmed_at))
-   setReportYears(prev=>[...new Set([...prev,year])])
-   setMessage(alreadyStored?'Este PDF já está armazenado para o ano.':
-    'PDF armazenado com segurança. Confira os valores detectados e confirme antes de utilizá-los como oficiais.')
-  }catch(e){setError(e instanceof Error?e.message:'Não foi possível carregar o PDF.')}
-  finally{setReportBusy(false);if(fileRef.current)fileRef.current.value=''}
+   present(stored.confirmed_at?stored.reviewed_values:stored.extracted_values)
+   setWarnings(analysis.warnings)
+   setConfirmedByUser(false)
+   setPending(null)
+   setMessage(alreadyStored?'Este documento já estava armazenado para '+targetYear+'.':
+    'Informe de '+targetYear+' armazenado. Confira os valores e confirme para torná-los oficiais.')
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível importar o informe.')}
+  finally{setBusy(false)}
  }
- async function openReport(download:boolean){
-  if(!report||reportBusy)return
-  setReportBusy(true);setError('')
+
+ async function analyzeFile(file:File){
+  if(!canUpload||busy)return
+  setBusy(true);setError('');setMessage('');setPending(null)
+  try{
+   const analysis=await extractIncomeTaxPdf(file)
+   const detected=analysis.detectedYear
+   if(detected===null){
+    setManualYear(defaultYear)
+    setPending({file,analysis,year:null,existing:null})
+    return
+   }
+   if(detected<1990||detected>today){
+    setPending({file,analysis,year:null,existing:null})
+    setManualYear(defaultYear)
+    return
+   }
+   const existing=await loadIncomeTaxReport(detected)
+   if(existing){setPending({file,analysis,year:detected,existing});return}
+   await commitImport(file,analysis,detected)
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível ler o PDF enviado.')}
+  finally{setBusy(false)}
+ }
+
+ async function confirmMissingYear(){
+  if(!pending||busy||pending.year!==null)return
+  setBusy(true);setError('')
+  try{
+   const existing=await loadIncomeTaxReport(manualYear)
+   if(existing){setPending({...pending,year:manualYear,existing});return}
+   await commitImport(pending.file,pending.analysis,manualYear)
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível validar o ano do informe.')}
+  finally{setBusy(false)}
+ }
+ async function showPdf(download:boolean){
+  if(!report||busy)return
+  setBusy(true);setError('')
   try{
    const blob=await downloadIncomeTaxReport(report)
    if(download){
-    const url=URL.createObjectURL(blob)
+    const objectUrl=URL.createObjectURL(blob)
     const anchor=document.createElement('a')
-    anchor.href=url;anchor.download=report.original_filename||('Informe-IR-'+year+'.pdf')
+    anchor.href=objectUrl;anchor.download=report.original_filename||('Informe-IR-'+year+'.pdf')
     document.body.append(anchor);anchor.click();anchor.remove()
-    window.setTimeout(()=>URL.revokeObjectURL(url),10000)
+    window.setTimeout(()=>URL.revokeObjectURL(objectUrl),10000)
    }else setViewer({blob,name:report.original_filename})
-  }catch(e){setError(e instanceof Error?e.message:'Não foi possível abrir o informe.')}
-  finally{setReportBusy(false)}
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível abrir o PDF.')}
+  finally{setBusy(false)}
  }
- async function removeReport(){
-  if(!report||reportBusy)return
-  setReportBusy(true);setError('');setMessage('')
+ async function removePdf(){
+  if(!report||busy)return
+  setBusy(true);setError('')
   try{
    await deleteIncomeTaxReport(report)
-   setReport(null);setOfficial(blankValues());setApproved(false);setDeleteConfirm(false)
-   setReportWarnings([])
-   setMessage('Informe removido. Valores anteriores digitados manualmente não são considerados dados extraídos do PDF.')
+   const remaining=viewingYears.filter(y=>y!==year)
+   setReportYears(remaining)
+   setYear(remaining[0]??defaultYear)
+   setReport(null);present({});setWarnings([])
+   setConfirmedByUser(false);setDeleteConfirm(false)
+   setMessage('Informe excluído. Holerites e outros documentos não foram alterados.')
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível remover o informe.')}
-  finally{setReportBusy(false)}
+  finally{setBusy(false)}
  }
-
- async function save(){
-  if(!db||!userId)return
-  if(report&&!approved){setError('Marque que conferiu os valores com o PDF antes de confirmar.');return}
-  setSaving(true);setMessage('');setError('')
-  const sanitized:OfficialValues={}
+ function changeValue(field:OfficialField,text:string){
+  setDrafts(old=>({...old,[field]:text}))
+  setValues(old=>({...old,[field]:parseAmount(text)}))
+  setConfirmedByUser(false)
+ }
+ async function saveReviewed(){
+  if(!report||!canUpload||saving||!confirmedByUser)return
+  const invalid=OFFICIAL_FIELDS.find(field=>drafts[field.key]?.trim()&&parseAmount(drafts[field.key])===null)
+  if(invalid){setError('Confira o valor de '+invalid.title+'. Use um número em reais ou deixe em branco.');return}
+  const clean:OfficialValues={}
   for(const field of OFFICIAL_FIELDS){
-   const v=official[field.key]
-   if(v!==null&&v!==undefined&&Number.isFinite(v)&&v>=0)
-    sanitized[field.key]=Math.round(v*100)/100
+   const amount=parseAmount(drafts[field.key]||'')
+   if(amount!==null)clean[field.key]=amount
   }
+  if(!Object.keys(clean).length){
+   setError('Confira ao menos um valor com o documento antes de confirmar.')
+   return
+  }
+  setSaving(true);setError('');setMessage('')
   try{
-   if(report){
-    const confirmed=await confirmIncomeTaxReport(report,sanitized)
-    setReport(confirmed);setOfficial(confirmed.reviewed_values)
-    setMessage('Valores conferidos e registrados como fonte oficial do informe de '+year+'.')
-   }else{
-    const {error}=await db.from('annual_tax_comparisons').upsert(
-     {user_id:userId,calendar_year:year,official_values:sanitized,updated_at:new Date().toISOString()},
-     {onConflict:'user_id,calendar_year'})
-    if(error)throw error
-    setMessage('Valores digitados manualmente registrados para comparação, sem PDF de origem.')
-   }
-  }catch(e){setError(e instanceof Error?e.message:'Não foi possível salvar os valores.')}
+   const stored=await confirmIncomeTaxReport(report,clean)
+   setReport(stored);present(stored.reviewed_values)
+   setConfirmedByUser(false)
+   setMessage('Informe de '+year+' conferido. Os valores confirmados agora são a fonte oficial desse ano.')
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível confirmar os valores.')}
   finally{setSaving(false)}
  }
-
- const hasOfficial=OFFICIAL_FIELDS.some(x=>official[x.key]!==undefined&&official[x.key]!==null)
- const sourceConfirmed=Boolean(report?.confirmed_at)
- const real=(key:keyof OfficialValues):number|null=>{
-  const value=sourceConfirmed?report?.reviewed_values?.[key]:null
-  return typeof value==='number'&&Number.isFinite(value)?value:null
- }
- const preferred=(key:keyof OfficialValues,calculated:number|null):{amount:number|null;source:string}=>{
-  const officialValue=real(key)
-  if(officialValue!==null)return {amount:officialValue,source:'Informe oficial conferido'}
-  if(sourceConfirmed)return {amount:calculated,source:calculated!==null?'Estimativa por holerites; ausente do informe':'Não informado no informe'}
-  return {amount:calculated,source:calculated!==null?'Apurado nos holerites':'Não identificado'}
- }
-
- return <div className="stack">
-  <div className="page-intro">
-   <div><h2>Prévia do informe de rendimentos</h2>
-    <p>Ano-calendário {year}, exercício {year+1}. Conferência assistida de holerites, não é informe oficial nem declaração pronta.</p>
-   </div>
-   <label className="year-filter">Ano-calendário
-    <PayrepSelect value={year} onChange={next=>setYear(Number(next))} title="Ano-calendário">
-     {years.map(x=><option key={x} value={x}>{x}</option>)}
-    </PayrepSelect>
-   </label>
+ const renderRows=(fields:readonly OfficialField[])=>fields.map((key,index)=><div className="ir-report-row" key={key}>
+  <div className="ir-report-row-label">
+   <span className="ir-report-index">{String(index+1).padStart(2,'0')}</span>
+   <span>{moneyLabel(key)}</span>
   </div>
-  <div className="notice subtle-notice"><Info size={18}/>
-   O PPR/PLR e o 13º têm tributação exclusiva em quadros próprios. Os holerites são agrupados pelo <strong>ano do pagamento</strong>. Para valores tributários anuais, um informe de rendimentos conferido tem prioridade sobre totais estimados dos holerites.
-  </div>
-  <section className="panel tax-report-panel" aria-labelledby="tax-report-heading">
-   <div className="panel-heading"><h2 id="tax-report-heading"><FileCheck2 size={18}/> Informe de rendimentos da empresa</h2>
-    <span className="pill">{report?(sourceConfirmed?'PDF conferido · fonte oficial':'PDF salvo · conferência pendente'):'Nenhum PDF neste ano'}</span>
+  <label className="ir-report-amount">
+   <span className="ir-report-currency">R$</span>
+   <input type="text" inputMode="decimal" autoComplete="off" className="ir-report-number"
+    aria-label={'Valor em reais: '+moneyLabel(key)}
+    placeholder="Não informado" value={drafts[key]||''}
+    disabled={!report||!canUpload||loading||busy||saving}
+    onChange={e=>changeValue(key,e.target.value)}/>
+  </label>
+ </div>)
+
+ return <div className="stack ir-page">
+  <div className="page-intro ir-page-heading">
+   <div>
+    <h2>Informe IR</h2>
+    <p>Seus informes de rendimentos da empresa, organizados pelo ano-calendário.</p>
    </div>
-   <p className="subtle">Ano-calendário <strong>{year}</strong>, exercício <strong>{year+1}</strong>. PDF privado, acessível apenas à sua conta. Os valores do informe prevalecem após conferência; a simples importação não certifica o conteúdo.</p>
-   {report?<div className="tax-report-file">
-    <div><strong><FileCheck2 size={16}/>{report.original_filename}</strong>
-     <small>Enviado em {new Date(report.created_at).toLocaleString('pt-BR')} · {Math.round(report.file_size_bytes/1024)} KB</small></div>
-    <div className="row">
-     <button className="secondary" type="button" disabled={reportBusy} onClick={()=>void openReport(false)}><Eye size={16}/> Ver PDF</button>
-     <button className="secondary" type="button" disabled={reportBusy} onClick={()=>void openReport(true)}><Download size={16}/> Baixar</button>
-     {canUpload&&<button className="secondary" type="button" disabled={reportBusy} onClick={()=>setDeleteConfirm(true)}><Trash2 size={16}/> Excluir</button>}
-    </div>
-   </div>:<p className="subtle">Você ainda não carregou um informe para este ano. Os dados dos holerites permanecem apenas como indicadores parciais.</p>}
-   {canUpload&&<div className="tax-report-upload">
-    <input ref={fileRef} type="file" accept=".pdf,application/pdf" aria-label="Selecionar informe de rendimentos em PDF"
-     disabled={reportBusy||loading} onChange={event=>{
-      const file=event.target.files?.[0]
-      if(file){if(report)setFileToReplace(file);else void upload(file)}
-      if(fileRef.current)fileRef.current.value=''
+   <div className="ir-page-actions">
+    {canUpload&&<button type="button" className="primary ir-upload-action" disabled={busy||saving}
+     onClick={()=>fileRef.current?.click()}><FileUp size={18}/>{busy?'Processando PDF...':'Importar informe'}</button>}
+    <input ref={fileRef} type="file" accept=".pdf,application/pdf" className="ir-file-hidden"
+     aria-label="Selecionar informe de rendimentos em PDF"
+     onChange={event=>{
+      const file=event.currentTarget.files?.[0]
+      event.currentTarget.value=''
+      if(file)void analyzeFile(file)
      }}/>
-    <small>{report?'Selecione outro arquivo para substituir o informe deste ano.':'Selecione o PDF emitido pela empresa. Limite de 15 MB.'}</small>
-   </div>}
-   {!canUpload&&<p className="subtle">O carregamento de novos informes é exclusivo dos planos Basic e Full. Documentos anteriores continuam acessíveis.</p>}
-   {fileToReplace&&<div className="tax-report-confirm">
-    <p>Substituir o documento de {year}? Os valores anteriormente conferidos deixarão de ter validade até a nova conferência.</p>
-    <div className="row"><button type="button" className="secondary" onClick={()=>setFileToReplace(null)}>Cancelar</button>
-     <button type="button" className="primary" disabled={reportBusy} onClick={()=>{void upload(fileToReplace)}}>Confirmar substituição</button></div>
-   </div>}
-   {deleteConfirm&&<div className="tax-report-confirm">
-    <p>Excluir o PDF de {year} e os valores confirmados vinculados a ele? A operação não apaga holerites.</p>
-    <div className="row"><button type="button" className="secondary" onClick={()=>setDeleteConfirm(false)}>Cancelar</button>
-     <button type="button" className="primary" disabled={reportBusy} onClick={()=>{void removeReport()}}>Excluir informe</button></div>
-   </div>}
-   {reportWarnings.map((note,i)=><div className="detail-hint" key={i}><Info size={16}/>{note}</div>)}
-  </section>
-  <div className="stats-grid">
-   <div className="stat"><span className="subtle">Rendimentos tributáveis anuais</span><strong>{real('taxable_salary')!==null?brl(real('taxable_salary')!):'Não informado no informe'}</strong><small>{sourceConfirmed?'Informe oficial conferido':'Aguardando PDF conferido'}</small></div>
-   <div className="stat"><span className="subtle">IRRF salarial anual</span><strong>{real('salary_irrf')!==null?brl(real('salary_irrf')!):'Não informado no informe'}</strong><small>{sourceConfirmed?'Informe oficial conferido':'Aguardando PDF conferido'}</small></div>
-   <div className="stat"><span className="subtle">PPR/PLR bruto</span><strong>{preferred('ppr_gross',summary.pprDocuments?summary.pprGross:null).amount!==null?brl(preferred('ppr_gross',summary.pprDocuments?summary.pprGross:null).amount!):'Não identificado'}</strong><small>{preferred('ppr_gross',summary.pprDocuments?summary.pprGross:null).source}</small></div>
-   <div className="stat"><span className="subtle">IRRF exclusivo do PPR</span><strong>{preferred('ppr_irrf',summary.pprDocuments?summary.pprIrrf:null).amount!==null?brl(preferred('ppr_irrf',summary.pprDocuments?summary.pprIrrf:null).amount!):'Não identificado'}</strong><small>{preferred('ppr_irrf',summary.pprDocuments?summary.pprIrrf:null).source}</small></div>
-   <div className="stat"><span className="subtle">13º salário bruto</span><strong>{preferred('thirteenth',summary.thirteenthDocuments?summary.thirteenthGross:null).amount!==null?brl(preferred('thirteenth',summary.thirteenthDocuments?summary.thirteenthGross:null).amount!):'Não identificado'}</strong><small>{preferred('thirteenth',summary.thirteenthDocuments?summary.thirteenthGross:null).source}</small></div>
-   <div className="stat"><span className="subtle">IRRF exclusivo do 13º</span><strong>{preferred('thirteenth_irrf',summary.thirteenthDocuments?summary.thirteenthIrrf:null).amount!==null?brl(preferred('thirteenth_irrf',summary.thirteenthDocuments?summary.thirteenthIrrf:null).amount!):'Não identificado'}</strong><small>{preferred('thirteenth_irrf',summary.thirteenthDocuments?summary.thirteenthIrrf:null).source}</small></div>
-   <div className="stat"><span className="subtle">Holerites mensais disponíveis</span><strong>{summary.monthlyDocuments}/12</strong><small>Cobertura parcial para comparação</small></div>
+   </div>
   </div>
-  <section className="panel">
-   <div className="panel-heading"><h2>Comparar com o informe fornecido pela empresa</h2>
-    <span className="pill">{report?sourceConfirmed?'Valores oficiais conferidos':'Conferência do PDF pendente':'Valores digitados manualmente'}</span></div>
-   <p className="subtle">{report?'Confira cada valor com o documento da empresa. Os campos extraídos automaticamente são sugestões até você confirmar.':'Informe valores manualmente para comparação ou carregue o PDF da empresa.'} A diferença só é calculada quando há dado comparável nos holerites; campos ausentes não são estimados.</p>
-   <div className="table-scroll"><table>
-    <thead><tr><th>Campo</th><th>Apurado nos PDFs</th><th>Informe oficial (R$)</th><th>Diferença app − informe</th></tr></thead>
-    <tbody>{OFFICIAL_FIELDS.map(field=>{
-     const calculated=calculatedOfficialValue(summary,field.key)
-     const reference=official[field.key]??null
-     const delta=officialDifference(calculated,reference)
-     return <tr key={field.key}>
-      <td><strong>{field.title}</strong><div className="subtle">{field.unit}</div></td>
-      <td>{calculated===null?<span className="subtle">Não apurado</span>:brl(calculated)}</td>
-      <td><input className="tax-number" type="number" min="0" step="0.01"
-       aria-label={'Valor oficial: '+field.title} value={reference??''}
-       onChange={e=>{setOfficial(v=>({...v,[field.key]:numberOrNull(e.target.value)}));if(report)setApproved(false)}}
-       placeholder="Não informado" disabled={loading}/></td>
-      <td>{delta===null?<span className="subtle">Sem comparação</span>:
-       Math.abs(delta)<=0.01?<span className="ok">Coincide</span>:
-       <span className="flag">{brl(delta)}</span>}</td>
-     </tr>
-    })}</tbody>
-   </table></div>
-   {report&&<label className="tax-report-approval">
-    <input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)} disabled={loading||reportBusy}/>
-    Conferi os valores com o PDF da empresa e confirmo sua utilização como fonte oficial para {year}.
-   </label>}
-   <div className="tax-actions"><button className="primary" disabled={!db||!userId||saving||loading||Boolean(report&&(!canUpload||!approved))}
-     onClick={()=>{void save()}}><Save size={16}/>{report?'Confirmar valores do informe':'Salvar valores para comparação'}</button>
-    {loading&&<span className="subtle">Buscando comparação salva...</span>}
-    {hasOfficial&&<span className="subtle">Os valores ficam privados na sua conta. {report&&!sourceConfirmed?'Ainda não são considerados confirmados.':''}</span>}
-   </div>
-   {message&&<div role="status" className="notice success"><CheckCircle2 size={17}/>{message}</div>}
-   {error&&<div role="alert" className="notice danger"><AlertTriangle size={17}/>{error}</div>}
-  </section>
-  <section className="panel">
-   <div className="panel-heading"><h2>Cobertura e critérios de apuração</h2><FileCheck2 size={19}/></div>
-   <div className="breakdown">
-    <div className="break-row"><span>INSS do 13º comprovado</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthInss):'Não identificado'}</strong></div>
-    <div className="break-row"><span>Pensão sobre 13º comprovada</span><strong>{summary.thirteenthDocuments?brl(summary.thirteenthPension):'Não identificado'}</strong></div>
-    <div className="break-row"><span>Contribuição negocial PPR identificada</span><strong>{summary.pprDocuments?brl(summary.pprContribution):'Não identificada'}</strong></div>
-    <div className="break-row"><span>Proventos de folhas mensais por competência (informativo, NÃO é base tributável)</span><strong>{summary.monthlyDocuments?brl(summary.monthlyGrossIndicative):'Não identificado'}</strong></div>
-    <div className="break-row"><span>Líquidos de fechamento mensais identificados (informativo)</span><strong>{summary.monthlyDocuments?brl(summary.monthlyClosingNetIndicative):'Não identificado'}</strong></div>
-   </div>
-   {summary.notes.map((note,i)=><div className="detail-hint" key={i}><Info size={16}/>{note}</div>)}
-   <div className="detail-hint"><AlertTriangle size={16}/>Rendimentos tributáveis mensais, IRRF salarial e demais deduções exigem classificação e conciliação por pagamento. O 13º bruto e seu IRRF são apurados apenas quando o recibo específico for importado; adiantamentos não são somados novamente. Não devem ser inferidos de proventos ou líquidos da folha.</div>
-  </section>
+  {viewingYears.length>0&&<nav className="ir-report-years" aria-label="Informes importados por ano-calendário">
+   <span>Informes disponíveis</span>
+   {viewingYears.map(y=><button key={y} type="button"
+    className={'ir-year-button'+(y===year?' is-active':'')} aria-current={y===year?'true':undefined}
+    onClick={()=>{if(busy||saving)return;setError('');setMessage('');setYear(y)}}>{y}</button>)}
+  </nav>}
+  {message&&<div className="notice success" role="status"><CheckCircle2 size={17}/>{message}</div>}
+  {error&&<div className="notice danger" role="alert"><AlertTriangle size={17}/>{error}</div>}
+  {!canUpload&&<div className="notice subtle-notice"><Info size={17}/>
+   A importação de novos informes está disponível nos planos Basic e Full. Documentos já armazenados podem ser consultados.</div>}
+
+  {loading?<section className="panel ir-report-empty"><p className="subtle">Carregando informe...</p></section>:
+   !report?<section className="panel ir-report-empty">
+    <div className="ir-report-empty-icon"><FileCheck2 size={35}/></div>
+    <h3>{viewingYears.length?'Nenhum documento neste período':'Seu primeiro informe começa aqui'}</h3>
+    <p>Importe o PDF fornecido pela empresa. O Payrep identifica o ano-calendário automaticamente e organiza o documento na sua conta.</p>
+    {canUpload&&<button type="button" className="primary" disabled={busy} onClick={()=>fileRef.current?.click()}>
+     <FileUp size={17}/> Importar informe
+    </button>}
+    {legacyCount>0&&<small>Existem valores digitados anteriormente para {year}; eles não são considerados um informe da empresa.</small>}
+    <small>PDF privado · até 15 MB · dados considerados oficiais apenas após conferência.</small>
+   </section>:
+   <>
+    <section className="ir-attachment-strip" aria-label="Documento do informe">
+     <div className="ir-attachment-meta">
+      <span className="ir-attachment-icon"><FileCheck2 size={23}/></span>
+      <div>
+       <strong>{report.original_filename}</strong>
+       <small>Importado em {new Date(report.created_at).toLocaleDateString('pt-BR')} · {Math.round(report.file_size_bytes/1024)} KB</small>
+      </div>
+     </div>
+     <div className="ir-attachment-actions">
+      <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(false)}><Eye size={15}/> Ver PDF</button>
+      <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(true)}><Download size={15}/> Baixar</button>
+      {canUpload&&<button type="button" className="secondary" disabled={busy}
+       onClick={()=>fileRef.current?.click()}><FileUp size={15}/> Substituir</button>}
+      {canUpload&&<button type="button" className="secondary ir-danger-action" disabled={busy}
+       onClick={()=>setDeleteConfirm(true)}><Trash2 size={15}/> Excluir</button>}
+     </div>
+    </section>
+    <section className="ir-report-paper" aria-labelledby="ir-paper-heading">
+     <div className="ir-report-paper-top">
+      <div className="ir-report-kicker">Resumo estruturado do documento importado</div>
+      <h3 id="ir-paper-heading">Comprovante de Rendimentos Pagos e de Imposto sobre a Renda Retido na Fonte</h3>
+      <div className="ir-report-paper-identifiers">
+       <div><small>Ano-calendário</small><strong>{year}</strong></div>
+       <div><small>Exercício</small><strong>{year+1}</strong></div>
+       <div className="ir-report-source">
+        {sourceConfirmed?<><ShieldCheck size={16}/><span>Conferido · fonte oficial</span></>:
+         <><Info size={16}/><span>Conferência pendente</span></>}
+       </div>
+      </div>
+     </div>
+     {warnings.map((note,i)=><div className="ir-extraction-warning" key={i}><Info size={16}/>{note}</div>)}
+     <div className="ir-report-section">
+      <h4><span>3</span> Rendimentos tributáveis, deduções e imposto retido na fonte</h4>
+      <div className="ir-report-table-head"><span>Descrição</span><span>Valor (R$)</span></div>
+      {renderRows(taxableFields)}
+     </div>
+     <div className="ir-report-section">
+      <h4><span>5</span> Rendimentos sujeitos à tributação exclusiva</h4>
+      <div className="ir-report-table-head"><span>Descrição</span><span>Valor (R$)</span></div>
+      {renderRows(exclusiveFields)}
+     </div>
+     <div className="ir-report-paper-footer">
+      <Info size={16}/>
+      <p>Este é um resumo organizado pelo Payrep, não uma reprodução do formulário oficial. Compare cada valor com o PDF antes de confirmar. Campo em branco significa não identificado, nunca zero.</p>
+     </div>
+    </section>
+    {canUpload&&<section className="panel ir-review-panel">
+     <div>
+      <h3>{sourceConfirmed?'Revisar valores do informe':'Confirmar valores do informe'}</h3>
+      <p>Os dados são utilizados como informação oficial do ano somente após sua conferência. Alterações exigem nova confirmação.</p>
+     </div>
+     <label className="ir-review-checkbox">
+      <input type="checkbox" checked={confirmedByUser} onChange={e=>setConfirmedByUser(e.target.checked)}/>
+      Conferi os valores acima com o Informe de Rendimentos da empresa.
+     </label>
+     <button type="button" className="primary" disabled={!confirmedByUser||busy||saving}
+      onClick={()=>void saveReviewed()}><Save size={16}/>{saving?'Salvando...':sourceConfirmed?'Salvar valores conferidos':'Confirmar informe'}</button>
+    </section>}
+    <details className="panel ir-compare-details">
+     <summary>Comparação com holerites cadastrados <span>Opcional</span></summary>
+     <p className="subtle">Os totais por competência são indicativos, e não substituem o documento anual. A comparação só é possível quando há dados compatíveis.</p>
+     <div className="table-scroll"><table>
+      <thead><tr><th>Rubrica</th><th>Informe da empresa (R$)</th><th>Apuração dos holerites</th><th>Diferença</th></tr></thead>
+      <tbody>{OFFICIAL_FIELDS.map(field=>{
+       const imported=sourceConfirmed?report.reviewed_values[field.key]??null:null
+       const derived=calculatedOfficialValue(summary,field.key)
+       const delta=officialDifference(derived,imported)
+       return <tr key={field.key}>
+        <td>{field.title}</td>
+        <td>{imported===null?'Não confirmado':brl(imported)}</td>
+        <td>{derived===null?'Não apurado':brl(derived)}</td>
+        <td>{delta===null?'Sem comparação':Math.abs(delta)<=0.01?'Coincide':brl(delta)}</td>
+       </tr>
+      })}</tbody>
+     </table></div>
+     <p className="subtle">Cobertura dos holerites mensais: {summary.monthlyDocuments}/12. Proventos e líquidos mensais não são automaticamente rendimentos tributáveis.</p>
+    </details>
+   </>}
+
+  {pending&&<div className="ir-dialog-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setPending(null)}}>
+   <section className="ir-dialog" role="dialog" aria-modal="true" aria-label="Confirmar importação do informe">
+    <div className="ir-dialog-head"><h3>{pending.year===null?'Confirmar ano-calendário':'Substituir informe existente?'}</h3>
+     <button type="button" className="secondary" disabled={busy} aria-label="Fechar"
+      onClick={()=>setPending(null)}><X size={17}/></button></div>
+    {pending.year===null?<div className="ir-dialog-content">
+     <p>O Payrep não conseguiu identificar com segurança o ano-calendário neste PDF. Confirme o ano indicado no documento para continuar.</p>
+     <label>Ano-calendário do PDF
+      <PayrepSelect value={manualYear} onChange={next=>setManualYear(Number(next))} title="Ano-calendário do documento">
+       {inferredYearOptions.map(y=><option key={y} value={y}>{y} (exercício {y+1})</option>)}
+      </PayrepSelect>
+     </label>
+     <p className="subtle">O ano só é solicitado quando o documento não permite identificação automática, como em PDFs digitalizados.</p>
+    </div>:<div className="ir-dialog-content">
+     <p>Já existe um informe armazenado para o ano-calendário <strong>{pending.year}</strong>. Deseja substituir o documento?</p>
+     <p className="subtle">Os valores antigos deixarão de ser fonte oficial até a conferência do novo PDF. Nenhum holerite será alterado.</p>
+    </div>}
+    <div className="ir-dialog-actions">
+     <button type="button" className="secondary" disabled={busy} onClick={()=>setPending(null)}>Cancelar</button>
+     <button type="button" className="primary" disabled={busy} onClick={()=>{
+      if(pending.year===null)void confirmMissingYear()
+      else void commitImport(pending.file,pending.analysis,pending.year)
+     }}>{busy?'Processando...':pending.year===null?'Continuar':'Substituir informe'}</button>
+    </div>
+   </section>
+  </div>}
+  {deleteConfirm&&report&&<div className="ir-dialog-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setDeleteConfirm(false)}}>
+   <section className="ir-dialog" role="dialog" aria-modal="true" aria-label="Excluir informe">
+    <div className="ir-dialog-head"><h3>Excluir informe de {year}?</h3>
+     <button type="button" className="secondary" disabled={busy} aria-label="Fechar" onClick={()=>setDeleteConfirm(false)}><X size={17}/></button></div>
+    <p>O PDF e os valores confirmados associados a ele serão excluídos. Seus holerites não serão afetados.</p>
+    <div className="ir-dialog-actions">
+     <button type="button" className="secondary" disabled={busy} onClick={()=>setDeleteConfirm(false)}>Cancelar</button>
+     <button type="button" className="primary" disabled={busy} onClick={()=>void removePdf()}>Excluir informe</button>
+    </div>
+   </section>
+  </div>}
   {viewer&&<div className="payslip-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setViewer(null)}}>
-   <section className="payslip-viewer-dialog" role="dialog" aria-modal="true" aria-label="Informe de rendimentos">
-    <div className="payslip-dialog-heading"><strong>Informe IR {year} · {viewer.name}</strong>
+   <section className="payslip-viewer-dialog" role="dialog" aria-modal="true" aria-label="Visualizar Informe de Rendimentos">
+    <div className="payslip-dialog-heading"><strong>Informe de Rendimentos · {year}</strong>
      <button type="button" className="secondary" onClick={()=>setViewer(null)} aria-label="Fechar PDF"><X size={18}/></button></div>
     <PayslipPdfViewer blob={viewer.blob} filename={viewer.name} initialPage={1}/>
    </section>
