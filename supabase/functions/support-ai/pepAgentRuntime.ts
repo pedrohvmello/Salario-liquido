@@ -1,9 +1,10 @@
 import type {SupabaseClient} from 'npm:@supabase/supabase-js@2.105.0'
 import {PEP_AGENT_TOOLS,AGENT_TOOL_NAMES,executePepTool,type AgentAccess} from './pepAgentTools.ts'
+import {recoverAgentPlan,synthesizeAgentAnswer,type AgentObservation} from './pepAgentRecovery.ts'
 type Turn={role:'user'|'assistant';content:string}
 type FunctionCall={id:string;type:'function';function:{name:string;arguments:string}}
 type ModelMessage={role:string;content:string|null;tool_calls?:FunctionCall[];tool_call_id?:string}
-type ChatCompletion={choices?:Array<{message?:{role?:string;content?:string|null;tool_calls?:Array<{id?:string;type?:string;function?:{name?:string;arguments?:unknown}}>} }>}
+type ChatCompletion={choices?:Array<{finish_reason?:string;message?:{role?:string;content?:string|null;tool_calls?:Array<{id?:string;type?:string;function?:{name?:string;arguments?:unknown}}>} }>}
 
 export const PEP_AGENT_POLICY=[
  'Você é Pep, assistente pessoal do Payrep. Fale português natural, seja útil, preciso e direto.',
@@ -64,12 +65,18 @@ async function modelInference(args:{
  const raw:ChatCompletion=await response.json()
  const message=raw.choices?.[0]?.message
  if(!message)throw Error('ai_invalid_response')
+ if((message.content===null||message.content==='')&&!(message.tool_calls?.length)){
+  // Provider-specific serving issue: tokens can be generated while both content and tool_calls are empty.
+  // Never log private text or tool results.
+  console.warn('Pep empty tool completion',args.toolChoice,'finish_reason',raw.choices?.[0]?.finish_reason||'unknown')
+ }
  return message
 }
 export async function runPepAgent(args:{
  db:SupabaseClient;userId:string;plan:'free'|'basic'|'full';now:string;
  question:string;history:Turn[];firstName:string;token:string;account:string;
- infer?:typeof modelInference
+ infer?:typeof modelInference;recoverPlan?:typeof recoverAgentPlan;
+ synthesize?:typeof synthesizeAgentAnswer
 }):Promise<{answer:string;sources:string[];model:string;agentTools:number;usedFinancialData:boolean}>{
  const access:AgentAccess={db:args.db,userId:args.userId,plan:args.plan,now:args.now}
  const call=args.infer??modelInference
@@ -82,41 +89,93 @@ export async function runPepAgent(args:{
   {role:'user',content:args.question}
  ]
  const usedSources:string[]=[]
+ const observations:AgentObservation[]=[]
  let totalTools=0
- // Mandatory first tool is model-chosen, not pre-routed by request wording.
- // Up to two rounds of tool calls; then force final response. Bound both cost and latency.
- for(let round=0;round<3;round++){
-  const toolChoice=round===0?'required':round===2?'none':'auto'
-  const modelMessage=await call({token:args.token,account:args.account,messages,toolChoice})
-  const toolCalls=toolChoice==='none'?[]:parseCalls(modelMessage)
-  if(toolCalls.length>0&&round<2){
-   messages.push({role:'assistant',content:modelMessage?.content??null,tool_calls:toolCalls})
-   for(const tool of toolCalls){
-    let result:{data:unknown;sources:string[]}
-    if(totalTools>=7)result={data:{error:'tool_budget_exceeded'},sources:[]}
-    else if(!AGENT_TOOL_NAMES.has(tool.function.name))
-     result={data:{error:'tool_not_allowed'},sources:[]}
-    else {
-     try{result=await executePepTool(access,tool.function.name,tool.function.arguments)}
-     catch(e){
-      console.warn('Pep tool failed',tool.function.name,e instanceof Error?e.message.slice(0,100):'unknown')
-      result={data:{error:'tool_query_failed',message:'Consulta não disponível. Tente outra ferramenta ou informe a limitação.'},sources:[]}
-     }
+ let nativeAnswer:string|null=null
+ const result=(answer:string)=>({
+  answer:answer.slice(0,2400),sources:sourcesLimit(usedSources),
+  model:'Gemma 4 26B · ferramentas',agentTools:totalTools,
+  usedFinancialData:usedSources.length>0
+ })
+ const executeCalls=async(toolCalls:FunctionCall[])=>{
+  messages.push({role:'assistant',content:null,tool_calls:toolCalls})
+  for(const tool of toolCalls){
+   let response:{data:unknown;sources:string[]}
+   if(totalTools>=7)response={data:{error:'tool_budget_exceeded'},sources:[]}
+   else if(!AGENT_TOOL_NAMES.has(tool.function.name))
+    response={data:{error:'tool_not_allowed'},sources:[]}
+   else{
+    try{response=await executePepTool(access,tool.function.name,tool.function.arguments)}
+    catch(e){
+     // Errors are categorized, not logged with user data or arguments.
+     console.warn('Pep tool failed',tool.function.name,e instanceof Error?e.name:'unknown')
+     response={data:{error:'tool_query_failed',message:'Consulta não disponível. Não invente valores.'},sources:[]}
     }
-    totalTools++
-    usedSources.push(...result.sources)
-    const json=JSON.stringify(result.data)
-    messages.push({role:'tool',tool_call_id:tool.id,content:json.length>10500?json.slice(0,10400)+' [truncated]':json})
    }
+   totalTools++
+   usedSources.push(...response.sources)
+   observations.push({name:tool.function.name,data:response.data,sources:response.sources})
+   const json=JSON.stringify(response.data)
+   messages.push({role:'tool',tool_call_id:tool.id,content:json.length>10500?json.slice(0,10400)+' [truncated]':json})
+  }
+ }
+ // Tool selection remains model-driven. Two bounded rounds can gather different
+ // data sets before the final plain-text synthesis (avoids Gemma's empty tool responses).
+ for(let round=0;round<2;round++){
+  const toolChoice=round===0?'required':'auto'
+  let modelMessage:Awaited<ReturnType<typeof modelInference>>|null=null
+  try{
+   modelMessage=await call({token:args.token,account:args.account,messages,toolChoice})
+  }catch(err){
+   if(!(err instanceof Error)||err.message!=='ai_invalid_response')throw err
+   console.warn('Pep native tool call missing message, trying text planner')
+  }
+  let toolCalls=parseCalls(modelMessage||undefined)
+  let recovered=false
+  if(round===0&&toolCalls.length===0){
+   // No fixed keyword rules: another model pass selects tools using the
+   // same tool catalog but without the provider's native tool parser.
+   const planned=await (args.recoverPlan??recoverAgentPlan)({
+    token:args.token,account:args.account,question:args.question,
+    history:args.history,now:args.now
+   })
+   if(planned?.calls.length){
+    toolCalls=planned.calls.map((c,i)=>({
+     id:'recovered_tool_'+i,type:'function' as const,
+     function:{name:c.name,arguments:JSON.stringify(c.arguments)}
+    }))
+    recovered=true
+   }else if(planned?.answer){
+    return result(planned.answer)
+   }else{
+    throw Error('ai_invalid_response')
+   }
+  }
+  if(toolCalls.length){
+   await executeCalls(toolCalls)
+   // Recovered plans can directly produce a grounded answer; a second tool
+   // call is optional, and avoiding it reduces provider parser exposure.
+   if(recovered)break
    continue
   }
-  const answer=finalAnswer(modelMessage?.content)
-  if(answer&&totalTools>0)return {
-   answer,sources:sourcesLimit(usedSources),model:'Gemma 4 26B · ferramentas',
-   agentTools:totalTools,usedFinancialData:usedSources.length>0
+  if(totalTools>0){
+   nativeAnswer=finalAnswer(modelMessage?.content)
+   break
   }
-  if(totalTools===0)throw Error('ai_invalid_response')
-  if(round<2){messages.push({role:'system',content:'Agora forneça uma resposta baseada apenas nas ferramentas já executadas. Se necessário, consulte outras ferramentas válidas.'});continue}
  }
+ if(!totalTools)throw Error('ai_invalid_response')
+ try{
+  const answer=await (args.synthesize??synthesizeAgentAnswer)({
+   token:args.token,account:args.account,question:args.question,
+   history:args.history,now:args.now,firstName:args.firstName,observations
+  })
+  if(answer)return result(answer)
+ }catch(err){
+  // If the final text-only call itself failed, a nonempty grounded native
+  // answer is preferable to losing successful earlier tool queries.
+  if(nativeAnswer)return result(nativeAnswer)
+  throw err
+ }
+ if(nativeAnswer)return result(nativeAnswer)
  throw Error('ai_invalid_response')
 }
