@@ -2285,3 +2285,18 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .fortnight-action-buttons .primary,.fortnight-action-buttons .secondary{width:100%}
  .fortnight-picker-fields{grid-template-columns:minmax(0,1fr) 100px}
 }
+
+/* Clickable payslip rows: no visible checkbox per document. */
+.payslip-doc-row{grid-template-columns:43px minmax(0,1fr) auto;cursor:pointer;border-radius:10px;padding:17px 12px;transition:background-color .15s ease}
+.payslip-doc-row:hover,.payslip-doc-row:focus-visible{background:#f9f2ff}
+.payslip-doc-row.is-selected{background:#f0e0ff;outline:2px solid #9b36db;outline-offset:-2px}
+.payslip-select-all{display:inline-flex;align-items:center;gap:6px}
+.payslip-select-all small{font-size:11px;color:#81648e}
+.payslip-doc-actions{cursor:default}
+/* Pep quota fields left-aligned before label and description. */
+.pep-limits-layout{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.pep-limit-row{display:grid;grid-template-columns:100px minmax(245px,1fr) minmax(300px,1.4fr);align-items:center;gap:16px;font-size:13px;font-weight:700}
+.pep-limit-row input{width:100px;min-width:0!important}
+.pep-limit-row small{font-size:12px;font-weight:500}
+@media(max-width:900px){.pep-limit-row{grid-template-columns:85px minmax(0,1fr);gap:8px 12px}.pep-limit-row input{width:85px}.pep-limit-row small{grid-column:2}}
+@media(max-width:700px){.payslip-doc-row{grid-template-columns:39px minmax(0,1fr)}.pep-limit-row{grid-template-columns:75px minmax(0,1fr)}.pep-limit-row input{width:75px}}
