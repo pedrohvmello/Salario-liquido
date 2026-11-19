@@ -134,12 +134,13 @@ export function annualSalarySummary(
   const receiptGross=total(rows,vacationCredit)
   // A receipt can match monthly vacation earnings even if the payroll lacks
   // a vacation-advance debit. Match the stated vacation months as evidence.
-  const matchedMonthlyIds=occurrence.monthlyIds.length
-   ?occurrence.monthlyIds
-   :statements.filter(s=>s.document_type==='monthly'
-     &&s.period>=receipt.vacation_start!.slice(0,7)
-     &&s.period<=receipt.vacation_end!.slice(0,7)
-     &&(monthlyVacationById.get(s.id)||0)>0).map(s=>s.id)
+  const matchingVacationMonthIds=statements.filter(s=>s.document_type==='monthly'
+   &&s.period>=receipt.vacation_start!.slice(0,7)
+   &&s.period<=receipt.vacation_end!.slice(0,7)
+   &&(monthlyVacationById.get(s.id)||0)>0).map(s=>s.id)
+  const matchedMonthlyIds=[...new Set([
+   ...occurrence.monthlyIds,...matchingVacationMonthIds
+  ])]
   const bookedMonthly=matchedMonthlyIds.reduce((n,id)=>n+(monthlyVacationById.get(id)||0),0)
   const uncovered=Math.max(0,receiptGross-bookedMonthly)
   item.vacationGross+=uncovered
