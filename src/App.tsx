@@ -480,6 +480,12 @@ export default function App(){
   await saveEvent({...(eventId?{id:eventId}:{}),kind:eventKind,value,effective_date:eventDate,notes})
   setEventId(undefined);setEventValue('');setEventNote('');setPensionOptions({...defaultPensionRule});await refresh()
  },'Evento salvo')
+ const dependentsSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
+  &&s.period<=month&&s.dependents_total!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
+  [statements,month])
+ const dependentTaxSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
+  &&s.period<=month&&s.dependents_irrf!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
+  [statements,month])
  const isDemo=!db
  if(!authReady)return <div className="centered"><div className="spinner"/>Carregando...</div>
  if(db&&!user)return <GuestEntry/>
@@ -517,12 +523,6 @@ export default function App(){
   ['Adiantamento',brl(payroll.advance)]
  ]
  const activeEvent=(kind:string)=>latestEffectiveEvent(events,kind,month)
- const dependentsSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
-  &&s.period<=month&&s.dependents_total!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
-  [statements,month])
- const dependentTaxSnapshot=useMemo(()=>statements.filter(s=>s.document_type==='monthly'
-  &&s.period<=month&&s.dependents_irrf!=null).sort((a,b)=>b.period.localeCompare(a.period))[0],
-  [statements,month])
  const cardDetails:Record<OverviewCardId,{value:string;note:string}>={
   gross:{value:brl(payroll.gross),note:'Salário + triênio + extras + DSR'},
    baseSalary:{value:brl(effective.salary),note:'Salário-base vigente'},
