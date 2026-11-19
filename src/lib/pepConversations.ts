@@ -21,7 +21,7 @@ function sanitized(messages:PepChatMessage[]):PepChatMessage[]{
  const clean=messages.slice(0,100).filter(item=>item.role==='user'||item.role==='assistant')
   .map(item=>({
    role:item.role,
-   content:item.content.slice(0,1400),
+   content:item.content.slice(0,2400),
    ...(item.sources?.length?{sources:item.sources.slice(0,2).map(x=>x.slice(0,140))}:{})
   }))
  if(!clean.length||clean.length!==messages.length)throw new Error('Conversa vazia ou muito longa para salvar.')
