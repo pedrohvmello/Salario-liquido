@@ -194,13 +194,10 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
     <span className="payslip-doc-count">{filtered.length} documento(s) exibido(s)</span>
    </div>
    <div className="payslip-batch-toolbar">
-    <label className="payslip-select-all">
-     <input className="payslip-custom-checkbox" type="checkbox" checked={allVisible} disabled={!filtered.length||batchBusy}
-      ref={input=>{if(input)input.indeterminate=visibleSelected>0&&!allVisible}}
-      onChange={e=>toggleAllVisible(e.target.checked)}
-      aria-label="Selecionar todos os holerites exibidos"/>
-     <span>Selecionar todos <small>({visibleSelected} de {filtered.length} visíveis)</small></span>
-    </label>
+    <button type="button" className="secondary payslip-select-all" disabled={!filtered.length||batchBusy||!!busyId}
+     onClick={()=>toggleAllVisible(!allVisible)}>
+     {allVisible?'Desselecionar todos':'Selecionar todos'} <small>({visibleSelected} de {filtered.length} visíveis)</small>
+    </button>
     <div className="payslip-batch-actions">
      {missingDependents>0&&<button type="button" className="secondary" disabled={recovering||batchBusy||!!busyId}
       onClick={()=>void recoverDependents()} title="Ler novamente os números de dependentes nos PDFs privados já importados">
@@ -216,12 +213,11 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
    {notice&&<div className="notice success" role="status">{notice}</div>}
    {filtered.length===0?<div className="payslip-doc-empty"><FolderOpen size={30}/><p>Nenhum documento para os filtros selecionados.</p></div>:
    <div className="payslip-doc-list">
-    {filtered.map(s=><div key={s.id} className={'payslip-doc-row'+(s.duplicate_of?' payslip-doc-duplicate':'')}>
-     <label className="payslip-row-select" title={'Selecionar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)}>
-      <input className="payslip-custom-checkbox" type="checkbox" checked={selectedIds.includes(s.id)}
-       disabled={!!busyId||batchBusy} onChange={e=>toggleRow(s.id,e.target.checked)}
-       aria-label={'Selecionar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)}/>
-     </label>
+    {filtered.map(s=><div key={s.id} className={'payslip-doc-row'+(s.duplicate_of?' payslip-doc-duplicate':'')+(selectedIds.includes(s.id)?' is-selected':'')}
+     role="group" tabIndex={batchBusy||!!busyId?-1:0}
+     aria-label={typeLabels[s.document_type]+' de '+periodLabel(s.period)+(selectedIds.includes(s.id)?', selecionado':', não selecionado')}
+     onClick={()=>{if(!batchBusy&&!busyId)toggleRow(s.id,!selectedIds.includes(s.id))}}
+     onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();if(!batchBusy&&!busyId)toggleRow(s.id,!selectedIds.includes(s.id))}}}>
      <div className="payslip-doc-icon"><FileText size={24}/></div>
      <div className="payslip-doc-details">
       <strong>{typeLabels[s.document_type]} · {periodLabel(s.period)}</strong>
@@ -229,7 +225,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
       <small title={s.source_file}>{s.source_file} · {s.storage_key.endsWith('-p'+s.source_page+'.pdf')?'PDF individual':'página '+s.source_page+' do PDF original'}</small>
       {s.payment_date&&<small>Pagamento: {s.payment_date.split('-').reverse().join('/')}</small>}
      </div>
-     <div className="payslip-doc-actions">
+     <div className="payslip-doc-actions" onClick={e=>e.stopPropagation()}>
       <button type="button" className="secondary" disabled={!!busyId} onClick={()=>void openDocument(s)} aria-label={'Visualizar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)} title="Visualizar PDF"><Eye size={16}/><span>Ver</span></button>
       <button type="button" className="secondary" disabled={!!busyId} onClick={()=>void downloadDocument(s)} aria-label={'Baixar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)} title="Baixar PDF"><Download size={16}/><span>Baixar</span></button>
       <button type="button" className="secondary payslip-doc-delete" disabled={!!busyId} onClick={()=>{setError('');setConfirming(s)}} aria-label={'Excluir '+typeLabels[s.document_type]+' de '+periodLabel(s.period)} title="Excluir holerite"><Trash2 size={16}/><span>Excluir</span></button>
