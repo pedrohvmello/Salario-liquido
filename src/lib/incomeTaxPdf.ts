@@ -44,11 +44,11 @@ function makeLines(items:PdfToken[],page:number):Line[]{
  */
 export function inferCalendarYear(text:string):number|null{
  const value=normalize(text)
- const labeled=[...value.matchAll(/(?:ano[\s-]*calendario|ano[\s-]*base|ano[\s-]*de[\s-]*referencia)\s*[:.\-]?\s*(20\d{2})/g)]
+ const labeled=[...value.matchAll(/\b(?:ano\s*[-–]?\s*calendario|ano\s*[-–]?\s*base|ano\s+de\s+referencia)\s*(?:[:.=-]\s*)?(?:de\s+)?(20\d{2})\b/g)]
   .map(match=>Number(match[1]))
  const calendarYears=[...new Set(labeled)].filter(y=>y>=1990&&y<=2100)
  if(calendarYears.length>1)return null
- const exercise=[...new Set([...value.matchAll(/exercicio\s*[:.\-]?\s*(20\d{2})/g)]
+ const exercise=[...new Set([...value.matchAll(/\bexercicio\s*(?:[:.=-]\s*)?(?:de\s+)?(20\d{2})\b/g)]
   .map(match=>Number(match[1])))].filter(y=>y>=1991&&y<=2101)
  if(exercise.length>1)return null
  if(calendarYears.length===1){
