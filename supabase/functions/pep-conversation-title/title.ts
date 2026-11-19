@@ -79,6 +79,11 @@ const canonical=new Map([
  ['espp','ESPP'],['ppr','PPR'],['plr','PLR'],['fgts','FGTS']
 ])
 function key(text:string){return text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')}
+// Promote substantive topics above generic attributes in the emergency fallback.
+const topicWeight=new Map([
+ ['salário',3],['pensão',2.2],['aumento',2],['projeção',2],['férias',2],
+ ['PPR',2],['PLR',2],['ESPP',2],['FGTS',2],['INSS',2],['IRRF',2]
+])
 /** Last-resort topic extraction, not a hardcoded question router. */
 export function conversationTopicFallback(turns:PepTurn[]):string{
  const substantive=turns.filter(t=>t.role==='user'&&!greeting.test(t.content.trim()))
@@ -94,7 +99,7 @@ export function conversationTopicFallback(turns:PepTurn[]):string{
    seen.add(normalized)
    const label=canonical.get(normalized)||word.toLocaleLowerCase('pt-BR')
    const existing=scores.get(label)
-   const weight=1+index/Math.max(1,substantive.length-1)
+   const weight=(1+index/Math.max(1,substantive.length-1))*(topicWeight.get(label)||1)
    if(existing)existing.score+=weight
    else scores.set(label,{label,score:weight,first:order++})
   }
