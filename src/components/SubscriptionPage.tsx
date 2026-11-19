@@ -1,11 +1,37 @@
 import {useEffect,useState} from 'react'
-import {ArrowLeft,CreditCard,Info,ShieldCheck} from 'lucide-react'
+import {ArrowLeft,Check,CreditCard,Info,ShieldCheck} from 'lucide-react'
 import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
 import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
 import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
+type PlanCode=keyof typeof names
+/** Features shown on the pricing cards mirror the access checks in App,
+ * PersonalPepPage, SupportAiChat and the Full-only PDF import flow. */
+const planFeatures:Record<PlanCode,readonly string[]>={
+ free:[
+  'Visão Geral e projeções com dados cadastrados',
+  'Eventos e vigências manuais',
+  'Controle de horas e banco de horas',
+  'Histórico e análises dos dados disponíveis',
+  'Pep Ajuda e FAQ',
+ ],
+ basic:[
+  'Tudo do Free',
+  'Pep com acesso aos dados cadastrados',
+  'Simulações pessoais de salário e descontos',
+  'Histórico de conversas com o Pep',
+ ],
+ full:[
+  'Tudo do Basic',
+  'Importação inteligente de holerites PDF',
+  'Armazenamento privado dos documentos',
+  'Criação automática de eventos dos PDFs',
+  'Pep com consultas aos dados dos holerites',
+ ],
+}
+
 function currency(amount:number,code:string){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:code||'BRL'}).format(amount/100)}
 function date(raw:string|null){return raw?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(raw)):'—'}
 const fallback:BillingSubscription={plan_code:'free',status:'active',provider:null,provider_customer_id:null,provider_subscription_id:null,current_period_start:null,current_period_end:null,cancel_at_period_end:false}
@@ -241,6 +267,12 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
       <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
+      <div className="subscription-plan-features">
+       <span className="subscription-plan-features-heading">Funcionalidades incluídas</span>
+       <ul aria-label={'Funcionalidades do plano '+names[code]}>
+        {planFeatures[code].map(feature=><li key={feature}><Check size={15} aria-hidden="true"/><span>{feature}</span></li>)}
+       </ul>
+      </div>
       {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
        <button type="button" className="secondary" disabled={checkoutBusy!==null||promoBusy}
          onClick={()=>openSubscription(code)}>Assinar</button>}
