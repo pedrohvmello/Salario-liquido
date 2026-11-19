@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent, type KeyboardEvent} from 'react'
-import {ArrowLeft,History,Info,LoaderCircle,Save,Send,Sparkles,Trash2} from 'lucide-react'
+import {ArrowLeft,History,Info,LoaderCircle,Save,Send,Sparkles,Trash2,X} from 'lucide-react'
 import {db} from '../lib/data'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {PepMascot} from './PepMascot'
@@ -50,9 +50,9 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
   if(busy||saveBusy||messages.length===0||isSaved)return
   setSaveBusy(true);setError('');setSaveNotice('')
   try{
-   const id=await savePepConversation(mode,messages,conversationId)
-   setConversationId(id);setSavedSnapshot(JSON.stringify(messages))
-   setSaveNotice('Conversa salva no seu histórico.')
+   const saved=await savePepConversation(mode,messages,conversationId)
+   setConversationId(saved.id);setSavedSnapshot(JSON.stringify(messages))
+   setSaveNotice('Conversa salva como "'+saved.title+'".')
    if(historyOpen)setSavedConversations(await listPepConversations(mode))
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível salvar a conversa.')}
   finally{setSaveBusy(false)}
@@ -72,7 +72,8 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    setMessages(conversation.messages)
    setConversationId(conversation.id)
    setSavedSnapshot(JSON.stringify(conversation.messages))
-   setDraft('');setHistoryOpen(false)
+   setDraft('')
+   if(window.matchMedia('(max-width: 980px)').matches)setHistoryOpen(false)
   }catch(err){setError(err instanceof Error?err.message:'Não foi possível abrir esta conversa.')}
   finally{setHistoryBusy(false)}
  }
@@ -114,7 +115,7 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    e.currentTarget.form?.requestSubmit()
   }
  }
- return <div className="stack payrep-help-page">
+ return <div className={'stack payrep-help-page'+(mode==='personal'&&historyOpen?' pep-history-expanded':'')}>
   <div className="page-intro"><div><h2>{mode==='help'?'Pep Ajuda':'Pergunte ao Pep'}</h2>
    <p>{mode==='help'?'Tire dúvidas sobre as funcionalidades e processos do Payrep.':<>
     <strong>Seu assistente financeiro pessoal no Payrep.</strong> O Pep pode analisar seus dados, calcular cenários e explicar holerites,
@@ -132,7 +133,7 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    <div className="payrep-ai-header-actions">
     {mode==='personal'&&<>
      <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0||isSaved}
-      onClick={()=>void saveConversation()}><Save size={15}/>{saveBusy?'Salvando...':isSaved?'Conversa salva':'Salvar conversa'}</button>
+      onClick={()=>void saveConversation()}><Save size={15}/>{saveBusy?'Criando título...':isSaved?'Conversa salva':'Salvar conversa'}</button>
      <button type="button" className="secondary" disabled={busy||historyBusy||saveBusy}
       aria-expanded={historyOpen} onClick={()=>void toggleHistory()}><History size={15}/> Histórico</button>
     </>}
@@ -140,19 +141,30 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
      onClick={newConversation}><Trash2 size={15}/> Nova conversa</button>
    </div>
   </div>
-   {mode==='personal'&&historyOpen&&<div className="pep-chat-history" aria-label="Conversas salvas do Pep">
-    <h3>Histórico de conversas</h3>
-    {historyBusy?<p role="status">Carregando conversas...</p>:
-     savedConversations.length===0?<p>Nenhuma conversa salva.</p>:
-     <div className="pep-chat-history-list">
-      {savedConversations.map(conversation=><button key={conversation.id} type="button"
-       className={'pep-chat-history-item'+(conversationId===conversation.id?' is-current':'')}
-       onClick={()=>void openConversation(conversation.id)} disabled={historyBusy}>
-       <strong>{conversation.title}</strong>
-       <small>{new Date(conversation.updated_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</small>
-      </button>)}
-     </div>}
-   </div>}
+  <div className={'pep-chat-layout'+(mode==='personal'&&historyOpen?' pep-chat-layout--history-open':'')}>
+   {mode==='personal'&&historyOpen&&<aside className="pep-chat-history" aria-label="Histórico de conversas salvas">
+    <div className="pep-chat-history-brand">
+     <img src="/brand/payrep-symbol.svg" width={40} height={40} alt="" aria-hidden="true"/>
+     <div><strong>Payrep</strong><small>Controle salarial</small></div>
+     <button type="button" className="pep-chat-history-close" aria-label="Fechar histórico"
+      onClick={()=>setHistoryOpen(false)}><X size={17}/></button>
+    </div>
+    <div className="pep-chat-history-inner">
+     <div className="pep-chat-history-heading"><History size={18}/><h3>Histórico de conversas</h3></div>
+     {historyBusy?<p role="status">Carregando conversas...</p>:
+      savedConversations.length===0?<p>Nenhuma conversa salva.</p>:
+      <div className="pep-chat-history-list">
+       {savedConversations.map(conversation=><button key={conversation.id} type="button"
+        className={'pep-chat-history-item'+(conversationId===conversation.id?' is-current':'')}
+        onClick={()=>void openConversation(conversation.id)} disabled={historyBusy}
+        title={conversation.title}>
+        <strong>{conversation.title}</strong>
+        <small>{new Date(conversation.updated_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</small>
+       </button>)}
+      </div>}
+    </div>
+   </aside>}
+   <div className="pep-chat-main">
    {saveNotice&&<p className="pep-chat-save-notice" role="status">{saveNotice}</p>}
    {(!usage?.unlimited)&&<div className="pep-usage-counter" role="status" aria-live="polite">
     {usageLoading?'Consultando sua franquia...':
@@ -192,6 +204,8 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
      </button>
     </div>
    </form>
+   </div>
+  </div>
   </section>
  </div>
 }
