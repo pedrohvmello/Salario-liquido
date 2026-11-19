@@ -7,8 +7,7 @@ import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
 import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
 type PlanCode=keyof typeof names
-/** Features shown on the pricing cards mirror the access checks in App,
- * PersonalPepPage, SupportAiChat and the Full-only PDF import flow. */
+/** Current plan capabilities and clearly marked upcoming features. */
 const planFeatures:Record<PlanCode,readonly string[]>={
  free:[
   'Visão Geral e projeções com dados cadastrados',
@@ -19,15 +18,16 @@ const planFeatures:Record<PlanCode,readonly string[]>={
  ],
  basic:[
   'Tudo do Free',
-  'Pep com acesso aos dados cadastrados',
+  'Consulta com Pep Gestor Financeiro',
   'Simulações pessoais de salário e descontos',
   'Histórico de conversas com o Pep',
+  'Armazenamento privado de Informe IR (em breve)',
  ],
  full:[
   'Tudo do Basic',
   'Importação inteligente de holerites PDF',
   'Armazenamento privado dos documentos',
-  'Criação automática de eventos dos PDFs',
+  'Geração de eventos automáticos pelo holerite',
   'Pep com consultas aos dados dos holerites',
  ],
 }
