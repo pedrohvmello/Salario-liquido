@@ -2314,3 +2314,6 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .pep-chat-history-item:hover,.pep-chat-history-item:focus-visible,.pep-chat-history-item.is-current{background:#f2e8ff;border-color:#bd88e7}
 .pep-chat-save-notice{padding:8px 22px;margin:0;background:#f6edff;font-size:12px;color:#542477}
 @media(max-width:700px){.payrep-ai-header-actions{width:100%;gap:6px;justify-content:flex-start}.payrep-ai-header-actions button{font-size:12px;min-height:38px;padding:8px}.pep-chat-history{padding:13px 15px}.pep-chat-history-item{flex-direction:column;align-items:flex-start;gap:3px}}
+
+/* Pep's deterministic financial projections include itemized lines. */
+.payrep-ai-bubble-content p{white-space:pre-line}
