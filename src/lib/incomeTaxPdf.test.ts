@@ -14,4 +14,15 @@ describe('employer Income Tax document year detection',()=>{
   expect(inferCalendarYear('Ano-calendário 2023 / Ano-calendário 2024')).toBeNull()
   expect(inferCalendarYear('Informe de Rendimentos | 2025')).toBeNull()
  })
+ it('recognizes the wording and layout used by an employer-issued Receita Federal report',()=>{
+  const header='Ministério da Fazenda Comprovante de Rendimentos Pagos e de Imposto sobre a Renda Retido na Fonte Exercício de 2026 Ano - calendário de 2025'
+  expect(inferCalendarYear(header)).toBe(2025)
+  expect(inferCalendarYear(header+' '+header)).toBe(2025)
+ })
+ it('asks for manual confirmation only when the header years contradict each other',()=>{
+  expect(inferCalendarYear('Exercício de 2027 Ano - calendário de 2025')).toBeNull()
+  expect(inferCalendarYear('Exercício de 2026')).toBe(2025)
+  expect(inferCalendarYear('Ano-calendário de 2024')).toBe(2024)
+ })
+
 })
