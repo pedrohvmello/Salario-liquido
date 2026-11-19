@@ -42,14 +42,10 @@ Deno.test('agent chooses financial tool dynamically and receives only owner-scop
   db:{from:query} as never,userId:'user-verified-123',plan:'basic',
   now:'2026-11-19',question:'Com base no meu salário atual, quanto devo receber neste ano, bruto e líquido?',
   history:[],firstName:'Ana',token:'fake',account:'fake',
+  recoverPlan:async()=>({calls:[{name:'get_financial_profile',arguments:{}}],answer:null}),
   infer:async payload=>{
    rounds++
-   if(rounds===1){
-    if(payload.toolChoice!=='required')throw Error('First model turn must use tools')
-    return {role:'assistant',content:null,tool_calls:[{
-     id:'call-1',type:'function',function:{name:'get_financial_profile',arguments:'{}'}
-    }]}
-   }
+   if(payload.toolChoice!=='auto')throw Error('Extra tools should be optional')
    const received=payload.messages.filter(x=>x.role==='tool').at(-1)
    if(!received?.content)throw Error('No tool result passed to assistant')
    toolResult=JSON.parse(received.content)
@@ -77,11 +73,9 @@ Deno.test('empty provider completion after successful tools does not lose answer
   db:{} as never,userId:'owner',plan:'basic',now:'2026-11-19',
   question:'Com base no meu salário atual, quanto devo receber esse ano, bruto e líquido?',
   history:[],firstName:'Ana',token:'fake',account:'fake',
+  recoverPlan:async()=>({calls:[{name:'calculate_numbers',arguments:{operation:'sum',values:[15340.57,179]}}],answer:null}),
   infer:async ()=>{
    calls++
-   if(calls===1)return {role:'assistant',content:null,tool_calls:[{
-    id:'t1',type:'function',function:{name:'calculate_numbers',arguments:JSON.stringify({operation:'sum',values:[15340.57,179]})}
-   }]}
    return {role:'assistant',content:'',tool_calls:[]}
   },
   synthesize:async ({observations})=>{
@@ -118,4 +112,43 @@ Deno.test('plain planner JSON rejects unlisted operations',()=>{
  const parsed=parseAgentPlan('{"calls":[{"name":"execute_sql","arguments":{"sql":"delete from users"}},{"name":"calculate_numbers","arguments":{"operation":"sum","values":[1,2]}}],"answer":null}')
  if(!parsed||parsed.calls.length!==1||parsed.calls[0].name!=='calculate_numbers')
   throw Error('Tool planner bypassed allowlist')
+})
+
+Deno.test('a simple greeting does not query a salary, even if earlier history discussed money',async()=>{
+ let financialQueryCount=0
+ let inferenceCount=0
+ const history=[
+  {role:'user' as const,content:'Com base no meu salário, quanto receberei em 2026?'},
+  {role:'assistant' as const,content:'A estimativa anual é X'}
+ ]
+ const response=await runPepAgent({
+  db:{from:()=>{financialQueryCount++;throw Error('The model must not query data for this turn')}} as never,
+  userId:'verified-user',plan:'full',now:'2026-11-19',
+  question:'Oi Pep',history,firstName:'Pedro',token:'fake',account:'fake',
+  recoverPlan:async request=>{
+   if(request.question!=='Oi Pep')throw Error('Incorrect current message')
+   if(request.history.length!==2)throw Error('Lost explicit conversation context')
+   return {calls:[],answer:'Oi, Pedro! Como posso ajudar?'}
+  },
+  infer:async()=>{inferenceCount++;throw Error('Greeting must not trigger native tool calls')},
+  synthesize:async()=>{throw Error('Greeting must not synthesize financial results')}
+ })
+ if(response.answer!=='Oi, Pedro! Como posso ajudar?'||response.agentTools!==0||
+    response.sources.length!==0||response.usedFinancialData||financialQueryCount!==0||inferenceCount!==0)
+  throw Error('Greeting incorrectly triggered a financial request')
+})
+Deno.test('a financial question still requests financial tools instead of guessing',async()=>{
+ let queries=0
+ const response=await runPepAgent({
+  db:{} as never,userId:'verified-user',plan:'basic',now:'2026-11-19',
+  question:'Quanto vou receber neste ano?',history:[],firstName:'Pedro',token:'fake',account:'fake',
+  recoverPlan:async()=>({calls:[{name:'calculate_numbers',arguments:{operation:'sum',values:[12,13]}}],answer:null}),
+  infer:async()=>({role:'assistant',content:null,tool_calls:[]}),
+  synthesize:async ({observations})=>{
+   queries=observations.length
+   return 'O cálculo solicitado foi realizado com os dados disponíveis.'
+  }
+ })
+ if(queries!==1||response.agentTools!==1||!response.usedFinancialData)
+  throw Error('Data question did not use a tool')
 })
