@@ -2582,3 +2582,112 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .tax-report-file{flex-direction:column;align-items:stretch}
  .tax-report-file .row{justify-content:flex-start}
 }
+
+
+/* Informe IR: user-first document layout, PDF upload and exceptional year fallback */
+.ir-page{gap:18px;max-width:1300px;margin:0 auto;width:100%}
+.ir-page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.ir-page-heading h2{font-size:25px;color:#321447;margin-bottom:5px}
+.ir-page-heading p{font-size:13px;line-height:1.5;color:#806b94;max-width:600px;margin:0}
+.ir-page-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.ir-upload-action{min-height:45px;display:inline-flex;align-items:center;gap:9px;white-space:nowrap}
+.ir-file-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ir-report-years{display:flex;align-items:center;flex-wrap:wrap;gap:9px;min-height:42px}
+.ir-report-years>span{color:#785e88;font-size:12px;font-weight:650;margin-right:8px}
+.ir-year-button{border:1px solid #e4d0f3;border-radius:10px;padding:9px 15px;background:#fff;color:#60317d;font-size:13px;font-weight:750;cursor:pointer}
+.ir-year-button:hover,.ir-year-button:focus-visible{background:#f5ecff;border-color:#b976e4;outline:none}
+.ir-year-button.is-active{background:#8005c8;color:white;border-color:#8005c8}
+.ir-report-empty{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;min-height:360px;gap:13px;padding:48px 22px;background:linear-gradient(160deg,#fff 75%,#fcf7ff)}
+.ir-report-empty-icon{border-radius:20px;display:grid;place-items:center;width:75px;height:75px;color:#8523c2;background:#f3e5ff}
+.ir-report-empty h3{font-size:19px;color:#351850;margin:3px 0 0}
+.ir-report-empty p{font-size:13px;color:#735d86;max-width:460px;line-height:1.7;margin:0}
+.ir-report-empty small{display:block;color:#967daa;font-size:11px;line-height:1.5}
+.ir-report-empty button{margin:4px 0 2px}
+.ir-attachment-strip{border:1px solid #e8daf5;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;box-shadow:0 5px 18px #36104a07;flex-wrap:wrap}
+.ir-attachment-meta{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.ir-attachment-icon{width:47px;height:47px;display:grid;place-items:center;border-radius:12px;background:#f2e6ff;color:#7824c0;flex:0 0 47px}
+.ir-attachment-meta>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ir-attachment-meta strong{font-size:13px;color:#3a174f;overflow-wrap:anywhere}
+.ir-attachment-meta small{font-size:11px;color:#866f98}
+.ir-attachment-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.ir-attachment-actions button{font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.ir-attachment-actions .ir-danger-action{color:#a52b52;border-color:#f3c9d4}
+.ir-attachment-actions .ir-danger-action:hover{background:#fff1f4}
+.ir-report-paper{background:#fff;color:#272033;border:1px solid #ded8e2;border-radius:13px;box-shadow:0 12px 30px #30123f0b;overflow:hidden}
+.ir-report-paper-top{padding:25px 33px 23px;border-bottom:2px solid #4b3260;background:linear-gradient(155deg,#fff 60%,#faf6ff)}
+.ir-report-kicker{text-transform:uppercase;letter-spacing:.075em;font-size:10px;font-weight:800;color:#8e779e;margin-bottom:12px}
+.ir-report-paper-top h3{font-family:Manrope,Arial,sans-serif;font-size:17px;line-height:1.55;font-weight:800;color:#30143f;max-width:760px;margin:0 0 18px}
+.ir-report-paper-identifiers{display:flex;align-items:stretch;flex-wrap:wrap;gap:10px}
+.ir-report-paper-identifiers>div:not(.ir-report-source){display:flex;flex-direction:column;gap:5px;padding:11px 18px;min-width:125px;border:1px solid #ece4f2;border-radius:9px;background:white}
+.ir-report-paper-identifiers small{font-size:10px;font-weight:650;color:#807188}
+.ir-report-paper-identifiers strong{font-size:19px;color:#371848;letter-spacing:-.02em}
+.ir-report-source{display:flex;align-items:center;gap:7px;padding:10px 14px;margin-left:auto;border-radius:9px;background:#f3e8ff;color:#653a87;font-size:11px;font-weight:750}
+.ir-report-source:has(svg:first-child){border:1px solid #e5d5f4}
+.ir-report-section{margin:24px 33px 28px}
+.ir-report-section h4{display:flex;align-items:center;gap:10px;margin:0 0 15px;font-size:14px;font-weight:800;color:#32233d;line-height:1.45}
+.ir-report-section h4>span{display:grid;place-items:center;width:29px;height:29px;border-radius:6px;background:#512a72;color:#fff;font-size:12px;flex:0 0 29px}
+.ir-report-table-head{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:15px;padding:10px 14px;border:1px solid #ece8ef;background:#f9f7fb;color:#765e85;text-transform:uppercase;font-size:10px;font-weight:800;letter-spacing:.03em}
+.ir-report-table-head span:last-child{text-align:right}
+.ir-report-row{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:15px;align-items:center;min-height:57px;padding:9px 14px;border-bottom:1px solid #eee8f0}
+.ir-report-row:nth-of-type(even){background:#fdfcff}
+.ir-report-row-label{display:flex;align-items:center;gap:13px;min-width:0;font-size:12px;font-weight:600;color:#46384f}
+.ir-report-index{color:#a38cac;font-size:10px;flex:0 0 22px;font-weight:800}
+.ir-report-amount{display:flex;align-items:center;gap:5px;max-width:100%;height:38px;background:#fff;border:1px solid #e2d4ef;border-radius:8px;padding:0 10px}
+.ir-report-amount:focus-within{border-color:#9633d0;box-shadow:0 0 0 2px #eed8ff}
+.ir-report-currency{font-size:11px;color:#8d78a0;font-weight:700;flex:0 0 auto}
+.ir-report-number{height:100%;width:100%;min-width:0;border:0!important;box-shadow:none!important;background:transparent!important;font-size:13px;font-weight:700;color:#372045;text-align:right;outline:none!important;padding:0!important}
+.ir-report-number::placeholder{font-size:11px;font-weight:450;color:#ab9bae}
+.ir-report-number:disabled{color:#5e4f69;opacity:1;cursor:default}
+.ir-report-paper-footer{padding:17px 33px;display:flex;gap:9px;align-items:flex-start;background:#faf7fd;border-top:1px solid #eee5f4;color:#7d668e}
+.ir-report-paper-footer svg{flex:0 0 16px;margin-top:2px}
+.ir-report-paper-footer p{margin:0;font-size:11px;line-height:1.55}
+.ir-extraction-warning{display:flex;gap:8px;padding:9px 33px;background:#fff8ed;color:#8d621f;font-size:11px;line-height:1.5;border-bottom:1px solid #ffefcf}
+.ir-extraction-warning svg{flex:0 0 16px}
+.ir-review-panel{display:flex;flex-direction:column;align-items:flex-start;gap:15px;padding:21px 26px}
+.ir-review-panel h3{color:#391e51;margin:0 0 6px;font-size:15px}
+.ir-review-panel p{font-size:12px;line-height:1.6;color:#785f8b;margin:0}
+.ir-review-checkbox{display:flex;gap:10px;align-items:flex-start;color:#48325d;font-size:12px;font-weight:600}
+.ir-review-checkbox input{width:17px;height:17px;accent-color:#7c05c4;flex:0 0 17px;margin:1px 0 0}
+.ir-review-panel button{align-self:flex-end}
+.ir-compare-details{font-size:12px}
+.ir-compare-details>summary{cursor:pointer;display:flex;gap:8px;align-items:center;color:#512278;font-size:13px;font-weight:800;list-style:revert}
+.ir-compare-details>summary span{font-size:10px;color:#9a7caf;font-weight:600}
+.ir-compare-details[open]>summary{margin-bottom:15px}
+.ir-compare-details>p{margin:12px 0}
+.ir-dialog-overlay{position:fixed;inset:0;z-index:1050;background:rgba(24,6,37,.5);display:flex;justify-content:center;align-items:center;padding:20px}
+.ir-dialog{background:#fff;border:1px solid #e4d1f2;border-radius:16px;box-shadow:0 25px 85px #20073645;max-width:500px;width:100%;padding:25px;display:flex;flex-direction:column;gap:16px}
+.ir-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.ir-dialog-head h3{margin:0;color:#3f165f;font-size:18px}
+.ir-dialog-head button{flex:0 0 auto}
+.ir-dialog>p,.ir-dialog-content p{font-size:13px;line-height:1.65;color:#564364;margin:0 0 13px}
+.ir-dialog-content label{display:flex;flex-direction:column;gap:8px;color:#46235c;font-weight:750;font-size:12px}
+.ir-dialog-content label>div{max-width:100%}
+.ir-dialog-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:800px){
+ .ir-page-heading{align-items:flex-start}
+ .ir-report-paper-top{padding:20px}
+ .ir-report-paper-top h3{font-size:15px}
+ .ir-report-section{margin:20px}
+ .ir-report-paper-footer{padding:15px 20px}
+ .ir-report-table-head,.ir-report-row{grid-template-columns:minmax(0,1fr) 150px}
+}
+@media(max-width:600px){
+ .ir-page-heading{flex-direction:column}
+ .ir-page-actions{width:100%}
+ .ir-page-actions button{width:100%;justify-content:center}
+ .ir-report-years>span{width:100%}
+ .ir-attachment-strip{padding:15px}
+ .ir-attachment-actions{width:100%}
+ .ir-attachment-actions button{flex:1;justify-content:center}
+ .ir-report-paper-identifiers>div:not(.ir-report-source){min-width:95px;padding:8px 12px}
+ .ir-report-source{margin-left:0;flex-basis:100%}
+ .ir-report-table-head,.ir-report-row{grid-template-columns:minmax(0,1fr) 123px;gap:8px;padding:9px}
+ .ir-report-row-label{gap:5px;font-size:11px}
+ .ir-report-index{flex-basis:17px}
+ .ir-report-amount{padding:0 6px}
+ .ir-report-number{font-size:12px}
+ .ir-report-number::placeholder{font-size:9px}
+ .ir-report-section h4{font-size:12px}
+ .ir-review-panel{padding:18px}
+ .ir-dialog{padding:19px}
+}
