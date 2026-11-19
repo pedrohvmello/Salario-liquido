@@ -12,10 +12,24 @@ async function authenticatedId():Promise<string>{
  if(error||!data.user)throw new Error('Entre novamente na sua conta para acessar o histórico do Pep.')
  return data.user.id
 }
-export function pepConversationTitle(messages:PepChatMessage[]):string{
- const first=messages.find(message=>message.role==='user')?.content.trim().replace(/\s+/g,' ')||'Conversa com o Pep'
- const summary=first.replace(/[?!.,;:]+$/,'').slice(0,76).trim()
- return (summary.length>=first.length?summary:summary.replace(/\s+\S*$/,'')+'…')||'Conversa com o Pep'
+/**
+ * A saved conversation receives a topical title generated server-side by AI,
+ * using the discussion as a whole rather than its first user greeting.
+ * Do not silently fall back to the first message when title generation fails.
+ */
+async function generatePepConversationTitle(messages:PepChatMessage[]):Promise<string>{
+ if(!db)throw new Error('Banco não configurado.')
+ const excerpts=messages.filter((_,i)=>i<3||i>=messages.length-34)
+  .map(item=>({role:item.role,content:item.content.slice(0,300)}))
+ const {data,error}=await db.functions.invoke('pep-conversation-title',{
+  body:{messages:excerpts}
+ })
+ if(error||typeof data?.title!=='string'||!data.title.trim()){
+  throw new Error('Não foi possível gerar o título da conversa. Tente salvar novamente.')
+ }
+ const title=data.title.trim().slice(0,80)
+ if(title.length<5)throw new Error('A IA não conseguiu identificar um título válido. Tente salvar novamente.')
+ return title
 }
 function sanitized(messages:PepChatMessage[]):PepChatMessage[]{
  const clean=messages.slice(0,100).filter(item=>item.role==='user'||item.role==='assistant')
@@ -43,20 +57,21 @@ export async function getPepConversation(id:string,mode:'help'|'personal'):Promi
  if(error||!data)throw new Error('Conversa não encontrada ou sem permissão de acesso.')
  return data as PepConversation
 }
-export async function savePepConversation(mode:'help'|'personal',messages:PepChatMessage[],id?:string|null):Promise<string>{
+export async function savePepConversation(mode:'help'|'personal',messages:PepChatMessage[],id?:string|null):Promise<{id:string;title:string}>{
  const userId=await authenticatedId()
  const clean=sanitized(messages)
+ const title=await generatePepConversationTitle(clean)
  const payload={
-  title:pepConversationTitle(clean),messages:clean,updated_at:new Date().toISOString()
+  title,messages:clean,updated_at:new Date().toISOString()
  }
  if(id){
   const {data,error}=await db!.from('pep_conversations').update(payload)
    .eq('id',id).eq('user_id',userId).eq('mode',mode).select('id').single()
   if(error||!data)throw new Error('Não foi possível atualizar esta conversa: '+(error?.message||'registro indisponível'))
-  return data.id as string
+  return {id:data.id as string,title}
  }
  const {data,error}=await db!.from('pep_conversations')
   .insert({...payload,mode,user_id:userId}).select('id').single()
  if(error||!data)throw new Error('Não foi possível salvar esta conversa: '+(error?.message||'registro indisponível'))
- return data.id as string
+ return {id:data.id as string,title}
 }
