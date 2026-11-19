@@ -115,14 +115,10 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    e.currentTarget.form?.requestSubmit()
   }
  }
- return <div className={'stack payrep-help-page'+(mode==='personal'&&historyOpen?' pep-history-expanded':'')}>
+ return <div className={'stack payrep-help-page'+(mode==='personal'?' pep-personal-workspace':'')+(mode==='personal'&&historyOpen?' pep-history-expanded':'')}>
   <div className="page-intro"><div><h2>{mode==='help'?'Pep Ajuda':'Pergunte ao Pep'}</h2>
    <p>{mode==='help'?'Tire dúvidas sobre as funcionalidades e processos do Payrep.':<>
-    <strong>Seu assistente financeiro pessoal no Payrep.</strong> O Pep pode analisar seus dados, calcular cenários e explicar holerites,
-    IRRF, INSS, FGTS, PPR, férias, 13º salário, pensão e outros descontos.
-    Também pode responder perguntas livres sobre projeções salariais e diferenças entre competências
-    usando os dados disponíveis na sua conta. As orientações devem ser conferidas com seus
-    documentos e, quando necessário, com um profissional habilitado.
+    <strong>Seu assistente financeiro pessoal no Payrep.</strong> Consulte seus dados, simule cenários e esclareça dúvidas sobre salários, holerites e descontos. Confira as estimativas com seus documentos.
    </>}</p></div>
    <button type="button" className="secondary" onClick={onBack}><ArrowLeft size={16}/> Voltar</button>
   </div>
@@ -132,10 +128,10 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    </div></div>
    <div className="payrep-ai-header-actions">
     {mode==='personal'&&<>
-     <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0||isSaved}
-      onClick={()=>void saveConversation()}><Save size={15}/>{saveBusy?'Criando título...':isSaved?'Conversa salva':'Salvar conversa'}</button>
      <button type="button" className="secondary" disabled={busy||historyBusy||saveBusy}
       aria-expanded={historyOpen} onClick={()=>void toggleHistory()}><History size={15}/> Histórico</button>
+     <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0||isSaved}
+      onClick={()=>void saveConversation()}><Save size={15}/>{saveBusy?'Criando título...':isSaved?'Conversa salva':'Salvar conversa'}</button>
     </>}
     <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0}
      onClick={newConversation}><Trash2 size={15}/> Nova conversa</button>
@@ -143,14 +139,13 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
   </div>
   <div className={'pep-chat-layout'+(mode==='personal'&&historyOpen?' pep-chat-layout--history-open':'')}>
    {mode==='personal'&&historyOpen&&<aside className="pep-chat-history" aria-label="Histórico de conversas salvas">
-    <div className="pep-chat-history-brand">
-     <img src="/brand/payrep-symbol.svg" width={40} height={40} alt="" aria-hidden="true"/>
-     <div><strong>Payrep</strong><small>Controle salarial</small></div>
+    <div className="pep-chat-history-heading">
+     <History size={18} aria-hidden="true"/>
+     <h3>Histórico de conversas</h3>
      <button type="button" className="pep-chat-history-close" aria-label="Fechar histórico"
       onClick={()=>setHistoryOpen(false)}><X size={17}/></button>
     </div>
     <div className="pep-chat-history-inner">
-     <div className="pep-chat-history-heading"><History size={18}/><h3>Histórico de conversas</h3></div>
      {historyBusy?<p role="status">Carregando conversas...</p>:
       savedConversations.length===0?<p>Nenhuma conversa salva.</p>:
       <div className="pep-chat-history-list">
