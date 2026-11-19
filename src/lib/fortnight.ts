@@ -44,3 +44,17 @@ export function fortnightDays(anchor:string):string[]{
  const end=Date.parse(period.end+'T12:00:00Z')
  return Array.from({length:Math.round((end-start)/86400000)+1},(_,i)=>isoDay(new Date(start+i*86400000)))
 }
+
+/** Build a fortnight from explicitly selected year, month and half. */
+export function selectedFortnight(year:number,month:number,half:1|2):string{
+ if(!Number.isInteger(year)||year<1900||year>2100||
+  !Number.isInteger(month)||month<1||month>12||(half!==1&&half!==2))
+  throw new Error('Selecione ano, mês e quinzena válidos.')
+ return iso(year,month,half===1?1:16)
+}
+export function fortnightDisplay(anchor:string):{dateRange:string;halfLabel:string}{
+ const period=getFortnight(anchor)
+ const br=(date:string)=>date.slice(8,10)+'/'+date.slice(5,7)+'/'+date.slice(0,4)
+ return {dateRange:br(period.start)+' a '+br(period.end),
+  halfLabel:Number(period.start.slice(8,10))===1?'1ª quinzena':'2ª quinzena'}
+}

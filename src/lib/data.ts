@@ -19,7 +19,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
 export type SavedStatement={id:string;duplicate_of?:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;dependents_total?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
-export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null}
+export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null;user_override?:boolean;hidden?:boolean}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
  ['salary','Alteração de salário'],['dependents','Dependentes IRRF'],['mealBenefit','Vale-refeição (R$/dia útil)'],['fixedBenefit','Vale-benefício (R$/mês)'],['childcareBenefit','Auxílio-creche (R$/mês)'],['trienio','Triênio'],
@@ -55,7 +55,7 @@ export async function getData(){
   const id=await identity();if(!db)throw new Error('Banco não configurado')
   const [statements,events,entries,settings,lines,profileChoice,profiles]=await Promise.all([
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
-    db.from('salary_events').select('*').eq('user_id',id).order('effective_date',{ascending:false}),
+    db.from('salary_events').select('*').eq('user_id',id).eq('hidden',false).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
     db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
     listAllStatementRubrics(id),
@@ -91,17 +91,44 @@ export async function saveSettings(parameters:SalaryParameters){
   if(error)throw new Error(error.message)
 }
 export async function saveEvent(input:Omit<SalaryEvent,'id'> & {id?:string}){
-  // Keep historical records readable but do not create or edit manual pension amounts.
-  if(input.kind==='privatePensionFixed')throw new Error('Previdência em reais é calculada automaticamente a partir do percentual vigente.')
-  if(!db)throw new Error('Banco não configurado');const user_id=await identity()
-  const payload={...input,user_id}
-  const {error}=await db.from('salary_events').upsert(payload)
-  if(error)throw new Error(error.message)
+ if(input.kind==='privatePensionFixed')throw new Error('Previdência em reais é calculada automaticamente a partir do percentual vigente.')
+ if(!db)throw new Error('Banco não configurado')
+ const user_id=await identity()
+ // Source events belong to PDF evidence. Only their projection can be corrected.
+ // Preserve the source ID and kind, retaining a user override after re-import.
+ let source_statement_id:string|null=null
+ if(input.id){
+  const {data:existing,error}=await db.from('salary_events')
+   .select('kind,source_statement_id,hidden').eq('id',input.id).eq('user_id',user_id).single()
+  if(error||!existing||existing.hidden)throw new Error('Evento não encontrado ou indisponível para edição.')
+  source_statement_id=existing.source_statement_id??null
+  if(source_statement_id&&input.kind!==existing.kind)
+   throw new Error('O tipo do evento importado é fixo. Ajuste seu valor, vigência ou observação.')
+ }
+ const payload={
+  ...(input.id?{id:input.id}:{}),user_id,kind:input.kind,effective_date:input.effective_date,
+  value:input.value,notes:input.notes||'',source_statement_id,
+  user_override:Boolean(source_statement_id&&input.id)
+ }
+ const {data,error}=await db.from('salary_events').upsert(payload).select('id').single()
+ if(error||!data)throw new Error(error?.message||'Não foi possível confirmar a atualização do evento.')
 }
 export async function removeEvent(id:string){
-  if(!db)throw new Error('Banco não configurado')
-  const {error}=await db.from('salary_events').delete().eq('id',id).eq('user_id',await identity())
-  if(error)throw new Error(error.message)
+ if(!db)throw new Error('Banco não configurado')
+ const user_id=await identity()
+ const {data:existing,error:lookupError}=await db.from('salary_events')
+  .select('source_statement_id').eq('id',id).eq('user_id',user_id).single()
+ if(lookupError||!existing)throw new Error('Evento não encontrado.')
+ if(existing.source_statement_id){
+  // Soft-delete imported events so a later automatic synchronization does not restore them.
+  const {data,error}=await db.from('salary_events').update({hidden:true,user_override:true})
+   .eq('id',id).eq('user_id',user_id).select('id').single()
+  if(error||!data)throw new Error(error?.message||'Remoção não confirmada.')
+ }else{
+  const {data,error}=await db.from('salary_events').delete()
+   .eq('id',id).eq('user_id',user_id).select('id').single()
+  if(error||!data)throw new Error(error?.message||'Exclusão não confirmada.')
+ }
 }
 export async function saveTimeEntries(entries:DayEntry[]){
  if(!db)throw new Error('Banco não configurado')

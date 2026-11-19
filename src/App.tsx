@@ -12,7 +12,8 @@ import {PayrepSelect} from './components/PayrepSelect'
 import {PayrepDatePicker} from './components/PayrepDatePicker'
 import {FortnightTimesheet} from './components/FortnightTimesheet'
 import {UserBankProfileSettings} from './components/UserBankProfileSettings'
-import {todayInSaoPaulo,getFortnight,shiftFortnight} from './lib/fortnight'
+import {todayInSaoPaulo,fortnightDisplay,shiftFortnight} from './lib/fortnight'
+import {FortnightPeriodPicker} from './components/FortnightPeriodPicker'
 import {TaxPreview} from './components/TaxPreview'
 import {VacationOverview} from './components/VacationOverview'
 import {ThirteenthOverview} from './components/ThirteenthOverview'
@@ -25,6 +26,7 @@ import {defaultPensionRule,encodePensionNotes,parsePensionNotes,pensionRuleLabel
 import {overviewCardDefinitions,defaultOverviewCards,normalizeOverviewCards,followingMonth,projectedMealBenefit,normalizeOverviewCardColors,type OverviewCardId,type OverviewCardColors} from './lib/overview'
 import {reconcileThirteenth} from './lib/thirteenthLedger'
 import {remunerationSeries} from './lib/remunerationSeries'
+import {annualSalarySummary} from './lib/annualSalary'
 import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from './lib/vacation'
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {pprReceiptKey} from './lib/pprDuplicate'
@@ -182,7 +184,10 @@ export default function App(){
  const [allLines,setAllLines]=useState<StatementRubric[]>([])
  const [events,setEvents]=useState<SalaryEvent[]>([])
  const [eventsYear,setEventsYear]=useState('all')
+ const [eventsKindFilter,setEventsKindFilter]=useState('all')
+ const [eventToDelete,setEventToDelete]=useState<SalaryEvent|null>(null)
  const [hoursAnchor,setHoursAnchor]=useState(todayInSaoPaulo)
+ const [periodPickerOpen,setPeriodPickerOpen]=useState(false)
  const [records,setRecords]=useState<TimeRecord[]>([])
  const [timeBankPolicies,setTimeBankPolicies]=useState<TimeBankPolicy[]>([])
  const [base,setBase]=useState<BaseLocation|null>(null)
@@ -389,46 +394,14 @@ export default function App(){
  const benefitEstimate=useMemo(()=>mealEvent&&holidayDates?projectedMealBenefit(effective.mealBenefit,month,holidayDates):null,[mealEvent,effective.mealBenefit,month,holidayDates])
  const displayEvents=useMemo(()=>events.filter(e=>e.kind!=='privatePensionFixed'),[events])
  const eventYears=useMemo(()=>[...new Set(displayEvents.map(e=>e.effective_date.slice(0,4)))].sort().reverse(),[displayEvents])
- const filteredEvents=useMemo(()=>displayEvents.filter(e=>eventsYear==='all'||e.effective_date.startsWith(eventsYear+'-')),[displayEvents,eventsYear])
+ const filteredEvents=useMemo(()=>displayEvents.filter(e=>(eventsYear==='all'||e.effective_date.startsWith(eventsYear+'-'))&&(eventsKindFilter==='all'||e.kind===eventsKindFilter)),[displayEvents,eventsYear,eventsKindFilter])
  const months=useMemo(()=>[...new Set(statements.map(s=>s.period.slice(0,4)))].sort().reverse(),[statements])
  const filtered=useMemo(()=>statements.filter(s=>year==='all'||s.period.startsWith(year)).sort((a,b)=>b.period.localeCompare(a.period)),[statements,year])
  const vacationLedger=useMemo(()=>reconcileVacations(statements,allLines),[statements,allLines])
  const thirteenthLedger=useMemo(()=>reconcileThirteenth(statements,allLines),[statements,allLines])
- const annual=useMemo(()=>{
-  type AnnualItem={year:string;credits:number;net:number;closing:number;advance:number;vacation:number;vacationCount:number;unreconciled:number;missing:number;fgts:number;count:number;pprCount:number;pprGross:number;pprNet:number;pprIrrf:number;thirteenthGross:number;thirteenthNet:number;thirteenthIrrf:number;thirteenthAdvance:number;thirteenthCount:number;totalFinancial:number}
-  const map:Record<string,AnnualItem>={}
-  const ensure=(y:string):AnnualItem=>map[y]??(map[y]={year:y,credits:0,net:0,closing:0,advance:0,vacation:0,vacationCount:0,unreconciled:0,missing:0,fgts:0,count:0,pprCount:0,pprGross:0,pprNet:0,pprIrrf:0,thirteenthGross:0,thirteenthNet:0,thirteenthIrrf:0,thirteenthAdvance:0,thirteenthCount:0,totalFinancial:0})
-  for(const s of statements){
-   const y=s.document_type==='ppr'&&s.payment_date?s.payment_date.slice(0,4):s.period.slice(0,4)
-   const item=ensure(y)
-   if(s.document_type==='ppr'){
-    item.pprCount++;item.pprGross+=s.gross_ppr||0;item.pprNet+=s.net||0;item.pprIrrf+=s.ppr_income_tax||0
-   }else if(s.document_type==='monthly'){
-    item.credits+=s.credits||0;item.closing+=s.net||0;item.advance+=s.salary_advance||0
-    item.fgts+=s.fgts||0;item.count++
-   }
-  }
-  for(const month of vacationLedger.months){
-   const item=ensure(month.period.slice(0,4))
-   if(month.total===null)item.missing++
-   else item.net+=month.total
-  }
-  for(const t of thirteenthLedger.occurrences){
-   const item=ensure(t.year)
-   item.thirteenthCount++
-   item.thirteenthGross+=t.gross
-   item.thirteenthNet+=t.cashAdditional
-   item.thirteenthAdvance+=t.advance
-   item.thirteenthIrrf+=t.irrf
-  }
-  for(const o of vacationLedger.occurrences){
-   const item=ensure(o.month.slice(0,4))
-   item.vacation+=o.booked;item.vacationCount++
-   if(o.state!=='reconciled')item.unreconciled++
-  }
-  for(const item of Object.values(map))item.totalFinancial=item.net+item.thirteenthNet+item.pprNet
-  return Object.values(map).sort((a,b)=>a.year.localeCompare(b.year))
- },[statements,vacationLedger,thirteenthLedger])
+ const annual=useMemo(()=>
+  annualSalarySummary(statements,allLines,vacationLedger,thirteenthLedger),
+  [statements,allLines,vacationLedger,thirteenthLedger])
  const monthlyGraph=useMemo(()=>{
   const months=vacationLedger.months.map(x=>{
    const statement=statements.find(s=>s.document_type==='monthly'&&s.period===x.period)
@@ -572,13 +545,48 @@ export default function App(){
      
     </div>}
     {section==='history'&&<div className="stack"><div className="page-intro"><div><h2>Seus holerites em um só lugar</h2><p>Importação por competência, sem sobrescrever os documentos originais.</p></div><button className="primary" onClick={()=>{setPayslipTab('import');setSection('imports')}}><Upload size={17}/> Importar PDFs</button></div><div className="filterbar"><span>Período</span><PayrepSelect value={year} onChange={setYear} title="Período"><option value="all">Todos os anos</option>{months.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><span className="pill">{filtered.length} holerites</span></div><Panel title={year==='all'?'Resumo por ano':'Holerites de '+year}>
-    {year==='all'?annual.length?<div className="table-scroll"><table><thead><tr><th>Ano</th><th>Folhas mensais</th><th>Proventos registrados</th><th>Líquido no fechamento</th><th>Adiantamentos</th><th>Férias e 13º antecipados</th><th>Líquido mensal recebido</th><th>13º adicional</th><th>IRRF 13º</th><th>PPR líquido adicional</th><th>IRRF PPR</th><th>Total financeiro*</th><th>FGTS registrado</th></tr></thead><tbody>{annual.map(a=><tr key={a.year} onClick={()=>setYear(a.year)} className="clickable"><td><strong>{a.year}</strong></td><td>{a.count}</td><td>{brl(a.credits)}</td><td>{brl(a.closing)}</td><td>{brl(a.advance)}</td><td>{a.vacationCount?brl(a.vacation):'—'}</td><td><div className="financial-value-status"><span>{a.missing?'A conferir ('+a.missing+' mês(es))':brl(a.net)}</span>{a.unreconciled>0&&<span className="pill">{a.unreconciled} férias pendentes</span>}</div></td><td>{a.thirteenthCount?brl(a.thirteenthNet):'—'}</td><td>{a.thirteenthCount?brl(a.thirteenthIrrf):'—'}</td><td>{a.pprCount?brl(a.pprNet):'—'}</td><td>{a.pprCount?brl(a.pprIrrf):'—'}</td><td><strong>{a.missing?'Parcial':brl(a.totalFinancial)}</strong></td><td>{brl(a.fgts)}</td></tr>)}</tbody></table></div>:<Empty text="Nenhum holerite importado ainda. Abra Importar holerites para começar."/>:
+    {year==='all'?annual.length?<div className="stack">
+ <div className="table-scroll"><table className="annual-salary-table"><thead><tr>
+ <th>Ano</th><th>Proventos Bruto</th><th>Proventos Líquido</th><th>Férias (Bruto)</th>
+ <th>13º (Bruto)</th><th>FGTS</th><th>IRRF (Total)</th><th>Triênio (Bruto)</th>
+ <th>PPR (Bruto)</th><th>Pensão</th><th>Previdência</th><th>ESPP</th>
+ </tr></thead><tbody>{annual.map(a=><tr key={a.year} className="clickable" onClick={()=>setYear(a.year)}>
+ <td><strong>{a.year}</strong></td>
+ <td><strong>{brl(a.gross)}</strong>{a.partial&&<span className="pill">Parcial</span>}</td>
+ <td>{brl(a.netBeforeOtherDeductions)}</td>
+ <td>{a.vacationGross?brl(a.vacationGross):'—'}</td>
+ <td>{a.thirteenthGross?brl(a.thirteenthGross):'—'}</td>
+ <td>{a.monthlyCount?brl(a.fgts):'—'}</td>
+ <td>{brl(a.irrfTotal)}</td>
+ <td>{a.monthlyCount?brl(a.trienio):'—'}</td>
+ <td>{a.pprGross?brl(a.pprGross):'—'}</td>
+ <td>{a.pension?brl(a.pension):'—'}</td>
+ <td>{a.privatePension?brl(a.privatePension):'—'}</td>
+ <td>{a.espp?brl(a.espp):'—'}</td>
+ </tr>)}</tbody></table></div>
+ <p className="subtle">Proventos Líquido = Proventos Bruto menos INSS e IRRF.
+ Não é o depósito bancário, pois não deduz pensão, previdência, ESPP e outros descontos.
+ Férias, 13º e PPR são conciliados para evitar duplicidade. Valores sem comprovação podem estar parciais.</p>
+ </div>:<Empty text="Nenhum holerite importado ainda. Abra Importar holerites para começar."/>:
     filtered.length?<div className="table-scroll"><table><thead><tr><th>Competência</th><th>Tipo</th><th>Proventos</th><th>Descontos</th><th>IRRF PPR</th><th>IRRF 13º</th><th>Fechamento</th><th>Adiantamento salarial</th><th>Líquido recebido</th><th>Observação</th></tr></thead><tbody>{filtered.map(s=><tr key={s.id} onClick={()=>showStatement(s)} className="clickable"><td><strong>{monthLabel(s.period)}</strong></td><td>{s.document_type==='ppr'?<span className="pill">PPR</span>:s.document_type==='vacation'?<span className="pill">Férias</span>:s.document_type==='thirteenth'?<span className="pill">13º</span>:'Mensal'}</td><td>{s.credits===null?'—':brl(s.credits)}</td><td>{s.debits===null?'—':brl(s.debits)}</td><td>{s.document_type==='ppr'?brl(s.ppr_income_tax||0):'—'}</td><td>{s.document_type==='thirteenth'?brl(s.thirteenth_irrf):'—'}</td><td>{s.net===null?'—':brl(s.net)}</td><td>{s.document_type==='vacation'?'—':s.salary_advance===null?'A conferir':brl(s.salary_advance)}</td>
     <td>{s.document_type==='thirteenth'?<><strong>{brl(thirteenthLedger.occurrences.find(t=>t.statementId===s.id)?.cashAdditional??s.net??0)}</strong><div className="subtle">13º separado</div></>:s.document_type==='vacation'?<span className="subtle">Incluído na conciliação</span>:
        <div className="financial-value-status"><strong>{vacationLedger.byMonth.get(s.period)?.total===null?'A conferir':brl(vacationLedger.byMonth.get(s.period)?.total??s.net_received??0)}</strong>
        {vacationLedger.byMonth.get(s.period)?.vacationState&&<span className="pill vacation-status-pill">{vacationLedger.byMonth.get(s.period)?.vacationState==='reconciled'?'Férias conciliadas':'Férias estimadas ou pendentes'}</span>}</div>}
     </td><td>{s.warnings?.length?<span className="flag">Conferir</span>:<span className="ok">Conferido</span>}</td></tr>)}</tbody></table></div>:<Empty text="Não há holerites para este ano."/>}
-    </Panel>{selectedStmt&&<Panel title={'Detalhes de '+(selectedStmt.document_type==='ppr'?'PPR · ':selectedStmt.document_type==='vacation'?'Férias · ':selectedStmt.document_type==='thirteenth'?'13º · ':'')+monthLabel(selectedStmt.period)} extra={<button className="secondary" onClick={()=>setSelectedStmt(null)}>Fechar</button>}>{selectedStmt.document_type==='thirteenth'?<div className="detail-hint">13º bruto: <strong>{selectedStmt.thirteenth_gross===null?'A conferir':brl(selectedStmt.thirteenth_gross)}</strong>; adiantamento descontado: {brl(selectedStmt.thirteenth_advance)}; INSS: {brl(selectedStmt.thirteenth_inss)}; IRRF: {brl(selectedStmt.thirteenth_irrf)}; pensão: {brl(selectedStmt.thirteenth_pension)}; líquido no fechamento: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. {thirteenthLedger.byYear.get(selectedStmt.period.slice(0,4))?.note}</div>:selectedStmt.document_type==='vacation'?<div className="detail-hint">Recibo complementar de férias: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Período: {selectedStmt.vacation_start?dateBR(selectedStmt.vacation_start):'Não identificado'} a {selectedStmt.vacation_end?dateBR(selectedStmt.vacation_end):'Não identificado'}. Pagamento efetivo: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificado'}. Este líquido substitui os adiantamentos já inferidos das folhas mensais correspondentes; não é somado novamente.</div>:selectedStmt.document_type==='ppr'?<div className="detail-hint">PPR bruto: <strong>{selectedStmt.gross_ppr===null?'A conferir':brl(selectedStmt.gross_ppr)}</strong>. IRRF PPR: <strong>{brl(selectedStmt.ppr_income_tax||0)}</strong>. Contribuição negocial: <strong>{brl(selectedStmt.ppr_union_contribution||0)}</strong>. Líquido pago: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Data de pagamento: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificada'}. Evento lançado separadamente.</div>:<div className="detail-hint">Líquido mensal: {selectedStmt.net===null?'A conferir':brl(selectedStmt.net)} (fechamento) + {selectedStmt.salary_advance===null?'A conferir':brl(selectedStmt.salary_advance)} (adiantamento salarial) = <strong>{selectedStmt.net_received===null?'A conferir':brl(selectedStmt.net_received)}</strong>. Férias identificadas na folha: {brl(vacationLedger.byMonth.get(selectedStmt.period)?.vacation??0)}. Total financeiro da competência: <strong>{vacationLedger.byMonth.get(selectedStmt.period)?.total===null?'A conferir':brl(vacationLedger.byMonth.get(selectedStmt.period)?.total??selectedStmt.net_received??0)}</strong>. O recibo complementar não duplica a contabilização.</div>}<div className="table-scroll"><table><thead><tr><th>Código</th><th>Rubrica original</th><th>Tipo</th><th>Valor</th></tr></thead><tbody>{statementLines.map((l,i)=><tr key={i}><td>{l.code}</td><td>{l.description}</td><td>{l.side==='credit'?'Provento':l.side==='debit'?'Desconto':'Revisar'}</td><td>{brl(Number(l.amount))}</td></tr>)}</tbody></table></div>{selectedStmt.warnings?.map((w,i)=><div className="detail-hint" key={i}><AlertTriangle size={15}/>{w}</div>)}</Panel>}<VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
+    </Panel>{selectedStmt&&<Panel title={'Detalhes de '+(selectedStmt.document_type==='ppr'?'PPR · ':selectedStmt.document_type==='vacation'?'Férias · ':selectedStmt.document_type==='thirteenth'?'13º · ':'')+monthLabel(selectedStmt.period)} extra={<button className="secondary" onClick={()=>setSelectedStmt(null)}>Fechar</button>}>{selectedStmt.document_type==='thirteenth'?<div className="detail-hint">13º bruto: <strong>{selectedStmt.thirteenth_gross===null?'A conferir':brl(selectedStmt.thirteenth_gross)}</strong>; adiantamento descontado: {brl(selectedStmt.thirteenth_advance)}; INSS: {brl(selectedStmt.thirteenth_inss)}; IRRF: {brl(selectedStmt.thirteenth_irrf)}; pensão: {brl(selectedStmt.thirteenth_pension)}; líquido no fechamento: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. {thirteenthLedger.byYear.get(selectedStmt.period.slice(0,4))?.note}</div>:selectedStmt.document_type==='vacation'?<div className="detail-hint">Recibo complementar de férias: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Período: {selectedStmt.vacation_start?dateBR(selectedStmt.vacation_start):'Não identificado'} a {selectedStmt.vacation_end?dateBR(selectedStmt.vacation_end):'Não identificado'}. Pagamento efetivo: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificado'}. Este líquido substitui os adiantamentos já inferidos das folhas mensais correspondentes; não é somado novamente.</div>:selectedStmt.document_type==='ppr'?<div className="detail-hint">PPR bruto: <strong>{selectedStmt.gross_ppr===null?'A conferir':brl(selectedStmt.gross_ppr)}</strong>. IRRF PPR: <strong>{brl(selectedStmt.ppr_income_tax||0)}</strong>. Contribuição negocial: <strong>{brl(selectedStmt.ppr_union_contribution||0)}</strong>. Líquido pago: <strong>{selectedStmt.net===null?'A conferir':brl(selectedStmt.net)}</strong>. Data de pagamento: {selectedStmt.payment_date?dateBR(selectedStmt.payment_date):'Não identificada'}. Evento lançado separadamente.</div>:<div className="detail-hint">Líquido mensal: {selectedStmt.net===null?'A conferir':brl(selectedStmt.net)} (fechamento) + {selectedStmt.salary_advance===null?'A conferir':brl(selectedStmt.salary_advance)} (adiantamento salarial) = <strong>{selectedStmt.net_received===null?'A conferir':brl(selectedStmt.net_received)}</strong>. Férias identificadas na folha: {brl(vacationLedger.byMonth.get(selectedStmt.period)?.vacation??0)}. Total financeiro da competência: <strong>{vacationLedger.byMonth.get(selectedStmt.period)?.total===null?'A conferir':brl(vacationLedger.byMonth.get(selectedStmt.period)?.total??selectedStmt.net_received??0)}</strong>. O recibo complementar não duplica a contabilização.</div>}<div className="table-scroll"><table><thead><tr><th>Código</th><th>Rubrica original</th><th>Tipo</th><th>Valor</th></tr></thead><tbody>{statementLines.map((l,i)=><tr key={i}><td>{l.code}</td><td>{l.description}</td><td>{l.side==='credit'?'Provento':l.side==='debit'?'Desconto':'Revisar'}</td><td>{brl(Number(l.amount))}</td></tr>)}</tbody></table></div>{selectedStmt.warnings?.map((w,i)=><div className="detail-hint" key={i}><AlertTriangle size={15}/>{w}</div>)}</Panel>}<VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/>
+ {eventToDelete&&<PayrepConfirmDialog title="Remover evento?"
+  description={eventToDelete.source_statement_id
+   ?'O evento deixará de afetar as projeções, mas o holerite e o histórico de importação serão preservados. Uma nova sincronização não recriará esse evento.'
+   :'O evento manual será excluído do seu histórico e das projeções.'}
+  confirmLabel="Remover evento" destructive busy={busy}
+  onClose={()=>setEventToDelete(null)}
+  onConfirm={()=>task(async()=>{
+   await removeEvent(eventToDelete.id)
+   if(eventId===eventToDelete.id)setEventId(undefined)
+   await refresh()
+   setEventToDelete(null)
+  },'Evento removido')}/>}
+ </div>}
         {section==='hours'&&<div className="stack">
      <div className="page-intro fortnight-page-intro">
       <div><h2>Jornada e horas extras</h2>
@@ -588,14 +596,20 @@ export default function App(){
        <button type="button" className="secondary" onClick={()=>setHoursAnchor(shiftFortnight(hoursAnchor,-1))}>
         <ChevronLeft size={17}/> Anterior
        </button>
-       <strong aria-live="polite">{getFortnight(hoursAnchor).label}</strong>
-       <PayrepDatePicker iconOnly value={hoursAnchor} onChange={setHoursAnchor} title="Selecionar dia e quinzena"/>
+       <button type="button" className="fortnight-period-trigger"
+ title="Escolher quinzena, mês e ano" aria-label={'Selecionar quinzena: '+fortnightDisplay(hoursAnchor).dateRange}
+ onClick={()=>setPeriodPickerOpen(true)}>
+ <strong aria-live="polite">{fortnightDisplay(hoursAnchor).dateRange}</strong>
+ <span>{fortnightDisplay(hoursAnchor).halfLabel}</span>
+ </button>
        <button type="button" className="secondary" onClick={()=>setHoursAnchor(shiftFortnight(hoursAnchor,1))}>
         Próxima <ChevronRight size={17}/>
        </button>
       </div>
      </div>
-     {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
+     {periodPickerOpen&&<FortnightPeriodPicker anchor={hoursAnchor}
+ onClose={()=>setPeriodPickerOpen(false)} onConfirm={next=>{setHoursAnchor(next);setPeriodPickerOpen(false)}}/>}
+ {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
       Configure sua Base em Definições para calcular os feriados e as horas extras.</div>}
      {holidayCalendar?.coverage==='partial'&&<div className="notice warning">
       <Info size={18}/>{holidayCalendar.message}</div>}
@@ -607,7 +621,9 @@ export default function App(){
       records={records} holidayDates={holidayDates} policies={timeBankPolicies}
       baseName={base?baseLabel(base):'Não configurada'} onSaved={()=>refresh()}/>
     </div>}
-    {section==='events'&&<div className="stack"><div className="page-intro"><div><h2>Parâmetros com data de início</h2><p>Alterações permanentes afetam as projeções a partir da vigência. Ocorrências pontuais não alteram o salário-base.</p></div></div><div className="two-col"><Panel title={eventId?'Editar evento':'Novo evento'}><form className="form" onSubmit={e=>{e.preventDefault();saveNewEvent()}}><label>Evento<PayrepSelect value={eventKind} onChange={next=>{setEventKind(next);setPensionOptions({...defaultPensionRule})}} title="Tipo de evento">{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}</PayrepSelect></label><label>Valor / quantidade<input type="text" inputMode="decimal" required value={eventValue} onChange={e=>setEventValue(e.target.value)} onBlur={()=>setEventValue(value=>formatEventInput(value,eventKind))} placeholder={eventKind==='dependents'?'0':'0,00'} autoComplete="off"/></label>{eventKind==='mealBenefit'&&<div className="detail-hint"><Info size={16}/>Informe o valor diário. A previsão recebida em uma competência corresponde aos dias úteis do mês seguinte, excluindo sábados, domingos e feriados da Base.</div>}{eventKind==='pensionPercent'&&<div className="pension-criteria"><p className="subtle">Defina os critérios de incidência. A projeção mensal aplica os descontos selecionados; 13º, férias e PPR têm cálculos próprios, separados da folha mensal.</p><div className="pension-criteria-grid"><fieldset><legend>Excluir da base</legend>{(['excludeInss','excludeIrrf'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset><fieldset><legend>Incluir na base</legend>{(['includeOvertime','includeVacation','includeVacationThird','includeThirteenth','includePpr'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset></div></div>}<label>Data de início<PayrepDatePicker required value={eventDate} onChange={setEventDate} title="Data de início"/></label><label>Observação<textarea value={eventNote} onChange={e=>setEventNote(e.target.value)} rows={2} placeholder="Opcional"/></label><button className="primary" disabled={busy||!db} type="submit"><Plus size={17}/>{eventId?'Atualizar evento':'Adicionar evento'}</button></form></Panel><Panel title="Como funcionam as vigências"><div className="instruction"><div className="step">01</div><p>Cadastre uma mudança com o valor novo, não a diferença.</p></div><div className="instruction"><div className="step">02</div><p>A data define a primeira competência da nova regra. Eventos antigos permanecem no histórico.</p></div><div className="instruction"><div className="step">03</div><p>Importações de holerites sugerem mudanças, mas nunca criam eventos permanentes sem confirmação.</p></div></Panel></div><Panel title="Eventos cadastrados"><div className="filterbar events-filterbar"><label htmlFor="events-year-filter">Ano</label><PayrepSelect id="events-year-filter" value={eventsYear} onChange={setEventsYear} title="Ano do evento"><option value="all">Todos os anos</option>{eventYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><span className="pill">{filteredEvents.length} evento(s)</span></div>{filteredEvents.length?<div className="table-scroll"><table className="events-table"><colgroup><col className="event-col-name"/><col className="event-col-date"/><col className="event-col-value"/><col className="event-col-status"/><col className="event-col-notes"/><col className="event-col-actions"/></colgroup><thead><tr><th>Evento</th><th>Vigência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>{filteredEvents.map(x=><tr key={x.id}><td>{eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind}</td><td>{dateBR(x.effective_date)}</td><td>{formatEventValue(x.value,x.kind)}</td><td>{x.source_statement_id?<span className="pill">Importado do PDF</span>:<span className="subtle">Manual</span>}</td><td className="events-notes-cell"><span className="events-note-preview" title={eventNotesText(x)}>{eventNotesText(x)||'—'}</span></td><td className="events-actions-cell">{x.source_statement_id?<span className="subtle">Vinculado ao holerite</span>:<><button className="icon-button" onClick={()=>{setEventId(x.id);setEventKind(x.kind);setEventDate(x.effective_date);setEventValue(formatEventValue(x.value,x.kind));setEventNote(x.kind==='pensionPercent'?parsePensionNotes(x.notes).note:x.notes);setPensionOptions(x.kind==='pensionPercent'?parsePensionNotes(x.notes).rule:{...defaultPensionRule})}}><Pencil size={15}/></button><button className="icon-button" onClick={()=>task(async()=>{await removeEvent(x.id);await refresh()},'Evento excluído')}><Trash2 size={15}/></button></>}</td></tr>)}</tbody></table></div>:<Empty text={events.length?'Nenhum evento cadastrado para '+eventsYear+'.':'Nenhum evento cadastrado.'}/>}</Panel><VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
+    {section==='events'&&<div className="stack"><div className="page-intro"><div><h2>Parâmetros com data de início</h2><p>Alterações permanentes afetam as projeções a partir da vigência. Ocorrências pontuais não alteram o salário-base.</p></div></div><div className="two-col"><Panel title={eventId?'Editar evento':'Novo evento'}><form className="form" onSubmit={e=>{e.preventDefault();saveNewEvent()}}><label>Evento<PayrepSelect value={eventKind} disabled={Boolean(eventId&&events.find(e=>e.id===eventId)?.source_statement_id)} onChange={next=>{setEventKind(next);setPensionOptions({...defaultPensionRule})}} title="Tipo de evento">{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}</PayrepSelect></label><label>Valor / quantidade<input type="text" inputMode="decimal" required value={eventValue} onChange={e=>setEventValue(e.target.value)} onBlur={()=>setEventValue(value=>formatEventInput(value,eventKind))} placeholder={eventKind==='dependents'?'0':'0,00'} autoComplete="off"/></label>{eventKind==='mealBenefit'&&<div className="detail-hint"><Info size={16}/>Informe o valor diário. A previsão recebida em uma competência corresponde aos dias úteis do mês seguinte, excluindo sábados, domingos e feriados da Base.</div>}{eventKind==='pensionPercent'&&<div className="pension-criteria"><p className="subtle">Defina os critérios de incidência. A projeção mensal aplica os descontos selecionados; 13º, férias e PPR têm cálculos próprios, separados da folha mensal.</p><div className="pension-criteria-grid"><fieldset><legend>Excluir da base</legend>{(['excludeInss','excludeIrrf'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset><fieldset><legend>Incluir na base</legend>{(['includeOvertime','includeVacation','includeVacationThird','includeThirteenth','includePpr'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset></div></div>}<label>Data de início<PayrepDatePicker required value={eventDate} onChange={setEventDate} title="Data de início"/></label><label>Observação<textarea value={eventNote} onChange={e=>setEventNote(e.target.value)} rows={2} placeholder="Opcional"/></label><button className="primary" disabled={busy||!db} type="submit"><Plus size={17}/>{eventId?'Atualizar evento':'Adicionar evento'}</button></form></Panel><Panel title="Como funcionam as vigências"><div className="instruction"><div className="step">01</div><p>Cadastre uma mudança com o valor novo, não a diferença.</p></div><div className="instruction"><div className="step">02</div><p>A data define a primeira competência da nova regra. Eventos antigos permanecem no histórico.</p></div><div className="instruction"><div className="step">03</div><p>Importações de holerites sugerem mudanças, mas nunca criam eventos permanentes sem confirmação.</p></div></Panel></div><Panel title="Eventos cadastrados"><div className="filterbar events-filterbar"><label htmlFor="events-year-filter">Ano</label><PayrepSelect id="events-year-filter" value={eventsYear} onChange={setEventsYear} title="Ano do evento"><option value="all">Todos os anos</option>{eventYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><label htmlFor="events-type-filter">Evento</label><PayrepSelect id="events-type-filter" value={eventsKindFilter} onChange={setEventsKindFilter} title="Filtrar tipo de evento">
+ <option value="all">Todos os eventos</option>{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}
+ </PayrepSelect><span className="pill">{filteredEvents.length} evento(s)</span></div>{filteredEvents.length?<div className="table-scroll"><table className="events-table"><colgroup><col className="event-col-name"/><col className="event-col-date"/><col className="event-col-value"/><col className="event-col-status"/><col className="event-col-notes"/><col className="event-col-actions"/></colgroup><thead><tr><th>Evento</th><th>Vigência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>{filteredEvents.map(x=><tr key={x.id}><td>{eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind}</td><td>{dateBR(x.effective_date)}</td><td>{formatEventValue(x.value,x.kind)}</td><td>{x.source_statement_id?<span className="pill">{x.user_override?'Importado · editado':'Importado do PDF'}</span>:<span className="subtle">Manual</span>}</td><td className="events-notes-cell"><span className="events-note-preview" title={eventNotesText(x)}>{eventNotesText(x)||'—'}</span></td><td className="events-actions-cell"><button type="button" aria-label={'Editar '+(eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind)} title="Editar evento" className="icon-button" onClick={()=>{setEventId(x.id);setEventKind(x.kind);setEventDate(x.effective_date);setEventValue(formatEventValue(x.value,x.kind));setEventNote(x.kind==='pensionPercent'?parsePensionNotes(x.notes).note:x.notes);setPensionOptions(x.kind==='pensionPercent'?parsePensionNotes(x.notes).rule:{...defaultPensionRule})}}><Pencil size={15}/></button><button type="button" className="icon-button" aria-label={'Remover '+(eventsKinds.find(([id])=>id===x.kind)?.[1]||x.kind)} title="Remover evento" onClick={()=>setEventToDelete(x)}><Trash2 size={15}/></button></td></tr>)}</tbody></table></div>:<Empty text={events.length?'Nenhum evento cadastrado para '+eventsYear+'.':'Nenhum evento cadastrado.'}/>}</Panel><VacationOverview ledger={vacationLedger} year={year}/><ThirteenthOverview ledger={thirteenthLedger} year={year}/></div>}
     {section==='analytics'&&<AnalyticsDashboard year={year} onYearChange={setYear} years={months}
       statements={statements} lines={allLines} monthlyGraph={monthlyGraph}
       vacationLedger={vacationLedger} thirteenthLedger={thirteenthLedger} parameters={params}/>}

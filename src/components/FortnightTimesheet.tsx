@@ -4,6 +4,7 @@ import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
 import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
+import {PayrepConfirmDialog} from './PayrepConfirmDialog'
 
 type TimeRow=DayEntry&{id:string}
 type Field='start'|'lunchStart'|'lunchEnd'|'end'|'additionalHours'|'comments'
@@ -30,6 +31,7 @@ const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim()
 export function FortnightTimesheet({anchor,records,holidayDates,policies,baseName,onSaved}:Props){
  const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
  const [saving,setSaving]=useState(false)
+ const [resetOpen,setResetOpen]=useState(false)
  const [manuallySetBank,setManuallySetBank]=useState<Record<string,boolean>>({})
  const [automaticallyMarked,setAutomaticallyMarked]=useState<Record<string,boolean>>({})
  const [error,setError]=useState('')
@@ -100,6 +102,39 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   extra:result.extra+calc.h60+calc.h80+calc.h100,
   h60:result.h60+calc.h60,h80:result.h80+calc.h80,h100:result.h100+calc.h100
  }),{worked:0,extra:0,h60:0,h80:0,h100:0})
+ const resetHours=async()=>{
+  if(saving)return
+  setSaving(true);setError('');setMessage('')
+  try{
+   const targets=dates.filter(date=>byDate.has(date)||Object.prototype.hasOwnProperty.call(drafts,date))
+   const cleared=targets.map(date=>({
+    ...read(date),start:'',lunchStart:'',lunchEnd:'',end:'',
+    additionalHours:'',bankHours:false,bankDeltaMinutes:null,bankWeightedMinutes:null
+   }))
+   if(cleared.length)await saveTimeEntries(cleared)
+   setDrafts(previous=>{
+    const next={...previous}
+    for(const date of dates)delete next[date]
+    return next
+   })
+   setManuallySetBank(previous=>{
+    const next={...previous}
+    for(const date of dates)delete next[date]
+    return next
+   })
+   setAutomaticallyMarked(previous=>{
+    const next={...previous}
+    for(const date of dates)delete next[date]
+    return next
+   })
+   setResetOpen(false)
+   setMessage('Horários da quinzena zerados. Comentários e marcações de feriado foram mantidos.')
+   try{await onSaved()}catch{
+    setError('Horários zerados, mas não foi possível atualizar a lista. Recarregue a página.')
+   }
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao zerar a quinzena.')}
+  finally{setSaving(false)}
+ }
  const save=async()=>{
   if(!dirtyCurrent.length||saving)return
   setSaving(true);setError('');setMessage('')
@@ -263,9 +298,14 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
      {dirtyCurrent.length?dirtyCurrent.length+' dia(s) com alterações não salvas nesta quinzena.':'Nenhuma alteração pendente nesta quinzena.'}
      {dirtyOutside>0?' Há '+dirtyOutside+' alteração(ões) não salvas em outras quinzenas.':''}
     </div>
-    <button type="button" className="primary" disabled={saving||dirtyCurrent.length===0} onClick={()=>void save()}>
-     <Save size={17}/>{saving?'Salvando...':'Salvar quinzena'}
-    </button>
+    <div className="fortnight-action-buttons">
+     <button type="button" className="secondary" disabled={saving} onClick={()=>setResetOpen(true)}>
+      <RotateCcw size={16}/> Resetar horários
+     </button>
+     <button type="button" className="primary" disabled={saving||dirtyCurrent.length===0} onClick={()=>void save()}>
+      <Save size={17}/>{saving?'Salvando...':'Salvar quinzena'}
+     </button>
+    </div>
    </div>
    {dirtyCurrent.length>0&&previewBank.firstMissingPolicyDate&&
     <p className="error" role="alert">
@@ -277,6 +317,10 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
      As horas devidas serão compensadas pelos próximos créditos no Banco de Horas.
      O salvamento está permitido.
     </p>}
+   {resetOpen&&<PayrepConfirmDialog title="Resetar horários da quinzena?"
+    description={'Os horários, horas adicionais e marcações de Banco de Horas entre '+formatDate(period.start)+' e '+formatDate(period.end)+' serão zerados, inclusive registros salvos. Comentários e feriados serão preservados.'}
+    confirmLabel="Zerar horários" destructive busy={saving}
+    onClose={()=>setResetOpen(false)} onConfirm={()=>void resetHours()}/>}
    {message&&<p className="auth-success" role="status">{message}</p>}
    {error&&<p className="error" role="alert">{error}</p>}
   </section>

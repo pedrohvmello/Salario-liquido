@@ -2237,3 +2237,51 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 
 /* Allow a wider, readable introductory explanation of personal Pep queries. */
 .payrep-help-page .page-intro p{max-width:1050px;line-height:1.65}
+
+
+/* Fortnight navigation: whole date range opens the purpose-built period picker. */
+.fortnight-page-navigation .fortnight-period-trigger{
+ min-width:240px;display:flex;flex-direction:column;justify-content:center;align-items:center;
+ padding:6px 13px;gap:3px;
+ background:transparent;border:1px solid transparent;border-radius:11px;
+ color:#3a1558;cursor:pointer;text-align:center;
+}
+.fortnight-page-navigation .fortnight-period-trigger:hover{
+ border-color:#dfc5f5;background:#faf4ff
+}
+.fortnight-page-navigation .fortnight-period-trigger:focus-visible{
+ outline:2px solid #8d24dd;outline-offset:2px
+}
+.fortnight-page-navigation .fortnight-period-trigger strong{
+ font-size:14px;white-space:nowrap;order:unset;flex-basis:auto
+}
+.fortnight-page-navigation .fortnight-period-trigger span{
+ font-size:11px;line-height:1.3;color:#765b90;font-weight:650
+}
+.fortnight-picker{width:min(470px,100%)}
+.fortnight-picker-body{display:grid;gap:17px;padding:16px 20px 22px}
+.fortnight-picker-half{min-width:0;padding:0;border:0}
+.fortnight-picker-half legend{font-size:12px;font-weight:750;margin-bottom:9px;color:#512671}
+.fortnight-picker-half-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fortnight-picker-half-options button{border-radius:10px;padding:12px 10px;font-size:13px;cursor:pointer}
+.fortnight-picker-half-options .fortnight-picker-selected{
+ border:1px solid #a34be4;color:#6b04b9;background:#f2e7fd;font-weight:750
+}
+.fortnight-picker-fields{display:grid;grid-template-columns:1fr 115px;gap:12px}
+.fortnight-picker-fields label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:750}
+.fortnight-picker-fields .payrep-select-trigger,.fortnight-picker-fields input{
+ width:100%;min-height:43px
+}
+.fortnight-action-buttons{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fortnight-action-buttons button{min-height:43px}
+.annual-salary-table{min-width:1370px}
+.annual-salary-table th,.annual-salary-table td{white-space:nowrap;padding-inline:14px}
+.annual-salary-table td .pill{display:inline-block;margin-left:7px}
+.events-filterbar{flex-wrap:wrap}
+.events-filterbar>label{font-weight:650}
+@media(max-width:760px){
+ .fortnight-page-navigation .fortnight-period-trigger{order:-1;flex-basis:100%;min-width:0}
+ .fortnight-action-buttons{width:100%;display:grid;grid-template-columns:1fr}
+ .fortnight-action-buttons .primary,.fortnight-action-buttons .secondary{width:100%}
+ .fortnight-picker-fields{grid-template-columns:minmax(0,1fr) 100px}
+}

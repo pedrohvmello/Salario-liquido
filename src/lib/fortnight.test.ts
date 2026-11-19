@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {fortnightDays,getFortnight,shiftFortnight} from './fortnight'
+import {fortnightDays,getFortnight,shiftFortnight,selectedFortnight,fortnightDisplay} from './fortnight'
 import {classifyHours} from './calendar'
 
 describe('fortnight navigation',()=>{
@@ -14,6 +14,15 @@ describe('fortnight navigation',()=>{
   expect(shiftFortnight('2027-01-05',-1)).toBe('2026-12-16')
   expect(shiftFortnight('2026-11-03',1)).toBe('2026-11-16')
   expect(shiftFortnight('2026-11-20',-1)).toBe('2026-11-01')
+ })
+ it('selects a precise fortnight and formats the date range',()=>{
+  expect(selectedFortnight(2026,11,2)).toBe('2026-11-16')
+  expect(fortnightDisplay('2026-11-20')).toEqual({
+   dateRange:'16/11/2026 a 30/11/2026',halfLabel:'2ª quinzena'
+  })
+  expect(fortnightDisplay(selectedFortnight(2028,2,2)).dateRange)
+   .toBe('16/02/2028 a 29/02/2028')
+  expect(()=>selectedFortnight(2026,13,1)).toThrow()
  })
  it('accepts a selected calendar day and derives its fortnight',()=>{
   expect(getFortnight('2026-11-15').start).toBe('2026-11-01')
