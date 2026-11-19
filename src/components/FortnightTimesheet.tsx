@@ -211,13 +211,6 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
       <small className={previewBank.balanceMinutes<0?'fortnight-negative-balance':''}>Após salvar: {formatBankMinutes(previewBank.balanceMinutes)} h</small>}
     </div>
    </div>
-   <p className="subtle fortnight-explanation">
-    Somente jornadas completas entram nos totais de horas trabalhadas.
-    Marque Banco de Horas para acumular horas extras ou compensar a jornada.
-    Em dias úteis, uma jornada inferior à referência é marcada automaticamente para compensação.
-    Um dia sem horários e com o flag marcado representa folga integral.
-    {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
-   </p>
    {!holidayDates&&<div className="notice warning"><Info size={17}/>
     Configure sua Base ou aguarde o calendário de feriados para exibir os cálculos.</div>}
    <div className="table-scroll fortnight-scroll" role="region" tabIndex={0}
@@ -324,5 +317,12 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   </section>
   <p className="subtle">Base utilizada para os feriados: {baseName}.
    As regras de fechamento e DSR de 16 a 15 permanecem aplicadas às projeções salariais.</p>
+  <p className="subtle fortnight-explanation">
+   Somente jornadas completas entram nos totais de horas trabalhadas.
+   Marque Banco de Horas para acumular horas extras ou compensar a jornada.
+   Em dias úteis, uma jornada inferior à referência é marcada automaticamente para compensação.
+   Um dia sem horários e com o flag marcado representa folga integral.
+   {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
+  </p>
  </div>
 }
