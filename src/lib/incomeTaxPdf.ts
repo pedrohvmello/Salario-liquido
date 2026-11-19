@@ -44,7 +44,7 @@ function makeLines(items:PdfToken[],page:number):Line[]{
  */
 export function inferCalendarYear(text:string):number|null{
  const value=normalize(text)
- const labeled=[...value.matchAll(/(?:ano[\s-]*calendario|ano[\s-]*base|ano[\s-]*de[\s-]*referencia)\s*[:.\-]?\s*(?:exercicio\s*[:.\-]?\s*)?(20\d{2})/g)]
+ const labeled=[...value.matchAll(/(?:ano[\s-]*calendario|ano[\s-]*base|ano[\s-]*de[\s-]*referencia)\s*[:.\-]?\s*(20\d{2})/g)]
   .map(match=>Number(match[1]))
  const calendarYears=[...new Set(labeled)].filter(y=>y>=1990&&y<=2100)
  if(calendarYears.length>1)return null
