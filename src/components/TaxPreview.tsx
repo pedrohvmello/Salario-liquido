@@ -36,7 +36,7 @@ const draftsFrom=(values:OfficialValues):Record<string,string>=>Object.fromEntri
  OFFICIAL_FIELDS.map(field=>[field.key,formatAmount(values[field.key])])
 )
 type PendingImport={
- file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null
+ file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null;reprocessOnly?:boolean
 }
 
 export function TaxPreview({userId,statements}:{userId:string|null;statements:TaxStatement[]}){
@@ -112,7 +112,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
    setWarnings(analysis.warnings)
    setConfirmedByUser(false)
    setPending(null)
-   setMessage(alreadyStored?'Este documento já estava armazenado para '+targetYear+'.':
+   setMessage(alreadyStored?'O informe de '+targetYear+' foi reprocessado. Confira novamente os valores antes de confirmar.':
     'Informe de '+targetYear+' armazenado. Confira os valores e confirme para torná-los oficiais.')
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível importar o informe.')}
   finally{setBusy(false)}
@@ -149,6 +149,19 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
    if(existing){setPending({...pending,year:manualYear,existing});return}
    await commitImport(pending.file,pending.analysis,manualYear)
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível validar o ano do informe.')}
+  finally{setBusy(false)}
+ }
+ async function requestReprocess(){
+  if(!report||busy||!canUpload)return
+  setBusy(true);setError('');setMessage('')
+  try{
+   const blob=await downloadIncomeTaxReport(report)
+   const file=new File([blob],report.original_filename||('informe-'+year+'.pdf'),{type:'application/pdf'})
+   const analysis=await extractIncomeTaxPdf(file)
+   if(analysis.detectedYear!==null&&analysis.detectedYear!==year)
+    throw Error('O ano do PDF não corresponde ao ano do informe salvo. Não foi feita nenhuma alteração.')
+   setPending({file,analysis,year,existing:report,reprocessOnly:true})
+  }catch(e){setError(e instanceof Error?e.message:'Não foi possível reprocessar o documento.')}
   finally{setBusy(false)}
  }
  async function showPdf(download:boolean){
@@ -274,6 +287,8 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(false)}><Eye size={15}/> Ver PDF</button>
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(true)}><Download size={15}/> Baixar</button>
       {canUpload&&<button type="button" className="secondary" disabled={busy}
+       onClick={()=>void requestReprocess()}><FileCheck2 size={15}/> Reprocessar dados</button>
+      {canUpload&&<button type="button" className="secondary" disabled={busy}
        onClick={()=>fileRef.current?.click()}><FileUp size={15}/> Substituir</button>}
       {canUpload&&<button type="button" className="secondary ir-danger-action" disabled={busy}
        onClick={()=>setDeleteConfirm(true)}><Trash2 size={15}/> Excluir</button>}
@@ -348,7 +363,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
 
   {pending&&<div className="ir-dialog-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setPending(null)}}>
    <section className="ir-dialog" role="dialog" aria-modal="true" aria-label="Confirmar importação do informe">
-    <div className="ir-dialog-head"><h3>{pending.year===null?'Confirmar ano-calendário':'Substituir informe existente?'}</h3>
+    <div className="ir-dialog-head"><h3>{pending.year===null?'Confirmar ano-calendário':pending.reprocessOnly?'Reprocessar informe salvo?':'Substituir informe existente?'}</h3>
      <button type="button" className="secondary" disabled={busy} aria-label="Fechar"
       onClick={()=>setPending(null)}><X size={17}/></button></div>
     {pending.year===null?<div className="ir-dialog-content">
@@ -360,7 +375,9 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      </label>
      <p className="subtle">O ano só é solicitado quando o documento não permite identificação automática, como em PDFs digitalizados.</p>
     </div>:<div className="ir-dialog-content">
-     <p>Já existe um informe armazenado para o ano-calendário <strong>{pending.year}</strong>. Deseja substituir o documento?</p>
+     <p>{pending.reprocessOnly
+      ?'Reprocessar o PDF já armazenado para o ano-calendário '+pending.year+' com as regras atualizadas?'
+      :<>Já existe um informe armazenado para o ano-calendário <strong>{pending.year}</strong>. Deseja substituir o documento?</>}</p>
      <p className="subtle">Os valores antigos deixarão de ser fonte oficial até a conferência do novo PDF. Nenhum holerite será alterado.</p>
     </div>}
     <div className="ir-dialog-actions">
@@ -368,7 +385,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      <button type="button" className="primary" disabled={busy} onClick={()=>{
       if(pending.year===null)void confirmMissingYear()
       else void commitImport(pending.file,pending.analysis,pending.year)
-     }}>{busy?'Processando...':pending.year===null?'Continuar':'Substituir informe'}</button>
+     }}>{busy?'Processando...':pending.year===null?'Continuar':pending.reprocessOnly?'Reprocessar dados':'Substituir informe'}</button>
     </div>
    </section>
   </div>}
