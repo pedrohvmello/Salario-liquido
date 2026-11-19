@@ -287,7 +287,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(false)}><Eye size={15}/> Ver PDF</button>
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(true)}><Download size={15}/> Baixar</button>
       {canUpload&&<button type="button" className="secondary" disabled={busy}
-       onClick={()=>void requestReprocess()}><FileCheck2 size={15}/> Reprocessar dados</button>
+       onClick={()=>void requestReprocess()}><FileCheck2 size={15}/> Reprocessar dados</button>}
       {canUpload&&<button type="button" className="secondary" disabled={busy}
        onClick={()=>fileRef.current?.click()}><FileUp size={15}/> Substituir</button>}
       {canUpload&&<button type="button" className="secondary ir-danger-action" disabled={busy}
