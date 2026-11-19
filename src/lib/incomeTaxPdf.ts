@@ -104,7 +104,6 @@ export async function extractIncomeTaxPdf(file:File):Promise<ExtractedTaxReport>
  const bytes=new Uint8Array(await file.arrayBuffer())
  if(String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')
   throw Error('O arquivo enviado não possui assinatura PDF válida.')
- let pdf:Awaited<ReturnType<typeof pdfjs.getDocument>>|null=null
  const task=pdfjs.getDocument({data:bytes})
  const document=await task.promise
  const lines:Line[]=[]
