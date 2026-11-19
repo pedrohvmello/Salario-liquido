@@ -2560,3 +2560,25 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:760px){
  .subscription-plan-with-features{min-height:0}
 }
+
+
+/* Private employer Income Tax statement: accessible upload, provenance and review. */
+.tax-report-panel{display:flex;flex-direction:column;gap:12px}
+.tax-report-file{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid #e6d5f6;border-radius:11px;padding:14px}
+.tax-report-file>div:first-child{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tax-report-file>div:first-child strong{display:flex;align-items:center;gap:7px;color:#431e60;overflow-wrap:anywhere}
+.tax-report-file>div:first-child small{color:#806b97;font-size:12px}
+.tax-report-file .row{gap:8px;flex-wrap:wrap}
+.tax-report-upload{display:flex;flex-direction:column;gap:6px}
+.tax-report-upload input[type=file]{width:100%;min-width:0;padding:12px;border:1px dashed #b88cde;border-radius:9px;background:#fcf9ff;color:#44265e}
+.tax-report-upload input[type=file]::file-selector-button{border:1px solid #b787df;border-radius:7px;padding:8px 12px;margin-right:10px;background:#f5ecff;color:#511381;cursor:pointer}
+.tax-report-upload small{color:#765d8d}
+.tax-report-confirm{background:#fcf5ff;border:1px solid #cfb3e7;border-radius:10px;padding:15px}
+.tax-report-confirm p{margin:0 0 12px}
+.tax-report-confirm .row{gap:10px;flex-wrap:wrap}
+.tax-report-approval{display:flex;align-items:flex-start;gap:10px;margin:15px 0 0;font-size:13px;line-height:1.5;color:#4d3063}
+.tax-report-approval input{accent-color:#7b09c3;width:17px;height:17px;flex:0 0 17px;margin-top:2px}
+@media(max-width:760px){
+ .tax-report-file{flex-direction:column;align-items:stretch}
+ .tax-report-file .row{justify-content:flex-start}
+}
