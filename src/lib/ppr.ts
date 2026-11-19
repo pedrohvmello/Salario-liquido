@@ -3,7 +3,7 @@ import type {PayrollLine} from './parse'
 
 export type PdfRow={text:string;items:Array<{text:string;x:number;y:number}>;y:number}
 export type PprDetails={gross:number|null;incomeTax:number;unionContribution:number}
-const BR_DATE=/^(\d{2})\/(\d{2})\/(\d{4})$/
+const BR_DATE=/^(\d{2})[./](\d{2})[./](\d{4})$/
 function toISO(date:string):string|null{
  const m=date.match(BR_DATE)
  if(!m)return null
@@ -18,18 +18,32 @@ export function isPprPayslip(rows:PdfRow[]):boolean{
  return (rows[i+1]?.items||[]).some(x=>x.text.trim().toUpperCase()==='PPR'&&x.x<120)
 }
 export function paymentDateFromHeader(rows:PdfRow[]):string|null{
- const i=rows.findIndex(r=>r.items.some(x=>x.text.trim()==='Dt. pagt.:'))
+ // Former Accenture slips print "Dt. pagt.:"; current slips print "Dt.Pagto."
+ // on the header row, with a dotted DD.MM.YYYY date on the next row.
+ // Only read rows tied to the explicit payment-date heading, never infer
+ // a date from admission, salary competence, pension, or another field.
+ const i=rows.findIndex(r=>/Dt\.\s*(?:pagt\.?\s*:|Pagto\.)/i.test(r.text))
  if(i<0)return null
  for(const r of rows.slice(i+1,i+4)){
+  // Rows in the new PDF are sometimes a single large monospaced text item.
+  // In a multi-column header, payment date is the rightmost complete date.
+  const dates=r.text.match(/\b\d{2}[./]\d{2}[./]\d{4}\b/g)||[]
+  for(const raw of dates.reverse()){
+   const value=toISO(raw)
+   if(value)return value
+  }
+  // Old PDFs may split the date into a separate item. Retain the x-based
+  // fallback for cases where grouped row text cannot be matched.
   for(const item of r.items){
    if(item.x>=385&&item.x<490){
-    const date=toISO(item.text.trim())
-    if(date)return date
+    const value=toISO(item.text.trim())
+    if(value)return value
    }
   }
  }
  return null
 }
+
 export function pprDetails(lines:readonly PayrollLine[]):PprDetails{
  const gross=lines.filter(l=>l.side==='credit'&&(l.code==='00845'||/^PPR(?:\s|$)/i.test(l.description)))
  const tax=lines.filter(l=>l.side==='debit'&&(l.code==='07095'||/^IRRF\s+PPR/i.test(l.description)))

@@ -10,6 +10,37 @@ describe('PPR document (fictional values)',()=>{
   expect(isPprPayslip(header)).toBe(true)
   expect(paymentDateFromHeader(header)).toBe('2025-11-15')
  })
+ it('extracts real dates from the six new-format monthly header examples',()=>{
+  const cases=[
+   ['05/26','28.05.2026','2026-05-28'],
+   ['06/26','30.06.2026','2026-06-30'],
+   ['07/26','31.07.2026','2026-07-31'],
+   ['08/26','31.08.2026','2026-08-31'],
+   ['09/26','30.09.2026','2026-09-30'],
+   ['10/26','30.10.2026','2026-10-30']
+  ]
+  for(const [period,printDate,expected] of cases){
+   const lines=[
+    row('Carteira de Trabalho Série UF Salário Banco Agência Conta Ref. Dt.Pagto.',570,
+      [['Carteira de Trabalho Série UF Salário Banco Agência Conta Ref. Dt.Pagto.',50]]),
+    row('15.340,57 033 0900 010154721 '+period+' '+printDate,558,
+      [['15.340,57 033 0900 010154721 '+period+' '+printDate,50]])
+   ]
+   expect(paymentDateFromHeader(lines)).toBe(expected)
+  }
+ })
+ it('never mistakes a month reference or admission date for a payment date',()=>{
+  expect(paymentDateFromHeader([
+   row('Admissão 01.04.2020',590,[['Admissão 01.04.2020',40]]),
+   row('Ref. 05/26',575,[['Ref. 05/26',50]])
+  ])).toBeNull()
+ })
+ it('rejects impossible printed payment dates',()=>{
+  expect(paymentDateFromHeader([
+   row('Ref. Dt.Pagto.',570,[['Ref. Dt.Pagto.',400]]),
+   row('05/26 31.06.2026',558,[['05/26 31.06.2026',450]])
+  ])).toBeNull()
+ })
  it('does not confuse a PPR mention in a monthly payroll',()=>{
   const monthly=[row('Folha:',500,[['Folha:',37]]),row('MENSAL',485,[['MENSAL',37]]),row('PPR',250,[['PPR',70]])]
   expect(isPprPayslip(monthly)).toBe(false)
