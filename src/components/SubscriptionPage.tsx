@@ -263,7 +263,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    {!adminAccess&&<section className="panel"><div className="panel-heading"><h2>Planos</h2></div>
     <div className="subscription-plans">{(['free','basic','full'] as const).map(code=>{
      const plan=data.plans.find(p=>p.code===code)
-     return <div key={code} className={'subscription-plan '+(access?.effectivePlan===code?'subscription-plan-active':'')}>
+     return <div key={code} className={'subscription-plan subscription-plan-with-features '+(access?.effectivePlan===code?'subscription-plan-active':'')}>
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
       <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
