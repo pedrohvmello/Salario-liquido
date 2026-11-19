@@ -51,13 +51,13 @@ export function AdminSupportAiLimits(){
  return <section className="panel">
   <div className="panel-heading"><h2><Sparkles size={18}/> Limites do Pep</h2></div>
   <p>Defina franquias diárias independentes para o Pep Ajuda e as consultas pessoais dos planos Basic e Full. Administradores não têm limite interno. A cota externa da Cloudflare permanece aplicável.</p>
-  <div className="password-policy-layout">
-   {fields.map(field=><label key={field.key} className="password-policy-length">
-    {field.label}
+  <div className="pep-limits-layout">
+   {fields.map(field=><label key={field.key} className="pep-limit-row">
     <input type="number" min={1} step={1} value={input[field.key]}
      disabled={loading||saving}
      onChange={e=>{setInput(old=>({...old,[field.key]:e.target.value}));setMessage('')}}
      aria-label={field.label}/>
+    <span className="pep-limit-label">{field.label}</span>
     <small className="subtle">{field.description}</small>
    </label>)}
   </div>
