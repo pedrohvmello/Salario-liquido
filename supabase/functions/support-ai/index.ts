@@ -1,9 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.105.0'
 import {parseAiInput,parseCloudflareAnswer} from './validation.ts'
 import {PAYREP_SUPPORT_KNOWLEDGE} from './knowledge.ts'
-import {buildFinancialContext,financialTopic,selectFinancialStatements,
- type FinancialStatement,type FinancialEvent,type Rubric} from './financialContext.ts'
-import {buildSalaryProjection,salaryProjectionIntent} from './salaryProjection.ts'
+import {runPepAgent} from './pepAgentRuntime.ts'
 
 // HML-only Payrep assistant; personal financial data stays scoped to the authenticated user.
 const cors={
@@ -20,7 +18,7 @@ const SYSTEM=`Você é o assistente de suporte do Payrep. Responda na língua do
 DOCUMENTAÇÃO OFICIAL:
 ${PAYREP_SUPPORT_KNOWLEDGE}`
 const HELP_RULES='MODO AJUDA: responda somente dúvidas sobre como utilizar o Payrep. Não consulte, deduza, calcule ou divulgue valores financeiros pessoais. Perguntas pessoais devem ser direcionadas ao menu Pergunte ao Pep. Não afirme que consultou dados individuais.'
-const PERSONAL_RULES='MODO CONSULTA PESSOAL: ajude ativamente com comparações, cálculos verificáveis, estimativas e planejamento financeiro salarial, usando somente o resumo financeiro autorizado do usuário autenticado e as premissas que ele fornecer. Distingua parâmetros configurados, eventos manuais, projeções e valores comprovados em documentos. Quando faltarem dados, declare explicitamente. No plano Basic não há acesso aos holerites armazenados; no Full é possível consultar informações resumidas desses documentos. Não invente rubricas, números ou comprovação.'
+
 
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
@@ -90,74 +88,34 @@ Deno.serve(async req=>{
   if(quota!=='ok')return reply({error:quota==='plan_required'?'plan_required':quota==='global_limit'?'global_limit':'daily_limit'},quota==='plan_required'?403:429)
  }
 
- // Help is documentation only and NEVER performs any financial query, even if
- // someone tampers with the request body. Personal queries are strictly scoped
- // by signed-in JWT and RLS, with document-level data restricted to Full.
- let context:{facts:string;sourceLabels:string[]}|null=null
- let projectionData:{events:FinancialEvent[];settings:unknown;statements:FinancialStatement[]}|null=null
- const personalQuestion=mode==='personal'&&(financialTopic(input.value.question,input.value.history)||salaryProjectionIntent(input.value.question,input.value.history))
- if(personalQuestion){
-  const canReadPayslips=paidPlan==='full'
-  const [docs,events,settings]=await Promise.all([
-   canReadPayslips?scoped.from('statements').select(
-    'id,period,document_type,credits,debits,net,net_received,salary_advance,ir_base,fgts,salary_contract,trienio,gross_ppr,ppr_income_tax,thirteenth_gross,thirteenth_irrf,thirteenth_inss,thirteenth_pension,thirteenth_advance,payment_date')
-    .eq('user_id',user.id).order('period',{ascending:false}).limit(120)
-    :Promise.resolve({data:[] as FinancialStatement[],error:null}),
-   scoped.from('salary_events').select('kind,effective_date,value,notes')
-    .eq('user_id',user.id).eq('hidden',false).order('effective_date',{ascending:false}).limit(50),
-   scoped.from('user_settings').select('parameters').eq('user_id',user.id).maybeSingle()
-  ])
-  if(docs.error||events.error||settings.error)return reply({error:'financial_data_unavailable'},503)
-  const statementRows=(docs.data||[]) as FinancialStatement[]
-  const selected=canReadPayslips?selectFinancialStatements(input.value.question,statementRows,input.value.history):[]
-  let rubrics:Rubric[]=[]
-  if(canReadPayslips&&selected.length){
-   const lineQuery=await scoped.from('statement_lines').select('statement_id,side,description,code,amount')
-    .eq('user_id',user.id).in('statement_id',selected.map(x=>x.id))
-    .order('ordinal',{ascending:true}).limit(160)
-   if(lineQuery.error)return reply({error:'financial_data_unavailable'},503)
-   rubrics=(lineQuery.data||[]) as Rubric[]
+
+ // Personal queries are handled by an agent with model-selected tools.
+ // All financial tools receive only the authenticated user's JWT/RLS client.
+ // No arbitrary SQL, mutation, or cross-account access is exposed to the model.
+ if(mode==='personal'){
+  const {data:pepProfile}=await db.from('user_profiles')
+   .select('display_name').eq('user_id',user.id).maybeSingle()
+  const rawName=typeof pepProfile?.display_name==='string'
+   ?pepProfile.display_name.trim().split(/\s+/)[0]:''
+  const firstName=rawName.replace(/[^\p{L}'-]/gu,'').slice(0,32)
+  try{
+   const result=await runPepAgent({
+    db:scoped,userId:user.id,plan:paidPlan,now:new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}),
+    question:input.value.question,history:input.value.history,firstName,token,account
+   })
+   return reply({...result,mode:'personal'})
+  }catch(err){
+   const code=err instanceof Error?err.message:'ai_unavailable'
+   console.warn('Pep agent result',code==='ai_free_limit'?'provider_quota':code==='ai_invalid_response'?'invalid_agent_response':'agent_error')
+   return reply({error:code==='ai_free_limit'?'ai_free_limit':code==='ai_invalid_response'?'ai_invalid_response':'ai_unavailable'},503)
   }
-  context=buildFinancialContext({
-   question:input.value.question,history:input.value.history,
-   statements:statementRows,rubrics,
-   events:(events.data||[]) as FinancialEvent[],settings:settings.data?.parameters
-  })
-  projectionData={events:(events.data||[]) as FinancialEvent[],settings:settings.data?.parameters,
-   statements:canReadPayslips?statementRows:[]}
  }
 
- // Personalization is display-only and comes from the authenticated user's server-side profile.
- // Never accept a name or identity override from the browser request.
- const {data:pepProfile}=mode==='personal'
-  ?await db.from('user_profiles').select('display_name').eq('user_id',user.id).maybeSingle()
-  :{data:null}
- const rawFirstName=typeof pepProfile?.display_name==='string'
-  ?pepProfile.display_name.trim().split(/\s+/)[0]:''
- const firstName=rawFirstName.replace(/[^\p{L}'-]/gu,'').slice(0,32)
- const personalStyle=firstName
-  ?'TOM: converse de modo próximo e natural, sem formalidade exagerada. O primeiro nome cadastrado do usuário é '+firstName+'. Chame-o por esse nome nas respostas, sem repetir cumprimentos ou presumir intimidade pessoal. A precisão financeira e as restrições acima continuam prioritárias.'
-  :'TOM: converse de modo próximo e natural, mas sem inventar o nome do usuário ou presumir intimidade pessoal.'
-
- // Salary forecasts are calculated from verified Payrep parameters, never guessed by the model.
- // A follow-up may refer to the annual projection requested a few messages earlier.
- if(projectionData){
-  const projection=buildSalaryProjection({
-   question:input.value.question,history:input.value.history,
-   events:projectionData.events,settings:projectionData.settings,
-   monthlyStatements:projectionData.statements,firstName
-  })
-  if(projection)return reply({answer:projection.answer,model:'Payrep Payroll 2026',
-   sources:projection.sources,usedFinancialData:true,mode,calculation:'deterministic'})
- }
+ // Help mode never fetches salary, payroll, or other financial records.
 
  const messages=[
   {role:'system',content:SYSTEM},
-  {role:'system',content:mode==='help'?HELP_RULES:PERSONAL_RULES},
-  ...(mode==='personal'?[{role:'system',content:personalStyle}]:[]),
-  ...(context?[{role:'system',content:
-   'RESUMO FINANCEIRO AUTORIZADO, dados somente leitura, sem documentos originais: '+context.facts+
-   '. Estes valores vêm de registros do usuário autenticado; não crie nem estime dados ausentes. Se a competência pedida não tiver documento, informe explicitamente.'}]:[]),
+  {role:'system',content:HELP_RULES},
   ...input.value.history.map(t=>({role:t.role,content:t.content})),
   {role:'user',content:input.value.question},
  ]
@@ -165,7 +123,7 @@ Deno.serve(async req=>{
   const response=await fetch(
    'https://api.cloudflare.com/client/v4/accounts/'+account+'/ai/run/@cf/google/gemma-4-26b-a4b-it',
    {method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-    body:JSON.stringify({messages,max_completion_tokens:mode==='personal'?390:200,temperature:0.2,
+    body:JSON.stringify({messages,max_completion_tokens:250,temperature:0.2,
      chat_template_kwargs:{enable_thinking:false},options:{rejectIfBusy:true}}),
     signal:AbortSignal.timeout(18000)}
   )
@@ -176,8 +134,7 @@ Deno.serve(async req=>{
   const result:unknown=await response.json()
   const answer=parseCloudflareAnswer(result)
   if(!answer)return reply({error:'ai_invalid_response'},502)
-  return reply({answer,model:'Gemma 4 26B',sources:context?.sourceLabels||[],
-   usedFinancialData:Boolean(context),mode})
+  return reply({answer,model:'Gemma 4 26B',sources:[],usedFinancialData:false,mode})
  }catch(err){
   console.warn('Payrep AI request failed by category',err instanceof Error?err.name:'unknown')
   return reply({error:'ai_unavailable'},503)
