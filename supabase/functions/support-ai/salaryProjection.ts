@@ -30,7 +30,7 @@ function changedSalary(question:string,current:number):{value:number;note:string
  if(explicit){
   const v=decimalNumber(explicit[1]);if(v>=100&&v<=1_000_000)return {value:roundMoney(v),note:'salário hipotético informado na pergunta'}
  }
- const magnitude=/(?:\b(?:aumento|reajuste|aumentar|subir|acrescimo|reducao|reduzir|corte|diminuir)\s+(?:de\s+)?(\d{1,3}(?:[,.]\d{1,2})?)\s*%\b)|(?:\b(\d{1,3}(?:[,.]\d{1,2})?)\s*%\s+de\s+(?:aumento|reajuste|reducao|corte)\b)/.exec(q)
+ const magnitude=/(?:\b(?:aumento|reajuste|aumentar|subir|acrescimo|reducao|reduzir|corte|diminuir)\s+(?:de\s+)?(\d{1,3}(?:[,.]\d{1,2})?)\s*%(?!\w))|(?:\b(\d{1,3}(?:[,.]\d{1,2})?)\s*%\s+de\s+(?:aumento|reajuste|reducao|corte)\b)/.exec(q)
  if(!magnitude)return null
  const n=Number((magnitude[1]||magnitude[2]).replace(',','.'))
  if(!Number.isFinite(n)||n>100||n<0)return null
@@ -73,13 +73,15 @@ export function buildSalaryProjection(args:{
   if(e.kind==='fixedPension')p.pensionMethod='fixed'
  }
  const statements=(args.monthlyStatements||[]).filter(s=>s.document_type==='monthly'&&
-  s.period<=activeMonth(now)&&safeAmount(s.salary_contract)!==null&&s.salary_contract!>0).sort((a,b)=>b.period.localeCompare(a.period))
+  s.period<=activeMonth(now)&&(safeAmount(s.salary_contract)||0)>0).sort((a,b)=>b.period.localeCompare(a.period))
  if(!(p.salary>0)&&statements.length){
   p.salary=statements[0].salary_contract!
   salarySource='Holerite '+statements[0].period
  }
- const userScenario=p.salary>0?changedSalary(args.question,p.salary):null
- if(userScenario)p.salary=userScenario.value
+ const baselineSalary=p.salary
+ const userScenario=changedSalary(args.question,p.salary)
+ // A percentage scenario requires an existing salary; an explicit salary amount does not.
+ if(userScenario&&userScenario.value>0)p.salary=userScenario.value
  const greeting=args.firstName?.trim()?args.firstName.trim()+', ':''
  if(!(p.salary>0))return {
   answer:greeting+'posso calcular essa projeção, mas não encontrei um salário-base vigente confirmado na sua conta. Cadastre o valor em Eventos e vigências ou Definições e tente novamente. Também posso simular um valor que você informe, por exemplo: "salário de R$ 15.000".',
@@ -99,10 +101,9 @@ export function buildSalaryProjection(args:{
  const annualNet=roundMoney(salaryNet+thirteenth.netMonth)
  const extraVacationThird=roundMoney((p.salary+p.trienio)/3)
  const future=year>2026?'; descontos estimados pelas regras de 2026 (sujeitas a mudança)':''
- const baseline=(userScenario?'Cenário com '+userScenario.note+'. ':'')+'Base usada: '+(salarySource||'salário informado')+' de '+brl(p.salary)+
+ const baseline=(userScenario?'Cenário com '+userScenario.note+'. ':'')+'Base usada: '+(userScenario?'premissa informada':salarySource||'salário informado')+' de '+brl(p.salary)+
   (p.trienio?' + triênio de '+brl(p.trienio):'')+'.'
- const scenarioExtra=userScenario?(' Comparado ao salário-base atual de '+brl(args.events
-   .filter(e=>e.kind==='salary'&&e.effective_date<=now).sort((a,b)=>b.effective_date.localeCompare(a.effective_date))[0]?.value||settings.salary||0)+'.'):''
+ const scenarioExtra=userScenario&&baselineSalary>0?(' Comparado ao salário-base anterior de '+brl(baselineSalary)+'.'):''
  const answer=greeting+'consigo sim. Esta é uma projeção de '+year+' com 12 meses equivalentes à remuneração atual, não um fechamento real do ano.\n'+
  '• Bruto mensal: '+brl(recurring.gross)+'; líquido mensal estimado: '+brl(recurring.netMonth)+'.\n'+
  '• 12 salários: '+brl(salaryGross)+' brutos; '+brl(salaryNet)+' líquidos estimados.\n'+
