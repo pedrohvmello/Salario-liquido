@@ -51,7 +51,6 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
  const [message,setMessage]=useState('')
  const [error,setError]=useState('')
  const [warnings,setWarnings]=useState<string[]>([])
- const [values,setValues]=useState<OfficialValues>({})
  const [drafts,setDrafts]=useState<Record<string,string>>({})
  const [confirmedByUser,setConfirmedByUser]=useState(false)
  const [pending,setPending]=useState<PendingImport|null>(null)
@@ -66,7 +65,6 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
  const inferredYearOptions=useMemo(()=>Array.from({length:Math.max(1,today-1989)},(_,i)=>today-i),[today])
 
  function present(values:OfficialValues){
-  setValues(values)
   setDrafts(draftsFrom(values))
  }
 
@@ -183,7 +181,6 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
  }
  function changeValue(field:OfficialField,text:string){
   setDrafts(old=>({...old,[field]:text}))
-  setValues(old=>({...old,[field]:parseAmount(text)}))
   setConfirmedByUser(false)
  }
  async function saveReviewed(){
