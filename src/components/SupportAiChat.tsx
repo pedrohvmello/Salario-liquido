@@ -1,10 +1,11 @@
 import {useEffect,useRef,useState,type FormEvent, type KeyboardEvent} from 'react'
-import {ArrowLeft,Info,LoaderCircle,Send,Sparkles,Trash2} from 'lucide-react'
+import {ArrowLeft,History,Info,LoaderCircle,Save,Send,Sparkles,Trash2} from 'lucide-react'
 import {db} from '../lib/data'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {PepMascot} from './PepMascot'
+import {getPepConversation,listPepConversations,savePepConversation,type PepConversationSummary,type PepChatMessage} from '../lib/pepConversations'
 
-type ChatMessage={role:'user'|'assistant';content:string;sources?:string[]}
+type ChatMessage=PepChatMessage
 const errors:Record<string,string>={
  authentication_required:'Sua sessão expirou. Faça login novamente.',
  account_not_authorized:'Este recurso está disponível apenas para contas aprovadas.',
@@ -33,6 +34,48 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
   return ()=>{active=false}
  },[mode])
  const [error,setError]=useState('')
+ const [conversationId,setConversationId]=useState<string|null>(null)
+ const [savedSnapshot,setSavedSnapshot]=useState('')
+ const [savedConversations,setSavedConversations]=useState<PepConversationSummary[]>([])
+ const [historyOpen,setHistoryOpen]=useState(false)
+ const [historyBusy,setHistoryBusy]=useState(false)
+ const [saveBusy,setSaveBusy]=useState(false)
+ const [saveNotice,setSaveNotice]=useState('')
+ const isSaved=Boolean(conversationId)&&savedSnapshot===JSON.stringify(messages)
+ const newConversation=()=>{
+  setMessages([]);setDraft('');setError('');setSaveNotice('')
+  setConversationId(null);setSavedSnapshot('');setHistoryOpen(false)
+ }
+ const saveConversation=async()=>{
+  if(busy||saveBusy||messages.length===0||isSaved)return
+  setSaveBusy(true);setError('');setSaveNotice('')
+  try{
+   const id=await savePepConversation(mode,messages,conversationId)
+   setConversationId(id);setSavedSnapshot(JSON.stringify(messages))
+   setSaveNotice('Conversa salva no seu histórico.')
+   if(historyOpen)setSavedConversations(await listPepConversations(mode))
+  }catch(err){setError(err instanceof Error?err.message:'Não foi possível salvar a conversa.')}
+  finally{setSaveBusy(false)}
+ }
+ const toggleHistory=async()=>{
+  if(historyOpen){setHistoryOpen(false);return}
+  setHistoryOpen(true);setHistoryBusy(true);setError('');setSaveNotice('')
+  try{setSavedConversations(await listPepConversations(mode))}
+  catch(err){setError(err instanceof Error?err.message:'Não foi possível consultar o histórico.')}
+  finally{setHistoryBusy(false)}
+ }
+ const openConversation=async(id:string)=>{
+  if(busy||saveBusy||historyBusy)return
+  setHistoryBusy(true);setError('');setSaveNotice('')
+  try{
+   const conversation=await getPepConversation(id,mode)
+   setMessages(conversation.messages)
+   setConversationId(conversation.id)
+   setSavedSnapshot(JSON.stringify(conversation.messages))
+   setDraft('');setHistoryOpen(false)
+  }catch(err){setError(err instanceof Error?err.message:'Não foi possível abrir esta conversa.')}
+  finally{setHistoryBusy(false)}
+ }
  const bottom=useRef<HTMLDivElement|null>(null)
  useEffect(()=>{bottom.current?.scrollIntoView({block:'nearest'})},[messages,busy])
  const submit=async(e:FormEvent<HTMLFormElement>)=>{
@@ -87,10 +130,30 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
     <strong>{mode==='help'?'Pep · Ajuda':'Pep · Consulta pessoal'}</strong>
    </div></div>
    <div className="payrep-ai-header-actions">
-    <button type="button" className="secondary" disabled={busy||messages.length===0}
-     onClick={()=>{setMessages([]);setError('')}}><Trash2 size={15}/> Nova conversa</button>
+    {mode==='personal'&&<>
+     <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0||isSaved}
+      onClick={()=>void saveConversation()}><Save size={15}/>{saveBusy?'Salvando...':isSaved?'Conversa salva':'Salvar conversa'}</button>
+     <button type="button" className="secondary" disabled={busy||historyBusy||saveBusy}
+      aria-expanded={historyOpen} onClick={()=>void toggleHistory()}><History size={15}/> Histórico</button>
+    </>}
+    <button type="button" className="secondary" disabled={busy||saveBusy||messages.length===0}
+     onClick={newConversation}><Trash2 size={15}/> Nova conversa</button>
    </div>
   </div>
+   {mode==='personal'&&historyOpen&&<div className="pep-chat-history" aria-label="Conversas salvas do Pep">
+    <h3>Histórico de conversas</h3>
+    {historyBusy?<p role="status">Carregando conversas...</p>:
+     savedConversations.length===0?<p>Nenhuma conversa salva.</p>:
+     <div className="pep-chat-history-list">
+      {savedConversations.map(conversation=><button key={conversation.id} type="button"
+       className={'pep-chat-history-item'+(conversationId===conversation.id?' is-current':'')}
+       onClick={()=>void openConversation(conversation.id)} disabled={historyBusy}>
+       <strong>{conversation.title}</strong>
+       <small>{new Date(conversation.updated_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}</small>
+      </button>)}
+     </div>}
+   </div>}
+   {saveNotice&&<p className="pep-chat-save-notice" role="status">{saveNotice}</p>}
    {(!usage?.unlimited)&&<div className="pep-usage-counter" role="status" aria-live="polite">
     {usageLoading?'Consultando sua franquia...':
      usage?(mode==='help'
