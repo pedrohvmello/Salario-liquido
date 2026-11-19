@@ -2501,3 +2501,62 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .pep-personal-workspace .payrep-ai-messages{padding:12px}
  .pep-personal-workspace .payrep-ai-form{padding:12px}
 }
+
+
+/* Plan benefits on the user subscription page (not the admin price editor). */
+.subscription-plan-with-features{
+ min-height:340px;
+ gap:10px;
+}
+.subscription-plan-with-features>.subscription-plan-features{
+ margin-top:8px;
+ padding-top:15px;
+ border-top:1px solid #ebdef5;
+ flex:1 1 auto;
+ min-width:0;
+}
+.subscription-plan-with-features .subscription-plan-features-heading{
+ display:block;
+ font-size:12px;
+ font-weight:750;
+ color:#4b246b;
+ margin-bottom:11px;
+}
+.subscription-plan-with-features .subscription-plan-features ul{
+ list-style:none;
+ display:flex;
+ flex-direction:column;
+ gap:11px;
+ margin:0;
+ padding:0;
+}
+.subscription-plan-with-features .subscription-plan-features li{
+ display:flex;
+ align-items:flex-start;
+ gap:9px;
+ font-size:12px;
+ line-height:1.45;
+ color:#51356b;
+}
+.subscription-plan-with-features .subscription-plan-features li svg{
+ flex:0 0 15px;
+ margin-top:1px;
+ stroke:#8020c9;
+ stroke-width:2.3;
+}
+.subscription-plan-with-features .subscription-plan-features li span{
+ font-size:inherit;
+ font-weight:500;
+ color:inherit;
+}
+.subscription-plan-with-features>button{
+ margin-top:auto;
+ width:100%;
+}
+@media(max-width:1000px) and (min-width:761px){
+ .subscription-plan-with-features{padding:16px}
+ .subscription-plan-with-features .subscription-plan-features li{font-size:11px}
+}
+@media(max-width:760px){
+ .subscription-plan-with-features{min-height:0}
+}
