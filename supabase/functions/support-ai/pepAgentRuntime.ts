@@ -126,7 +126,7 @@ export async function runPepAgent(args:{
  try{
   plan=await (args.recoverPlan??recoverAgentPlan)({
    token:args.token,account:args.account,question:args.question,
-   history:args.history,now:args.now
+   history:args.history,now:args.now,firstName:args.firstName
   })
  }catch(err){
   if(err instanceof Error&&err.message==='ai_free_limit')throw err
