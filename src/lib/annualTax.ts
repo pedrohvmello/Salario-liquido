@@ -15,12 +15,14 @@ export type AnnualTaxSummary={
   thirteenthInss:number;thirteenthAdvance:number;thirteenthPension:number;notes:string[]
 }
 export const OFFICIAL_FIELDS=[
- {key:'ppr_gross',title:'PPR/PLR bruto',unit:'Rendimento de tributação exclusiva'},
+ {key:'ppr_gross',title:'PPR/PLR bruto (se informado)',unit:'Valor bruto, quando explicitamente informado'},
+ {key:'ppr_net',title:'PLR/PPR (rendimento líquido)',unit:'Tributação exclusiva, valor líquido informado no documento'},
  {key:'ppr_irrf',title:'IRRF retido sobre PPR/PLR',unit:'Retenção exclusiva na fonte'},
  {key:'taxable_salary',title:'Rendimentos tributáveis de salários',unit:'Exige rubricas tributárias classificadas'},
  {key:'inss',title:'Previdência oficial (INSS)',unit:'Exige reconciliação das folhas'},
  {key:'salary_irrf',title:'IRRF sobre salários',unit:'Separado do IRRF do PPR'},
- {key:'thirteenth',title:'13º salário',unit:'Tributação exclusiva em quadro próprio'},
+ {key:'thirteenth',title:'13º salário bruto (se informado)',unit:'Não confundir bruto com rendimento líquido do quadro 5'},
+ {key:'thirteenth_net',title:'13º salário (rendimento líquido)',unit:'Quadro 5: valor líquido sujeito à tributação exclusiva'},
  {key:'thirteenth_irrf',title:'IRRF sobre 13º',unit:'Retenção exclusiva'},
  {key:'private_pension',title:'Previdência complementar dedutível',unit:'Depende do plano e do informe'},
  {key:'alimony',title:'Pensão alimentícia dedutível',unit:'Depende da natureza do pagamento'}
@@ -67,8 +69,11 @@ export function summarizeTaxYear(statements:readonly TaxStatement[],year:number)
 }
 export function calculatedOfficialValue(s:AnnualTaxSummary,field:OfficialField):number|null {
  if(field==='ppr_gross')return s.pprDocuments>0?s.pprGross:null
+ if(field==='ppr_net')return s.pprDocuments>0?s.pprNet:null
  if(field==='ppr_irrf')return s.pprDocuments>0?s.pprIrrf:null
  if(field==='thirteenth')return s.thirteenthDocuments>0?s.thirteenthGross:null
+ // Do not equate a gross payslip 13th with an exclusive-tax net figure on the employer statement.
+ if(field==='thirteenth_net')return null
  if(field==='thirteenth_irrf')return s.thirteenthDocuments>0?s.thirteenthIrrf:null
  return null
 }
