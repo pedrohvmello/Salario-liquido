@@ -46,12 +46,12 @@ export async function loadIncomeTaxYears():Promise<number[]>{
  if(error)throw Error('Não foi possível carregar os anos dos informes.')
  return (data||[]).map(row=>Number(row.calendar_year)).filter(Number.isInteger)
 }
-export async function uploadIncomeTaxReport(year:number,file:File):
+export async function uploadIncomeTaxReport(year:number,file:File,preAnalyzed?:ExtractedTaxReport):
  Promise<{report:IncomeTaxReport;extraction:ExtractedTaxReport;alreadyStored:boolean}>{
  const userId=await ownerId()
  if(year<1990||year>2100||!Number.isInteger(year))throw Error('Ano-calendário inválido.')
  if(file.size<1||file.size>maxSize)throw Error('Selecione um PDF de até 15 MB.')
- const extraction=await extractIncomeTaxPdf(file)
+ const extraction=preAnalyzed??await extractIncomeTaxPdf(file)
  if(extraction.detectedYear!==null&&extraction.detectedYear!==year)
   throw Error('O documento informa ano-calendário '+extraction.detectedYear+
    ', diferente do ano selecionado ('+year+'). Altere o ano antes de enviar.')
