@@ -19,8 +19,9 @@ const taxableFields:readonly OfficialField[]=[
  'taxable_salary','inss','private_pension','alimony','salary_irrf'
 ]
 const exclusiveFields:readonly OfficialField[]=[
- 'thirteenth','thirteenth_irrf','ppr_gross','ppr_irrf'
+ 'thirteenth_net','thirteenth_irrf','ppr_net','ppr_irrf'
 ]
+const optionalGrossFields:readonly OfficialField[]=['thirteenth','ppr_gross']
 const moneyLabel=(key:OfficialField)=>OFFICIAL_FIELDS.find(field=>field.key===key)?.title||key
 const parseAmount=(raw:string):number|null=>{
  const value=raw.trim().replace(/\s/g,'').replace(/R\$/ig,'')
@@ -301,6 +302,11 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
       <h4><span>5</span> Rendimentos sujeitos à tributação exclusiva</h4>
       <div className="ir-report-table-head"><span>Descrição</span><span>Valor (R$)</span></div>
       {renderRows(exclusiveFields)}
+      <details className="ir-optional-gross">
+       <summary>Valores brutos adicionais, quando constarem do documento</summary>
+       <p>O quadro 5 deste modelo apresenta rendimentos líquidos. Valores brutos não são deduzidos nem presumidos a partir deles.</p>
+       {renderRows(optionalGrossFields)}
+      </details>
      </div>
      <div className="ir-report-paper-footer">
       <Info size={16}/>
