@@ -9,11 +9,14 @@ export type SalaryProjection={answer:string;sources:string[]}
 function normalized(value:string):string{
  return value.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 }
-const projectionPattern=/\b(projecao|projetar|simulacao|simular|estimativa|estimar|previsao|quanto (?:vou|iria|passaria a|deveria) (?:receber|ganhar)|quanto (?:receberia|ganharia)|se (?:eu |meu salario |o salario )|aumento (?:salarial|de)|reajuste (?:salarial|de)|anualizar|salario anual|renda anual|remuneracao anual|baseado no meu salario)\b/
+const projectionPattern=/\b(projecao|projetar|simulacao|simular|estimativa|estimar|previsao|quanto (?:vou|iria|passaria a|deveria) (?:receber|ganhar)|quanto (?:receberia|ganharia)|se (?:eu (?:ganhar|receber) (?:um )?salario |meu salario |o salario )|aumento (?:salarial|de)|reajuste (?:salarial|de)|anualizar|salario anual|renda anual|remuneracao anual|baseado no meu salario)\b/
 const procedurePattern=/\b(como (?:funciona|configurar|configuro|cadastrar|cadastro|usar|faco|fazer|acessar)|onde (?:vejo|fica|encontro))\b/
 
 export function salaryProjectionIntent(question:string,history:readonly AiTurn[]=[]):boolean{
  const q=normalized(question)
+ // Narrow salary forecasts: PPR, taxes and benefits have their own calculation rules.
+ if(/\b(ppr|plr|fgts|inss|irrf|ferias|rescisao|aposentadoria)\b/.test(q)&&
+  !/\b(salario|remuneracao|renda anual|total anual)\b/.test(q))return false
  if(procedurePattern.test(q)&&!/(quanto|valor|simular|estimar|calcular|reajuste|aumento)/.test(q))return false
  if(projectionPattern.test(q))return true
  const previous=history.filter(x=>x.role==='user').slice(-2).map(x=>normalized(x.content)).join(' ')
