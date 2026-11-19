@@ -25,7 +25,7 @@ export function parseAiInput(raw:unknown):{value:AiInput;error:null}|{value:null
  }
  return {value:{question:obj.question.trim(),history:cleaned,mode:obj.mode},error:null};
 }
-export function parseCloudflareAnswer(raw:unknown):string|null{
+export function parseCloudflareAnswer(raw:unknown,maxLength=1300):string|null{
  if(!raw||typeof raw!=='object')return null;
  const data=raw as Record<string,unknown>;
  const result=(data.result&&typeof data.result==='object')?data.result as Record<string,unknown>:null;
@@ -38,5 +38,5 @@ export function parseCloudflareAnswer(raw:unknown):string|null{
  }
  if(typeof value!=='string')return null;
  const s=value.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
- return s.length>0?s.slice(0,1300):null;
+ return s.length>0?s.slice(0,Math.min(2400,Math.max(1,maxLength))):null;
 }
