@@ -349,7 +349,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      <p>O Payrep não conseguiu identificar com segurança o ano-calendário neste PDF. Confirme o ano indicado no documento para continuar.</p>
      <label>Ano-calendário do PDF
       <PayrepSelect value={manualYear} onChange={next=>setManualYear(Number(next))} title="Ano-calendário do documento">
-       {inferredYearOptions.map(y=><option key={y} value={y}>{y} (exercício {y+1})</option>)}
+       {inferredYearOptions.map(y=><option key={y} value={y} label={`${y} (exercício ${y+1})`}>{y} (exercício {y+1})</option>)}
       </PayrepSelect>
      </label>
      <p className="subtle">O ano só é solicitado quando o documento não permite identificação automática, como em PDFs digitalizados.</p>
