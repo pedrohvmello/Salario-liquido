@@ -1,5 +1,6 @@
 export type PepTurn={role:'user'|'assistant';content:string}
-const maxTitle=80
+const maxTitle=60
+const maxWords=5
 const greeting=/^(?:oi(?:\s+pep)?|ol[aá](?:\s+pep)?|bom dia(?:\s+pep)?|boa tarde(?:\s+pep)?|boa noite(?:\s+pep)?|obrigad[oa](?:\s+pep)?|valeu(?:\s+pep)?)[!. ]*$/i
 const generic=/^(?:conversa com (?:o )?pep|conversa|sem t[ií]tulo|t[ií]tulo|resumo da conversa)$/i
 
@@ -44,6 +45,9 @@ export function cleanAiTitle(raw:unknown):string|null{
   .replace(/\s+/g,' ')
   .replace(/[.!?,;:]+$/g,'')
   .trim()
+ // Keep both AI and fallback titles compact enough for one-line history rows.
+ const words=text.split(/\s+/u).filter(Boolean)
+ if(words.length>maxWords)text=words.slice(0,maxWords).join(' ')
  if(text.length>maxTitle){
   const boundary=text.lastIndexOf(' ',maxTitle)
   text=text.slice(0,boundary>=24?boundary:maxTitle).trim()
