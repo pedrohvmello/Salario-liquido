@@ -59,7 +59,22 @@ export async function uploadIncomeTaxReport(year:number,file:File,preAnalyzed?:E
  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data)))
   .map(x=>x.toString(16).padStart(2,'0')).join('')
  const previous=await loadIncomeTaxReport(year)
- if(previous?.sha256===hash)return {report:previous,extraction,alreadyStored:true}
+ if(previous?.sha256===hash){
+  // The same uploaded PDF can be reprocessed after extractor fixes.
+  // Replacement was explicitly confirmed by the UI for an existing year.
+  // Previously confirmed values are invalidated until the user reviews them again.
+  const {data:reprocessed,error:reprocessError}=await client()
+   .from('annual_tax_reports')
+   .update({
+    extracted_values:sanitizeTaxValues(extraction.fields),
+    reviewed_values:{},confirmed_at:null,updated_at:new Date().toISOString()
+   })
+   .eq('id',previous.id).eq('user_id',userId).eq('storage_key',privatePath(previous,userId))
+   .select('*').single()
+  if(reprocessError||!reprocessed)
+   throw Error('Não foi possível reprocessar o informe existente: '+(reprocessError?.message||'erro desconhecido'))
+  return {report:reprocessed as IncomeTaxReport,extraction,alreadyStored:true}
+ }
  const key=userId+'/'+year+'/'+crypto.randomUUID()+'.pdf'
  const {error:uploadError}=await client().storage.from(BUCKET).upload(key,file,{
   contentType:'application/pdf',upsert:false,cacheControl:'0'
