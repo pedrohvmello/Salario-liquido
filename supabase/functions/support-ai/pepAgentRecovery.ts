@@ -58,7 +58,7 @@ async function callPlainModel(args:{
  return parseCloudflareAnswer(raw,2400)
 }
 export async function recoverAgentPlan(args:{
- token:string;account:string;question:string;history:Turn[];now:string
+ token:string;account:string;question:string;history:Turn[];now:string;firstName:string
 }):Promise<ToolPlan|null>{
  const system=[
   'Você decide se a mensagem ATUAL do usuário precisa de ferramentas do Payrep. Não use palavras-chave fixas: interprete o significado da mensagem.',
@@ -67,6 +67,7 @@ export async function recoverAgentPlan(args:{
   'Quando a mensagem atual pedir dados pessoais, salários, holerites, descontos, horas, comparações ou projeções, selecione as ferramentas adequadas. Não invente dados financeiros.',
   'Se a mensagem atual não exigir dados da conta, devolva uma resposta curta sobre o que foi realmente solicitado. Não antecipe outros assuntos.',
   'Devolva somente JSON válido: {"calls":[{"name":"nome_exato_da_ferramenta","arguments":{}}],"answer":null}. Até 3 chamadas; ou {"calls":[],"answer":"resposta simples"}.',
+  args.firstName?'O primeiro nome confirmado do usuário é '+args.firstName+'. Use se responder diretamente.':'Não invente o nome do usuário.',
   'Ferramentas disponíveis: '+JSON.stringify(PEP_AGENT_TOOLS.map(t=>t.function))
  ].join('\n')
  const user=JSON.stringify({
