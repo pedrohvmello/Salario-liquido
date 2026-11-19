@@ -21,7 +21,7 @@ const planFeatures:Record<PlanCode,readonly string[]>={
   'Consulta com Pep Gestor Financeiro',
   'Simulações pessoais de salário e descontos',
   'Histórico de conversas com o Pep',
-  'Armazenamento privado de Informe IR (em breve)',
+  'Armazenamento privado de Informe IR',
  ],
  full:[
   'Tudo do Basic',
