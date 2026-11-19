@@ -119,49 +119,52 @@ export async function runPepAgent(args:{
    messages.push({role:'tool',tool_call_id:tool.id,content:json.length>10500?json.slice(0,10400)+' [truncated]':json})
   }
  }
- // Tool selection remains model-driven. Two bounded rounds can gather different
- // data sets before the final plain-text synthesis (avoids Gemma's empty tool responses).
- for(let round=0;round<2;round++){
-  const toolChoice=round===0?'required':'auto'
-  let modelMessage:Awaited<ReturnType<typeof modelInference>>|null=null
-  try{
-   modelMessage=await call({token:args.token,account:args.account,messages,toolChoice})
-  }catch(err){
-   if(!(err instanceof Error)||err.message!=='ai_invalid_response')throw err
-   console.warn('Pep native tool call missing message, trying text planner')
+ // First decide what the CURRENT message asks using the model. The plan may
+ // legitimately contain no tools (greetings, thanks, general conversation).
+ // Past turns are context, not pending requests.
+ let plan:Awaited<ReturnType<typeof recoverAgentPlan>>=null
+ try{
+  plan=await (args.recoverPlan??recoverAgentPlan)({
+   token:args.token,account:args.account,question:args.question,
+   history:args.history,now:args.now
+  })
+ }catch(err){
+  if(err instanceof Error&&err.message==='ai_free_limit')throw err
+  // Native tool mode is a secondary fallback only when the semantic planner fails.
+  console.warn('Pep intent planner unavailable',err instanceof Error?err.name:'unknown')
+ }
+ if(plan?.calls.length){
+  await executeCalls(plan.calls.slice(0,3).map((c,i)=>({
+   id:'planned_tool_'+i,type:'function' as const,
+   function:{name:c.name,arguments:JSON.stringify(c.arguments)}
+  })))
+ }else if(plan?.answer){
+  // Deliberately skip all personal-data queries if the model chose conversation.
+  return result(plan.answer)
+ }
+
+ if(totalTools===0){
+  // A provider failure must not turn a greeting into a mandatory financial query.
+  // In native fallback, permit both a conversational reply and a tool call.
+  const initial=await call({token:args.token,account:args.account,messages,toolChoice:'auto'})
+  const calls=parseCalls(initial)
+  if(calls.length)await executeCalls(calls)
+  else{
+   const reply=finalAnswer(initial?.content)
+   if(reply)return result(reply)
+   throw Error('ai_invalid_response')
   }
-  let toolCalls=parseCalls(modelMessage||undefined)
-  let recovered=false
-  if(round===0&&toolCalls.length===0){
-   // No fixed keyword rules: another model pass selects tools using the
-   // same tool catalog but without the provider's native tool parser.
-   const planned=await (args.recoverPlan??recoverAgentPlan)({
-    token:args.token,account:args.account,question:args.question,
-    history:args.history,now:args.now
-   })
-   if(planned?.calls.length){
-    toolCalls=planned.calls.map((c,i)=>({
-     id:'recovered_tool_'+i,type:'function' as const,
-     function:{name:c.name,arguments:JSON.stringify(c.arguments)}
-    }))
-    recovered=true
-   }else if(planned?.answer){
-    return result(planned.answer)
-   }else{
-    throw Error('ai_invalid_response')
-   }
-  }
-  if(toolCalls.length){
-   await executeCalls(toolCalls)
-   // Recovered plans can directly produce a grounded answer; a second tool
-   // call is optional, and avoiding it reduces provider parser exposure.
-   if(recovered)break
-   continue
-  }
-  if(totalTools>0){
-   nativeAnswer=finalAnswer(modelMessage?.content)
-   break
-  }
+ }
+ // One optional tool round lets the model use results to fetch another kind
+ // of financial evidence, but never forces an additional call.
+ try{
+  const additional=await call({token:args.token,account:args.account,messages,toolChoice:'auto'})
+  const calls=parseCalls(additional)
+  if(calls.length)await executeCalls(calls)
+  else nativeAnswer=finalAnswer(additional?.content)
+ }catch(err){
+  if(err instanceof Error&&err.message==='ai_free_limit')throw err
+  console.warn('Pep secondary tool reasoning skipped',err instanceof Error?err.name:'unknown')
  }
  if(!totalTools)throw Error('ai_invalid_response')
  try{
