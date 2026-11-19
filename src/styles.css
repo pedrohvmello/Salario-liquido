@@ -2300,3 +2300,17 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .pep-limit-row small{font-size:12px;font-weight:500}
 @media(max-width:900px){.pep-limit-row{grid-template-columns:85px minmax(0,1fr);gap:8px 12px}.pep-limit-row input{width:85px}.pep-limit-row small{grid-column:2}}
 @media(max-width:700px){.payslip-doc-row{grid-template-columns:39px minmax(0,1fr)}.pep-limit-row{grid-template-columns:75px minmax(0,1fr)}.pep-limit-row input{width:75px}}
+
+/* Saved Pep conversations: compact, readable history and responsive controls. */
+.payrep-ai-header-actions{gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.payrep-ai-header-actions button{white-space:nowrap}
+.pep-chat-history{border-bottom:1px solid #e7d7f3;background:#fcf9ff;padding:15px 22px}
+.pep-chat-history h3{margin:0 0 12px;color:#351752;font-size:14px}
+.pep-chat-history>p{margin:0;color:#705a86;font-size:13px}
+.pep-chat-history-list{display:flex;flex-direction:column;gap:7px;max-height:270px;overflow-y:auto}
+.pep-chat-history-item{width:100%;display:flex;justify-content:space-between;align-items:center;gap:18px;text-align:left;border:1px solid #ebdcf6;border-radius:10px;background:#fff;padding:12px 14px;color:#4f236b;cursor:pointer}
+.pep-chat-history-item strong{font-size:13px;font-weight:650;overflow-wrap:anywhere}
+.pep-chat-history-item small{font-size:12px;white-space:nowrap;color:#846596}
+.pep-chat-history-item:hover,.pep-chat-history-item:focus-visible,.pep-chat-history-item.is-current{background:#f2e8ff;border-color:#bd88e7}
+.pep-chat-save-notice{padding:8px 22px;margin:0;background:#f6edff;font-size:12px;color:#542477}
+@media(max-width:700px){.payrep-ai-header-actions{width:100%;gap:6px;justify-content:flex-start}.payrep-ai-header-actions button{font-size:12px;min-height:38px;padding:8px}.pep-chat-history{padding:13px 15px}.pep-chat-history-item{flex-direction:column;align-items:flex-start;gap:3px}}
