@@ -2691,3 +2691,11 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .ir-review-panel{padding:18px}
  .ir-dialog{padding:19px}
 }
+
+
+/* Optional gross values remain separate from net amounts in the RFB's quadro 5. */
+.ir-optional-gross{margin-top:14px;border:1px solid #ede3f4;border-radius:9px;overflow:hidden}
+.ir-optional-gross>summary{cursor:pointer;padding:12px 14px;background:#faf7fd;font-size:12px;font-weight:700;color:#5e387a}
+.ir-optional-gross[open]>summary{border-bottom:1px solid #eee3f5}
+.ir-optional-gross>p{font-size:11px;line-height:1.6;color:#7d678b;margin:11px 14px}
+.ir-optional-gross .ir-report-row:last-child{border-bottom:0}
