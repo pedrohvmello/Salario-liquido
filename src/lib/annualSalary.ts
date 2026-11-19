@@ -125,20 +125,28 @@ export function annualSalarySummary(
   const item=ensure(year)
   const rows=byId.get(receipt.id)||[]
   const receiptGross=total(rows,vacationCredit)
-  const bookedMonthly=occurrence.monthlyIds.reduce((n,id)=>n+(monthlyVacationById.get(id)||0),0)
+  // A receipt can match monthly vacation earnings even if the payroll lacks
+  // a vacation-advance debit. Match the stated vacation months as evidence.
+  const matchedMonthlyIds=occurrence.monthlyIds.length
+   ?occurrence.monthlyIds
+   :statements.filter(s=>s.document_type==='monthly'
+     &&s.period>=receipt.vacation_start!.slice(0,7)
+     &&s.period<=receipt.vacation_end!.slice(0,7)
+     &&(monthlyVacationById.get(s.id)||0)>0).map(s=>s.id)
+  const bookedMonthly=matchedMonthlyIds.reduce((n,id)=>n+(monthlyVacationById.get(id)||0),0)
   const uncovered=Math.max(0,receiptGross-bookedMonthly)
   item.vacationGross+=uncovered
   item.gross+=uncovered
   // When the receipt is the sole evidence of a vacation, include its
   // withholdings. Otherwise the monthly payroll remains authoritative.
-  if(occurrence.monthlyIds.length===0){
+  if(matchedMonthlyIds.length===0){
    item.irrfTotal+=total(rows,monthlyIrrf)
    item.inss+=total(rows,monthlyInss)
    item.pension+=total(rows,pension)
   }else{
-   const irrfAlready=occurrence.monthlyIds.reduce((n,id)=>n+(monthlyIrrfById.get(id)||0),0)
-   const inssAlready=occurrence.monthlyIds.reduce((n,id)=>n+(monthlyInssById.get(id)||0),0)
-   const pensionAlready=occurrence.monthlyIds.reduce((n,id)=>n+(monthlyPensionById.get(id)||0),0)
+   const irrfAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyIrrfById.get(id)||0),0)
+   const inssAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyInssById.get(id)||0),0)
+   const pensionAlready=matchedMonthlyIds.reduce((n,id)=>n+(monthlyPensionById.get(id)||0),0)
    // Never add a second tax deduction for the same underlying vacation.
    // Fallback is appropriate only where the linked monthly records have no
    // withholding evidence at all.
