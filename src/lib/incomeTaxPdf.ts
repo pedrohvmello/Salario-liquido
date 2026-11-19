@@ -37,9 +37,25 @@ function makeLines(items:PdfToken[],page:number):Line[]{
   page,text:g.items.sort((a,b)=>a.x-b.x).map(i=>i.text.trim()).filter(Boolean).join(' ').replace(/\s+/g,' ').trim()
  })).filter(l=>l.text)
 }
+/**
+ * Detect the calendar year ONLY from the employer-report header. Exercise is
+ * normally the following year and is a fallback only when the calendar label
+ * cannot be read. Conflicting labels must be confirmed by the user.
+ */
 export function inferCalendarYear(text:string):number|null{
- const m=normalize(text).match(/ano[\s-]*calendario\s*[:.\-]?\s*(20\d{2})/)
- return m?Number(m[1]):null
+ const value=normalize(text)
+ const labeled=[...value.matchAll(/(?:ano[\s-]*calendario|ano[\s-]*base|ano[\s-]*de[\s-]*referencia)\s*[:.\-]?\s*(?:exercicio\s*[:.\-]?\s*)?(20\d{2})/g)]
+  .map(match=>Number(match[1]))
+ const calendarYears=[...new Set(labeled)].filter(y=>y>=1990&&y<=2100)
+ if(calendarYears.length>1)return null
+ const exercise=[...new Set([...value.matchAll(/exercicio\s*[:.\-]?\s*(20\d{2})/g)]
+  .map(match=>Number(match[1])))].filter(y=>y>=1991&&y<=2101)
+ if(exercise.length>1)return null
+ if(calendarYears.length===1){
+  if(exercise.length===1&&exercise[0]!==calendarYears[0]+1)return null
+  return calendarYears[0]
+ }
+ return exercise.length===1?exercise[0]-1:null
 }
 const patterns:Record<OfficialField,RegExp[]>={
  taxable_salary:[/total (?:dos )?rendimentos(?: tributaveis)?(?: inclusive ferias)?/,/rendimentos tributaveis (?:de salarios|recebidos)/],
@@ -116,7 +132,7 @@ export async function extractIncomeTaxPdf(file:File):Promise<ExtractedTaxReport>
     .map(x=>({text:x.str,x:x.transform[4],y:x.transform[5]}))
    lines.push(...makeLines(items,page))
   }
-  const firstText=lines.slice(0,120).map(l=>l.text).join(' ')
+  const firstText=lines.slice(0,180).map(l=>l.text).join(' ')
   const year=inferCalendarYear(firstText)
   const result=extractTaxFieldsFromLines(lines)
   const warnings=result.warnings
@@ -124,7 +140,7 @@ export async function extractIncomeTaxPdf(file:File):Promise<ExtractedTaxReport>
   if(lines.length&&Object.keys(result.fields).length===0)
    warnings.push('Não foi possível reconhecer campos fiscais com segurança. Confira o PDF e informe os valores.')
   if(document.numPages>scanPages)warnings.push('A extração analisou as primeiras 30 páginas; confira os demais dados.')
-  if(year===null)warnings.push('Ano-calendário não identificado automaticamente. Verifique o ano selecionado.')
+  if(year===null)warnings.push('Não foi possível determinar com segurança o ano-calendário pelo cabeçalho. Confirme o ano antes de importar.')
   return {fields:result.fields,detectedYear:year,pages:document.numPages,
    warnings,extractedText:lines.length>0}
  }finally{await document.destroy()}
