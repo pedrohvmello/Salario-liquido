@@ -2699,3 +2699,19 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .ir-optional-gross[open]>summary{border-bottom:1px solid #eee3f5}
 .ir-optional-gross>p{font-size:11px;line-height:1.6;color:#7d678b;margin:11px 14px}
 .ir-optional-gross .ir-report-row:last-child{border-bottom:0}
+
+
+/* Compact Informe IR year picker and Payrep-success reviewed badge. */
+.ir-page .ir-year-filter{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ir-page .ir-year-filter>label{font-size:12px;color:#765c8b;font-weight:700}
+.ir-page .ir-year-filter>.payrep-select-trigger{min-width:178px;max-width:220px;background:#fff}
+.ir-report-source.ir-report-source--confirmed{
+ background:#e6f7ed;
+ color:#176c46;
+ border:1px solid #bde6ce;
+}
+.ir-report-source.ir-report-source--confirmed svg{color:#228c5b}
+@media(max-width:600px){
+ .ir-page .ir-year-filter{align-items:stretch;flex-direction:column;gap:7px}
+ .ir-page .ir-year-filter>.payrep-select-trigger{max-width:none;width:100%}
+}
