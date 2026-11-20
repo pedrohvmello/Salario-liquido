@@ -2938,7 +2938,7 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .analytics-indicator-header .analytics-indicator-summary strong{
  white-space:nowrap;font-size:19px
 }
-@media(max-width:850px){
+@media(max-width:690px){
  .analytics-indicator-header{flex-wrap:wrap;gap:12px}
  .analytics-indicator-header .analytics-filter{
   flex:1 1 100%;max-width:none;grid-template-columns:max-content minmax(0,1fr)
