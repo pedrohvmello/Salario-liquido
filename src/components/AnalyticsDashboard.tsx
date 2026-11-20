@@ -66,6 +66,7 @@ export function AnalyticsDashboard({
   espp:false,privatePension:false
  })
  const [hoveredSegment,setHoveredSegment]=useState<string|null>(null)
+ const [hoverPosition,setHoverPosition]=useState<'top'|'bottom'>('bottom')
  const [officialLoad,setOfficialLoad]=useState<{owner:string|null;reports:ConfirmedTaxFigure[];error:string}>({
   owner:null,reports:[],error:''
  })
@@ -147,8 +148,11 @@ export function AnalyticsDashboard({
    cx="50%" cy="50%" innerRadius={innerRadius} outerRadius={outerRadius} paddingAngle={1}
    activeIndex={segments.findIndex(p=>p.key===hoveredSegment)} activeShape={activeSector}
    onMouseEnter={(entry)=>{
-    const current=entry as {key?:string;payload?:{key?:string}}
+    const current=entry as {key?:string;midAngle?:number;payload?:{key?:string}}
     setHoveredSegment(current.key??current.payload?.key??null)
+    if(typeof current.midAngle==='number'){
+     setHoverPosition(Math.sin(current.midAngle*Math.PI/180)>0?'top':'bottom')
+    }else setHoverPosition('bottom')
    }}
    onMouseLeave={()=>setHoveredSegment(null)} stroke="none">
    {segments.map(part=><Cell key={part.key} fill={part.fill}
@@ -179,7 +183,7 @@ export function AnalyticsDashboard({
          {showPie(composition.outer,91,110)}
         </PieChart>
        </ResponsiveContainer>
-       {hoveredInfo&&<div className="analytics-ring-tooltip" role="status" aria-live="off">
+       {hoveredInfo&&<div className={'analytics-ring-tooltip is-'+hoverPosition} role="status" aria-live="off">
         <strong>{hoveredInfo.name}</strong>
         <span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span>
        </div>}
@@ -204,7 +208,7 @@ export function AnalyticsDashboard({
         {group.segments.map(entry=><div
          className={'analytics-composition-row'+(hoveredSegment===entry.key?' is-highlighted':'')}
          key={entry.key}
-         onMouseEnter={()=>setHoveredSegment(entry.key)}
+         onMouseEnter={()=>{setHoveredSegment(entry.key);setHoverPosition('bottom')}}
          onMouseLeave={()=>setHoveredSegment(null)}>
          <span className="analytics-color-dot" style={{backgroundColor:entry.fill}}/>
          <span className="analytics-composition-label">{entry.name}</span>
