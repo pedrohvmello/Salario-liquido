@@ -3,11 +3,13 @@ import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,FileUp,Info,Save,Shie
 import {PayrepSelect} from './PayrepSelect'
 import {PayslipPdfViewer} from './PayslipPdfViewer'
 import {brl} from '../lib/money'
-import {db} from '../lib/data'
+import {db,type SavedStatement} from '../lib/data'
+import type {StatementRubric} from '../lib/vacation'
+import {taxYearBridge} from '../lib/payrollAdjustments'
 import {loadMyEffectivePayrepPlan} from '../lib/account'
 import {
  summarizeTaxYear,calculatedOfficialValue,officialDifference,OFFICIAL_FIELDS,
- type OfficialField,type OfficialValues,type TaxStatement
+ type OfficialField,type OfficialValues
 } from '../lib/annualTax'
 import {extractIncomeTaxPdf,type ExtractedTaxReport} from '../lib/incomeTaxPdf'
 import {
@@ -39,7 +41,7 @@ type PendingImport={
  file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null
 }
 
-export function TaxPreview({userId,statements}:{userId:string|null;statements:TaxStatement[]}){
+export function TaxPreview({userId,statements,lines}:{userId:string|null;statements:SavedStatement[];lines:StatementRubric[]}){
  const today=new Date().getFullYear()
  const defaultYear=Math.max(1990,today-1)
  const [year,setYear]=useState(defaultYear)
@@ -61,6 +63,9 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
  const [legacyCount,setLegacyCount]=useState(0)
  const fileRef=useRef<HTMLInputElement|null>(null)
  const summary=useMemo(()=>summarizeTaxYear(statements,year),[statements,year])
+ const bridge=useMemo(()=>taxYearBridge(year,statements,lines),[year,statements,lines])
+ const officialSalary=report?.confirmed_at?report.reviewed_values?.taxable_salary??null:null
+ const officialPension=report?.confirmed_at?report.reviewed_values?.alimony??null:null
  const sourceConfirmed=Boolean(report?.confirmed_at)
  const viewingYears=useMemo(()=>[...new Set(reportYears)].sort((a,b)=>b-a),[reportYears])
  const inferredYearOptions=useMemo(()=>Array.from({length:Math.max(1,today-1989)},(_,i)=>today-i),[today])
@@ -327,6 +332,39 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      <button type="button" className="primary" disabled={!confirmedByUser||busy||saving}
       onClick={()=>void saveReviewed()}><Save size={16}/>{saving?'Salvando...':sourceConfirmed?'Salvar valores conferidos':'Confirmar informe'}</button>
     </section>}
+    <section className="panel ir-tax-bridge">
+     <div className="panel-heading"><h3>Conciliação anual com os holerites</h3>
+      <span className="pill">{bridge.taxableReconciled===null?'Dados parciais':
+       officialSalary!==null&&Math.abs(bridge.taxableReconciled-officialSalary)<=.01?'Conciliado':'Em conferência'}</span>
+     </div>
+     <p className="subtle">Apuração baseada nas rubricas conhecidas dos holerites e nas folhas totalizadoras efetivamente pagas. As retificadoras e folhas de diferença são evidências e não aumentam os recebimentos. O Informe IR conferido prevalece como documento oficial.</p>
+     <div className="table-scroll"><table>
+      <thead><tr><th>Etapa</th><th>Valor</th></tr></thead>
+      <tbody>
+       <tr><td>Proventos dos holerites mensais</td><td>{bridge.monthlyGross===null?'Não identificado':brl(bridge.monthlyGross)}</td></tr>
+       <tr><td>Folhas totalizadoras pagas</td><td>{brl(bridge.totalizerGross)}</td></tr>
+       <tr><td>Adiantamento de 13º nas férias (separado)</td><td>{brl(-bridge.excludedThirteenthAdvance)}</td></tr>
+       <tr><td>Complemento de 13º (separado)</td><td>{brl(-bridge.excludedThirteenthComplement)}</td></tr>
+       <tr><td>Insuficiência de saldo compensada</td><td>{brl(-bridge.excludedBalanceAdvance)}</td></tr>
+       <tr className="ir-bridge-result"><td><strong>Rendimento tributável apurado</strong></td>
+        <td><strong>{bridge.taxableReconciled===null?'Incompleto':brl(bridge.taxableReconciled)}</strong></td></tr>
+       <tr><td>Rendimento tributável do Informe IR conferido</td><td>{officialSalary===null?'Aguardando confirmação':brl(officialSalary)}</td></tr>
+       <tr><td>Diferença</td><td>{officialSalary===null||bridge.taxableReconciled===null?'Sem comparação':
+        brl(Math.round((bridge.taxableReconciled-officialSalary)*100)/100)}</td></tr>
+       {officialPension!==null&&<><tr><td>Pensão dos holerites + totalizadoras</td>
+        <td>{bridge.pensionReconciled===null?'Incompleta':brl(bridge.pensionReconciled)}</td></tr>
+       <tr><td>Pensão no Informe IR conferido</td><td>{brl(officialPension)}</td></tr></>}
+      </tbody>
+     </table></div>
+     {bridge.settlements.length>0&&<div className="ir-bridge-settlements">
+      <strong>Pagamentos complementares contabilizados uma vez</strong>
+      {bridge.settlements.map(item=><p key={item.id}>
+       {item.paymentDate.split('-').reverse().join('/')} · {brl(item.gross)} de proventos e {brl(item.net)} líquidos
+       {item.matchedByRubrics?' · origens confirmadas: '+item.originPeriods.join(', '):' · competências de origem a conferir'}
+      </p>)}
+     </div>}
+     {bridge.warnings.map((warning,i)=><div key={i} className="detail-hint"><Info size={15}/>{warning}</div>)}
+    </section>
     <details className="panel ir-compare-details">
      <summary>Comparação com holerites cadastrados <span>Opcional</span></summary>
      <p className="subtle">Os totais por competência são indicativos, e não substituem o documento anual. A comparação só é possível quando há dados compatíveis.</p>
