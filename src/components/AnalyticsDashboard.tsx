@@ -1,7 +1,7 @@
 import {useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
-import {Area,AreaChart,Bar,BarChart,CartesianGrid,Legend,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
-import {FileText,Info} from 'lucide-react'
+import {Bar,BarChart,CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {FileText,Info,ChevronDown} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
 import type {SavedStatement} from '../lib/data'
@@ -32,9 +32,6 @@ function Panel({title,children}:{title:string;children:React.ReactNode}){
 }
 function Empty({label}:{label:string}){
  return <div className="empty"><FileText size={27}/><p>{label}</p></div>
-}
-function Summary({name,value,note}:{name:string;value:string;note:string}){
- return <div className="stat"><span className="subtle">{name}</span><strong>{value}</strong><small>{note}</small></div>
 }
 function Bars({data,children}:{data:Array<Record<string,string|number|null>>;children:React.ReactNode}){
  return <div className="chart"><ResponsiveContainer width="100%" height="100%">
@@ -71,7 +68,6 @@ export function AnalyticsDashboard({
  const metricEvidence=timeline.some(x=>x[metric]!==null)
  const fgtsEvidence=timeline.some(x=>x.fgts!==null)
  const taxEvidence=tax.some(x=>x.total!==null)
- const selectedPeriod=year==='all'?'nos holerites importados':'em '+year
  const metricBars=timeline.map(x=>({label:x.label,value:x[metric]}))
  const fgtsBars=timeline.map(x=>({label:x.label,value:x.fgts}))
  const taxBars=tax.map(x=>({label:x.label,
@@ -81,6 +77,40 @@ export function AnalyticsDashboard({
   inss:x.inss??0,other:Math.max(0,x.other),irrf:x.irrf
  }))
  const completePpr=ppr.map(x=>({label:x.label,gross:x.gross,net:x.net,irrf:x.irrf}))
+
+ const comparisonRows=useMemo(()=>{
+  const monthLabel=(period:string)=>period.slice(5,7)+'/'+period.slice(2,4)
+  return timeline.map(item=>{
+   const key=year==='all'?item.period:monthLabel(item.period)
+   const salary=monthlyGraph.find(row=>row.period===key)
+   const taxParts=[item.irrfSalary,item.irrfVacation].filter((v):v is number=>v!==null)
+   return {
+    label:item.label,
+    bruto:salary?.bruto??null,
+    liquido:salary?.liquido??null,
+    inss:item.inss,
+    irrf:taxParts.length?Math.round(taxParts.reduce((sum,v)=>sum+v,0)*100)/100:null,
+    monthlyStatements:item.monthlyStatements
+   }
+  })
+ },[timeline,monthlyGraph,year])
+ const breakdown=useMemo(()=>{
+  const sum=(name:'liquido'|'irrf'|'inss')=>{
+   const known=comparisonRows.map(row=>row[name]).filter((v):v is number=>v!==null)
+   return known.length?Math.round(known.reduce((a,b)=>a+b,0)*100)/100:null
+  }
+  return [
+   {name:'Líquido recebido',value:sum('liquido'),fill:color.green},
+   {name:'IRRF da folha',value:sum('irrf'),fill:color.red},
+   {name:'INSS da folha',value:sum('inss'),fill:color.blue},
+  ]
+ },[comparisonRows])
+ const pieRows=breakdown.filter((entry):entry is {name:string;value:number;fill:string}=>
+  entry.value!==null&&entry.value>0)
+ const missingBreakdown=comparisonRows.some(row=>row.monthlyStatements>0&&(
+  row.liquido===null||row.inss===null||row.irrf===null))
+ const documentsCovered=comparisonRows.reduce((sum,row)=>sum+row.monthlyStatements,0)
+
  return <div className="stack">
   <div className="page-intro">
    <div><h2>Análises financeiras</h2>
@@ -92,34 +122,59 @@ export function AnalyticsDashboard({
    </PayrepSelect>
   </div>
 
-  <Panel title={year==='all'?"Remuneração anual totalizada (sem PPR e 13º)":"Remuneração mensal e líquido registrado (sem PPR e 13º)"}>
-   {monthlyGraph.length?<div className="chart"><ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={monthlyGraph}>
-     <CartesianGrid stroke="#eee3fa" vertical={false}/>
-     <XAxis dataKey="period" tick={{fontSize:11}}/>
-     <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
-     <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>
-     <Area dataKey="bruto" name="Proventos da folha mensal" stroke={color.blue} strokeWidth={2.5} fill="#bcd5ff" fillOpacity={.40}/>
-     <Area dataKey="liquido" name="Líquido financeiro mensal" stroke={color.green} strokeWidth={2.5} fill="#b6eddf" fillOpacity={.33}/>
-     <Area dataKey="ferias" name="Férias antecipadas incluídas no líquido" stroke={color.pink} strokeWidth={2.5} fill="#ffd0e5" fillOpacity={.20}/>
-    </AreaChart>
-   </ResponsiveContainer></div>:<Empty label="Importe holerites mensais para acompanhar a evolução."/>}
-   <div className="detail-hint"><Info size={16}/>{year==='all'?"Cada ponto representa a soma das competências importadas daquele ano. Férias antecipadas já estão incluídas no líquido e não devem ser somadas uma segunda vez.":"Cada ponto representa uma competência mensal. Férias antecipadas fazem parte do líquido financeiro."}</div>
-  </Panel>
+  <div className="analytics-main-grid">
+   <Panel title="Distribuição financeira identificada">
+    {pieRows.length?<div className="analytics-donut-layout">
+     <div className="analytics-donut-chart">
+      <ResponsiveContainer width="100%" height="100%">
+       <PieChart>
+        <Pie data={pieRows} dataKey="value" nameKey="name" cx="50%" cy="50%"
+         innerRadius="58%" outerRadius="85%" paddingAngle={2} stroke="none">
+         {pieRows.map(entry=><Cell key={entry.name} fill={entry.fill}/>)}
+        </Pie>
+        <Tooltip formatter={fmt}/>
+       </PieChart>
+      </ResponsiveContainer>
+     </div>
+     <div className="analytics-donut-legend">
+      {breakdown.map(entry=><div key={entry.name}>
+       <span className="analytics-color-dot" style={{backgroundColor:entry.fill}}/>
+       <span>{entry.name}</span>
+       <strong>{valueOrDash(entry.value)}</strong>
+      </div>)}
+     </div>
+    </div>:<Empty label="Não há valores mensais suficientes para compor o gráfico."/>}
+    <div className="detail-hint"><Info size={16}/>Composição relativa apenas dos valores identificados nos holerites mensais ({documentsCovered} folha(s)). Não representa a divisão integral do bruto. {missingBreakdown?'Há rubricas ausentes em parte dos meses.':''}</div>
+   </Panel>
+   <Panel title={year==='all'?'Evolução anual da remuneração':'Evolução mensal da remuneração'}>
+    {comparisonRows.some(row=>row.bruto!==null||row.liquido!==null)?
+     <div className="chart analytics-evolution-chart"><ResponsiveContainer width="100%" height="100%">
+      <LineChart data={comparisonRows} margin={{top:12,right:8,left:0,bottom:5}}>
+       <CartesianGrid stroke="#eee3fa" vertical={false}/>
+       <XAxis dataKey="label" tick={{fontSize:11}}/>
+       <YAxis width={77} tick={{fontSize:11}} tickFormatter={formatMoneyAxisTick}/>
+       <Tooltip formatter={fmt} wrapperStyle={{pointerEvents:"none"}}/>
+       <Legend wrapperStyle={{fontSize:11}}/>
+       <Line type="monotone" dataKey="bruto" name="Proventos brutos" stroke={color.purple} strokeWidth={2.4} dot={{r:3}} connectNulls={false}/>
+       <Line type="monotone" dataKey="liquido" name="Líquido recebido" stroke={color.green} strokeWidth={2.4} dot={{r:3}} connectNulls={false}/>
+       <Line type="monotone" dataKey="inss" name="INSS mensal" stroke={color.blue} strokeWidth={2} dot={{r:2}} connectNulls={false}/>
+       <Line type="monotone" dataKey="irrf" name="IRRF mensal" stroke={color.red} strokeWidth={2} dot={{r:2}} connectNulls={false}/>
+      </LineChart>
+     </ResponsiveContainer></div>:<Empty label="Importe holerites mensais para acompanhar a evolução."/>}
+    <div className="detail-hint"><Info size={16}/>{year==='all'?
+     'Cada ponto é a soma das competências importadas naquele ano.' :
+     'Cada ponto representa um mês. Lacunas ficam sem valores estimados.'} 13º e PPR são analisados separadamente, evitando dupla contagem.</div>
+   </Panel>
+  </div>
 
   <Panel title="Benefícios, descontos e remuneração variável">
-   <div className="stats-grid analytics-overview">
-    <Summary name="Previdência privada" value={valueOrDash(sumKnown(timeline,'privatePension'))} note={'Contribuições identificadas '+selectedPeriod}/>
-    <Summary name="ESPP" value={valueOrDash(sumKnown(timeline,'espp'))} note={'Descontos identificados '+selectedPeriod}/>
-    <Summary name="Vale-refeição" value={valueOrDash(sumKnown(timeline,'meal'))} note={'Créditos identificados '+selectedPeriod}/>
-    <Summary name="Triênio" value={valueOrDash(sumKnown(timeline,'trienio'))} note={'Total de rubricas regulares '+selectedPeriod}/>
-   </div>
    <div className="analytics-filter">
     <label htmlFor="analytics-metric-select">Indicador</label>
     <PayrepSelect id="analytics-metric-select" value={metric} onChange={next=>setMetric(next as MetricKey)} title="Indicador">
      {METRICS.map(x=><option key={x.key} value={x.key}>{x.label}</option>)}
     </PayrepSelect>
    </div>
+   <div className="analytics-indicator-summary"><span>Total identificado no período</span><strong>{valueOrDash(sumKnown(timeline,metric))}</strong></div>
    <p className="subtle analytics-description">{metricInfo.note}</p>
    {metricEvidence?
     <Bars data={metricBars}><Bar dataKey="value" name={metricInfo.label} fill={color.purple} maxBarSize={44} radius={[5,5,0,0]}/></Bars>
@@ -131,6 +186,9 @@ export function AnalyticsDashboard({
    <div className="detail-hint"><Info size={16}/>Um traço (—) indica ausência de valor comprovado na rubrica, não valor zero. Todos os anos soma apenas os meses importados. Ao escolher um ano, o gráfico mostra janeiro a dezembro.</div>
   </Panel>
 
+  <details className="analytics-advanced">
+   <summary><ChevronDown size={18}/> Análises detalhadas: 13º, PPR, impostos, FGTS e férias</summary>
+   <div className="stack">
   <Panel title={year==='all'?'Histórico anual dos indicadores':'Indicadores mensais de '+year}>
    <div className="table-scroll">
     <table><thead><tr>
@@ -192,5 +250,7 @@ export function AnalyticsDashboard({
    </Bars>:<Empty label="Nenhum valor de FGTS identificado nas folhas do período."/>}
    <div className="detail-hint"><Info size={16}/>O FGTS corresponde ao valor informado nos holerites mensais, não necessariamente ao saldo acumulado da conta FGTS. No filtro anual são exibidos os 12 meses, inclusive meses ainda sem holerite.</div>
   </Panel>
+   </div>
+  </details>
  </div>
 }
