@@ -2715,3 +2715,27 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .ir-page .ir-year-filter{align-items:stretch;flex-direction:column;gap:7px}
  .ir-page .ir-year-filter>.payrep-select-trigger{max-width:none;width:100%}
 }
+
+
+/* Análises: compact financial overview with detail on demand. */
+.analytics-main-grid{display:grid;grid-template-columns:minmax(340px,0.95fr) minmax(0,1.5fr);gap:17px}
+.analytics-main-grid>.panel{min-width:0;display:flex;flex-direction:column;gap:14px}
+.analytics-main-grid .panel-heading h2{font-size:16px}
+.analytics-main-grid .detail-hint{margin-top:auto}
+.analytics-donut-layout{min-height:315px;display:flex;align-items:center;gap:10px}
+.analytics-donut-chart{height:265px;width:min(54%,255px);flex:0 0 min(54%,255px)}
+.analytics-donut-legend{display:flex;flex:1;min-width:0;flex-direction:column;gap:15px}
+.analytics-donut-legend>div{display:grid;grid-template-columns:10px minmax(0,1fr);column-gap:8px;align-items:center;row-gap:4px;font-size:12px;color:#644978}
+.analytics-donut-legend strong{grid-column:2;font-size:15px;color:#30164a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.analytics-color-dot{width:10px;height:10px;display:block;border-radius:50%}
+.analytics-evolution-chart{height:315px}
+.analytics-indicator-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #eadcf5;background:#fcf9ff;border-radius:10px;padding:12px 15px;margin-top:14px}
+.analytics-indicator-summary span{font-size:12px;color:#806691}
+.analytics-indicator-summary strong{font-size:19px;color:#481e6b;font-variant-numeric:tabular-nums}
+.analytics-advanced{border:1px solid #e8daf5;border-radius:13px;background:#fff;overflow:hidden}
+.analytics-advanced>summary{display:flex;align-items:center;gap:9px;cursor:pointer;padding:19px 20px;font-size:13px;font-weight:750;color:#4f2875}
+.analytics-advanced>summary svg{color:#7e21b9;transition:transform .15s}
+.analytics-advanced[open]>summary svg{transform:rotate(180deg)}
+.analytics-advanced>div{padding:0 16px 18px}
+@media(max-width:1200px){.analytics-main-grid{grid-template-columns:1fr}.analytics-main-grid .panel{min-width:0}.analytics-donut-layout{min-height:260px}}
+@media(max-width:600px){.analytics-donut-layout{flex-direction:column;align-items:stretch;gap:3px}.analytics-donut-chart{height:235px;width:100%;flex-basis:auto}.analytics-donut-legend{gap:10px}.analytics-evolution-chart{height:290px}}
