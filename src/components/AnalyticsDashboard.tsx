@@ -147,7 +147,10 @@ export function AnalyticsDashboard({
   <Pie key={innerRadius} data={segments} dataKey="value" nameKey="name"
    cx="50%" cy="50%" innerRadius={innerRadius} outerRadius={outerRadius} paddingAngle={1}
    activeIndex={segments.findIndex(p=>p.key===hoveredSegment)} activeShape={activeSector}
-   onMouseEnter={(entry)=>setHoveredSegment((entry as ChartSegment).key)}
+   onMouseEnter={(entry)=>{
+    const current=entry as {key?:string;payload?:{key?:string}}
+    setHoveredSegment(current.key??current.payload?.key??null)
+   }}
    onMouseLeave={()=>setHoveredSegment(null)} stroke="none">
    {segments.map(part=><Cell key={part.key} fill={part.fill}
     style={{opacity:highlight(part.key)?1:0.42,transition:'opacity 120ms ease',cursor:'pointer'}}/>)}
