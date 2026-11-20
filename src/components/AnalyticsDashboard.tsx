@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
-import {Bar,BarChart,CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
@@ -11,8 +11,8 @@ import {loadConfirmedTaxFigures,type ConfirmedTaxFigure} from '../lib/incomeTaxR
 import {annualFinancialRows,financialComposition,percentOfGross,financialColors,
  type ChartSegment,type CompositionOption} from '../lib/analyticsFinancial'
 import {
- METRICS,payrollMetrics,timeMetrics,
- type MetricKey,type TimeMetrics
+ INDICATORS,indicatorValue,payrollMetrics,timeMetrics,
+ type IndicatorKey,type TimeMetrics
 } from '../lib/analytics'
 
 type SalaryGraphRow={period:string;bruto:number|null;liquido:number|null;ferias:number}
@@ -34,25 +34,27 @@ function Panel({title,children}:{title:string;children:React.ReactNode}){
 function Empty({label}:{label:string}){
  return <div className="empty"><FileText size={27}/><p>{label}</p></div>
 }
-function Bars({data,children}:{data:Array<Record<string,string|number|null>>;children:React.ReactNode}){
+function IndicatorTrend({data,label}:{data:{label:string;value:number|null}[];label:string}){
  return <div className="chart"><ResponsiveContainer width="100%" height="100%">
-  <BarChart data={data} barCategoryGap="24%" barGap={5} margin={{top:12,right:10,left:2,bottom:4}}>
+  <LineChart data={data} margin={{top:12,right:18,left:4,bottom:6}}>
    <CartesianGrid stroke="#eee3fa" vertical={false}/>
    <XAxis dataKey="label" tick={{fontSize:11}}/>
    <YAxis width={76} tick={{fontSize:11}} tickMargin={8} tickFormatter={formatMoneyAxisTick}/>
-   <Tooltip formatter={fmt} offset={56} wrapperStyle={{pointerEvents:"none"}}/><Legend/>{children}
-  </BarChart>
+   <Tooltip formatter={fmt} wrapperStyle={{pointerEvents:"none"}}/>
+   <Line type="monotone" dataKey="value" name={label} stroke={color.purple}
+    strokeWidth={2.5} dot={{r:4}} activeDot={{r:6}} connectNulls={false}/>
+  </LineChart>
  </ResponsiveContainer></div>
 }
-function sumKnown(rows:TimeMetrics[],key:MetricKey):number|null {
- const present=rows.filter(r=>r[key]!==null)
- return present.length?Math.round(present.reduce((n,r)=>n+(r[key]??0),0)*100)/100:null
+function sumKnown(rows:TimeMetrics[],key:IndicatorKey):number|null {
+ const values=rows.map(r=>indicatorValue(r,key)).filter((v):v is number=>v!==null)
+ return values.length?Math.round(values.reduce((n,v)=>n+v,0)*100)/100:null
 }
 function valueOrDash(value:number|null){return value===null?'—':brl(value)}
 export function AnalyticsDashboard({
  userId,year,onYearChange,years,statements,lines,monthlyGraph,parameters
 }:Props){
- const [metric,setMetric]=useState<MetricKey>('privatePension')
+ const [metric,setMetric]=useState<IndicatorKey>('privatePension')
  const [visibleParts,setVisibleParts]=useState<Record<CompositionOption,boolean>>({
   espp:false,privatePension:false
  })
@@ -72,9 +74,9 @@ export function AnalyticsDashboard({
  const confirmed=officialLoad.owner===userId?officialLoad.reports:[]
  const evidence=useMemo(()=>payrollMetrics(statements,lines),[statements,lines])
  const timeline=useMemo(()=>timeMetrics(evidence,year),[evidence,year])
- const metricInfo=METRICS.find(x=>x.key===metric)!
- const metricEvidence=timeline.some(x=>x[metric]!==null)
- const metricBars=timeline.map(x=>({label:x.label,value:x[metric]}))
+ const metricInfo=INDICATORS.find(x=>x.key===metric)!
+ const metricEvidence=timeline.some(x=>indicatorValue(x,metric)!==null)
+ const metricTrend=timeline.map(x=>({label:x.label,value:indicatorValue(x,metric)}))
  const comparisonRows=useMemo(()=>{
   const monthLabel=(period:string)=>period.slice(5,7)+'/'+period.slice(2,4)
   return timeline.map(item=>{
@@ -224,22 +226,26 @@ export function AnalyticsDashboard({
   </div>
 
   <Panel title="Benefícios, descontos e remuneração variável">
-   <div className="analytics-filter">
-    <label htmlFor="analytics-metric-select">Indicador</label>
-    <PayrepSelect id="analytics-metric-select" value={metric} onChange={next=>setMetric(next as MetricKey)} title="Indicador">
-     {METRICS.map(x=><option key={x.key} value={x.key}>{x.label}</option>)}
-    </PayrepSelect>
+   <div className="analytics-indicator-header">
+    <div className="analytics-filter">
+     <label htmlFor="analytics-metric-select">Indicador</label>
+     <PayrepSelect id="analytics-metric-select" value={metric} onChange={next=>setMetric(next as IndicatorKey)} title="Indicador">
+      {INDICATORS.map(x=><option key={x.key} value={x.key}>{x.label}</option>)}
+     </PayrepSelect>
+    </div>
+    <div className="analytics-indicator-summary">
+     <span>Total identificado no período</span>
+     <strong>{valueOrDash(sumKnown(timeline,metric))}</strong>
+    </div>
    </div>
-   <div className="analytics-indicator-summary"><span>Total identificado no período</span><strong>{valueOrDash(sumKnown(timeline,metric))}</strong></div>
    <p className="subtle analytics-description">{metricInfo.note}</p>
    {metricEvidence?
-    <Bars data={metricBars}><Bar dataKey="value" name={metricInfo.label} fill={color.purple} maxBarSize={44} radius={[5,5,0,0]}/></Bars>
+    <IndicatorTrend data={metricTrend} label={metricInfo.label}/>
     :<Empty label={'Nenhum valor de '+metricInfo.label.toLowerCase()+' identificado nas folhas do período.'}/>}
    {metric==='meal'&&parameters.mealBenefit>0&&
     <div className="detail-hint"><Info size={16}/>Valor diário atualmente configurado: {brl(parameters.mealBenefit)}. Esse parâmetro não é usado para inventar créditos de meses anteriores.</div>}
    {metric==='espp'&&parameters.esppPercent>0&&
     <div className="detail-hint"><Info size={16}/>Percentual atualmente configurado: {parameters.esppPercent}%. É uma previsão, não histórico de compra efetivamente descontada.</div>}
-   <div className="detail-hint"><Info size={16}/>Um traço (—) indica ausência de valor comprovado na rubrica, não valor zero. Todos os anos soma apenas os meses importados. Ao escolher um ano, o gráfico mostra janeiro a dezembro.</div>
   </Panel>
 
 
