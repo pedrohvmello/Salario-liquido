@@ -63,7 +63,7 @@ export function AnalyticsDashboard({
 }:Props){
  const [metric,setMetric]=useState<MetricKey>('privatePension')
  const [visibleParts,setVisibleParts]=useState<Record<CompositionOption,boolean>>({
-  trienio:false,espp:false,privatePension:false
+  espp:false,privatePension:false
  })
  const [hoveredSegment,setHoveredSegment]=useState<string|null>(null)
  const [officialLoad,setOfficialLoad]=useState<{owner:string|null;reports:ConfirmedTaxFigure[];error:string}>({
@@ -131,11 +131,18 @@ export function AnalyticsDashboard({
   {title:'Base da composição',segments:composition.gross===null?[]:[{
    key:'gross',name:'Proventos brutos',value:composition.gross,fill:financialColors.gross
   }]},
-  {title:'Distribuição do bruto',segments:composition.inner},
-  {title:'Síntese',segments:composition.outer},
-  ...(composition.origin.length?[{title:'Origem dos proventos',segments:composition.origin}]:[])
+  {title:'Distribuição do bruto',segments:[
+   ...(composition.netAndInvestments===null?[]:[{
+    key:'netTotal',name:'Líquido e aplicações',value:composition.netAndInvestments,fill:financialColors.net
+   }]),
+   ...composition.inner.filter(item=>item.key!=='net')
+  ]},
+  {title:'Síntese',segments:composition.outer}
  ]
- const highlight=(key:string)=>hoveredSegment===null||hoveredSegment===key
+ const allHoverSegments=[...legendGroups.flatMap(group=>group.segments),...composition.inner]
+ const hoveredInfo=hoveredSegment?allHoverSegments.find(item=>item.key===hoveredSegment):undefined
+ const highlight=(key:string)=>hoveredSegment===null||hoveredSegment===key||
+  (hoveredSegment==='netTotal'&&['net','espp','privatePension'].includes(key))
  const activeSector=(props:unknown)=>{
   const shape=props as React.ComponentProps<typeof Sector>
   const radius=Number(shape.outerRadius??0)
@@ -144,7 +151,7 @@ export function AnalyticsDashboard({
  const showPie=(segments:ChartSegment[],innerRadius:number,outerRadius:number)=>(
   <Pie key={innerRadius} data={segments} dataKey="value" nameKey="name"
    cx="50%" cy="50%" innerRadius={innerRadius} outerRadius={outerRadius} paddingAngle={1}
-   activeIndex={segments.findIndex(p=>p.key===hoveredSegment)} activeShape={activeSector}
+   activeIndex={segments.findIndex(p=>p.key===hoveredSegment||hoveredSegment==='netTotal'&&p.key==='net')} activeShape={activeSector}
    onMouseEnter={(entry)=>{
     const current=entry as {key?:string;payload?:{key?:string}}
     setHoveredSegment(current.key??current.payload?.key??null)
@@ -169,22 +176,13 @@ export function AnalyticsDashboard({
   <div className="analytics-main-grid">
    <Panel title="Composição dos proventos">
     {hasComposition?<div className="analytics-composition-layout">
-     <div className="analytics-composition-chart" role="img"
-      aria-label="Gráfico concêntrico com proventos brutos no centro, distribuição por descontos e líquido no anel interno e agrupamentos no anel externo">
+     <div className="analytics-composition-chart"
+      aria-label="Gráfico concêntrico dos proventos, com percentuais e detalhes exibidos fora dos anéis">
       <ResponsiveContainer width="100%" height="100%">
        <PieChart>
         {showPie([{key:'gross',name:'Proventos brutos',value:composition.gross!,fill:financialColors.gross}],0,44)}
         {showPie(composition.inner,55,81)}
         {showPie(composition.outer,91,110)}
-        {composition.origin.length>0&&showPie(composition.origin,118,130)}
-        <Tooltip content={({active,payload})=>{
-         if(!active||!payload?.length)return null
-         const item=payload[0]
-         return <div className="analytics-percent-tooltip">
-          <strong>{item.name}</strong>
-          <span>{percentOfGross(Number(item.value),composition.gross)} do bruto</span>
-         </div>
-        }}/>
         <text x="50%" y="46%" textAnchor="middle" fill="#fff" fontSize={12} fontWeight={750} pointerEvents="none">Bruto</text>
         <text x="50%" y="53%" textAnchor="middle" fill="#fff" fontSize={11} fontWeight={650} pointerEvents="none">100%</text>
        </PieChart>
@@ -204,26 +202,35 @@ export function AnalyticsDashboard({
          <strong className="analytics-composition-value">{valueOrDash(entry.value)}</strong>
         </div>)}
        </section>)}
+      {composition.cashNet!==null&&<div className="analytics-net-fact">
+       Recebido efetivamente: <strong>{brl(composition.cashNet)}</strong>.
+       O agrupamento verde também inclui ESPP e previdência quando identificados.
+      </div>}
+      <div className="analytics-hover-detail" role="status" aria-live="off">
+       {hoveredInfo?<><strong>{hoveredInfo.name}</strong><span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span></>
+        :<span>Passe o mouse sobre um anel ou item da legenda para ver o percentual.</span>}
+      </div>
      </div>
     </div>:<Empty label="A composição ainda não pode ser conciliada com os holerites disponíveis."/>}
     <div className="analytics-ring-options" aria-label="Detalhes opcionais da composição">
      <strong>Detalhar no gráfico</strong>
      {([
-      ['trienio','Triênio'],
       ['espp','ESPP'],
       ['privatePension','Previdência']
      ] as const).map(([key,label])=><label key={key}>
-      <input type="checkbox" checked={visibleParts[key]} disabled={composition.extras[key]===null}
+      <input type="checkbox" checked={visibleParts[key]} disabled={composition.included[key]<=0}
        onChange={event=>setVisibleParts(prev=>({...prev,[key]:event.target.checked}))}/>
       {label}
      </label>)}
     </div>
-    {visibleParts.trienio&&composition.origin.length>0&&<div className="analytics-origin-explanation">
-     <Info size={15}/>Triênio aparece como origem dos proventos em um terceiro anel, sem somar novamente ao líquido ou aos descontos.
-    </div>}
+    {composition.unclassified!==null&&composition.unclassified>0.01&&
+     <details className="analytics-remainder-explanation">
+      <summary>O que é o saldo não classificado? <strong>{brl(composition.unclassified)}</strong></summary>
+      <p>É uma diferença de conciliação, não um desconto identificado. O Payrep calcula o saldo subtraindo do bruto os valores de líquido e aplicações, pensão, IRRF e INSS. Pode envolver rubricas ainda não categorizadas, adiantamentos ou ajustes entre folhas. Não equivale automaticamente a uma despesa.</p>
+     </details>}
     {composition.warnings.map((warning,i)=><div className="detail-hint" key={i}><Info size={16}/>{warning}</div>)}
     {officialError&&<div className="detail-hint"><Info size={16}/>Os valores oficiais não puderam ser consultados. Exibindo somente dados dos holerites.</div>}
-    <div className="detail-hint"><Info size={16}/>Os anéis representam os proventos brutos dos holerites e totalizadoras ({documentsCovered} folha(s) mensais identificadas). Passe o mouse para ver o percentual de cada parcela. Valores não identificados permanecem como ajustes, sem estimativas.</div>
+    <div className="detail-hint"><Info size={16}/>Os anéis usam os proventos brutos dos holerites e totalizadoras ({documentsCovered} folha(s) mensais). ESPP e Previdência apenas destacam parcelas do agrupamento verde, sem alterar o total. O saldo não classificado é uma diferença de conciliação, não necessariamente um desconto.</div>
    </Panel>
    <Panel title={year==='all'?'Evolução anual da remuneração':'Evolução mensal da remuneração'}>
     {evolutionRows.some(row=>row.bruto!==null||row.liquido!==null)?
