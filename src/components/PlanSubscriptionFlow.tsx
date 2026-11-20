@@ -36,7 +36,7 @@ export function PlanSubscriptionFlow({
    <p>Você está iniciando o processo de assinatura do plano {planName[plan]}.
     O plano estará disponível após a confirmação do pagamento pelo Asaas.
     Até essa confirmação, seu plano atual continuará ativo.</p>
-   <p className="subtle">Esta contratação está em homologação, sem cobrança financeira real.</p>
+   <p className="subtle">Ao continuar sem código promocional, você será direcionado ao Asaas para contratar uma assinatura com cobrança real e renovação mensal.</p>
    <form className="subscription-confirm-form" onSubmit={event=>{event.preventDefault();onConfirm()}}>
     <label htmlFor="subscription-confirm-promo"><Gift size={16}/> Resgatar por Código Promocional
      <input id="subscription-confirm-promo" type="text" autoComplete="off"
