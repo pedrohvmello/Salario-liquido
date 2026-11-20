@@ -128,8 +128,6 @@ export function AnalyticsDashboard({
    }))
   :comparisonRows.map(row=>({...row,tributavel:null}))
  const sourceDifferences=annualRows.filter(r=>r.taxableOfficial!==null&&r.payrollGross!==null)
- const missingBreakdown=annualRows.some(r=>r.months>0&&(
-  r.net===null||r.inss===null||r.irrf===null||r.pension===null))
  const documentsCovered=composition.coveredMonths
  const legendGroups:readonly {title:string;segments:ChartSegment[]}[]=[
   {title:'Base da composição',segments:composition.gross===null?[]:[{
