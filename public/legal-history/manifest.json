@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "publicVersion": "V1.0",
   "launchState": "prelaunch",
-  "notes": "As revisões históricas anteriores à numeração formal são identificadas como V1.0 apenas no controle administrativo. Cada arquivo é uma cópia integral do HTML daquele commit, sem alterar o conteúdo original.",
+  "notes": "As revisões históricas anteriores à numeração formal são identificadas como V1.0 apenas no controle administrativo. Cada arquivo é uma cópia integral do HTML daquele commit, sem alterar o conteúdo original. As revisões arquivadas podem conter terminologia histórica de homologação e não representam o texto atualmente publicado.",
   "documents": {
     "privacidade": {
       "title": "Política de Privacidade",
-      "currentRevisionId": "privacidade-v1.0-r05",
+      "currentRevisionId": "privacidade-v1.0-r06",
       "revisions": [
         {
           "id": "privacidade-v1.0-r01",
@@ -57,12 +57,22 @@
           "path": "/legal-history/privacidade-v1.0-r05.html",
           "sourceCommit": "1f1258645a2faa97f58bfc1891ca386d5757e12f",
           "blobSha": "375f1a8a7f07fa6121a68fad83d8f828b56b983f"
+        },
+        {
+          "id": "privacidade-v1.0-r06",
+          "version": "V1.0",
+          "revision": 6,
+          "changedAt": "2026-11-20T19:54:33Z",
+          "summary": "Atualização de recursos, IA, Asaas, suporte e tratamento de dados",
+          "path": "/legal-history/privacidade-v1.0-r06.html",
+          "sourceCommit": "c383c2b815d8918a12a2c1aff71878554d7bc9b1",
+          "blobSha": "b2028edac244526937e0ddd69ebb4160b3825dd5"
         }
       ]
     },
     "termos": {
       "title": "Termos de Uso",
-      "currentRevisionId": "termos-v1.0-r04",
+      "currentRevisionId": "termos-v1.0-r05",
       "revisions": [
         {
           "id": "termos-v1.0-r01",
@@ -103,6 +113,16 @@
           "path": "/legal-history/termos-v1.0-r04.html",
           "sourceCommit": "e4356ccec0f40ba0c54d1cbbdfd2914e4b1656fd",
           "blobSha": "37f11915ad9b7841c68e7ecfd6ff1234df5a0b13"
+        },
+        {
+          "id": "termos-v1.0-r05",
+          "version": "V1.0",
+          "revision": 5,
+          "changedAt": "2026-11-20T19:54:33Z",
+          "summary": "Atualização de planos, cobranças, Pep e encerramento da conta",
+          "path": "/legal-history/termos-v1.0-r05.html",
+          "sourceCommit": "c383c2b815d8918a12a2c1aff71878554d7bc9b1",
+          "blobSha": "91d6e0e760156c4482c773d4e459a7c4c46dc7e2"
         }
       ]
     }

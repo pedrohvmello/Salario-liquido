@@ -5,6 +5,29 @@ import {describe,expect,it} from 'vitest'
 function page(name:string){return readFileSync('public/'+name+'.html','utf8')}
 
 describe('Payrep public OAuth pages',()=>{
+ it('does not expose homologation-specific copy on current public pages',()=>{
+  for(const name of ['sobre','privacidade','termos']){
+   const html=page(name)
+   expect(html).not.toMatch(/\\bHML\\b|\\bSandbox\\b|homologação|pendente\\s+para\\s+PRD/i)
+  }
+ })
+ it('documents new capabilities and third-party financial/AI processing',()=>{
+  const about=page('sobre')
+  expect(about).toContain('Pep Ajuda e Pep pessoal')
+  expect(about).toContain('Banco de horas')
+  expect(about).toContain('Informe de IR')
+  expect(about).toContain('Recursos conforme o plano')
+  const privacy=page('privacidade')
+  expect(privacy).toContain('Cloudflare Workers AI')
+  expect(privacy).toContain('Asaas')
+  expect(privacy).toContain('notificações automáticas por e-mail')
+  expect(privacy).toContain('identificação formal')
+  const terms=page('termos')
+  expect(terms).toContain('Free, Basic e Full')
+  expect(terms).toContain('cancelamento integrado')
+  expect(terms).toContain('exclusão permanente automática não está disponível')
+ })
+
  it('reuses the existing horizontal Payrep logo across all public headers',()=>{
   for(const name of ['sobre','privacidade','termos']){
    const html=page(name)
@@ -16,11 +39,11 @@ describe('Payrep public OAuth pages',()=>{
   expect(logo).toContain('<svg')
  })
 
- it('shows only account access in the public header while keeping footer navigation',()=>{
+ it('links to login and retains legal navigation in public header/footer',()=>{
   for(const name of ['sobre','privacidade','termos']){
    const html=page(name)
    const header=html.split('<header class="public-header">')[1]?.split('</header>')[0] ?? ''
-   expect(header).toContain('class="nav-login" href="/"')
+   expect(header).toContain('class="nav-login" href="/login"')
    expect(header).not.toContain('>Sobre</a>')
    expect(header).not.toContain('>Privacidade</a>')
    const footer=html.split('<footer class="public-footer">')[1]?.split('</footer>')[0] ?? ''
@@ -33,7 +56,7 @@ describe('Payrep public OAuth pages',()=>{
   for(const name of ['privacidade','termos']){
    const html=page(name)
    expect(html).toContain('<strong>Versão:</strong> V1.0')
-   expect(html).toContain('<strong>Data da versão:</strong> 12 de novembro de 2026')
+   expect(html).toContain('<strong>Data da versão:</strong> 20 de novembro de 2026')
    expect(html).toContain('<strong>Aplicação:</strong> Payrep')
    const metadataStart=html.indexOf('class="legal-document-info"')
    const metadataEnd=html.indexOf('</div>',metadataStart)
@@ -41,17 +64,17 @@ describe('Payrep public OAuth pages',()=>{
    expect(metadataStart).toBeGreaterThan(-1)
    expect(metadataEnd).toBeGreaterThan(metadataStart)
    expect(firstSection).toBeGreaterThan(metadataEnd)
-   expect(html).toContain('(minuta em HML)')
+   expect(html).toContain('(revisão pré-lançamento)')
   }
   const css=readFileSync('public/public-pages.css','utf8')
   expect(css).toContain('.legal-document-info{margin-bottom:28px')
  })
- it('offers a public homepage that describes the app and links to privacy',()=>{
+ it('describes the About page and links to privacy',()=>{
   const html=page('sobre')
-  expect(html).toContain('Seu salário, com todos os detalhes.')
+  expect(html).toContain('O Payrep organiza o que acontece entre um salário e outro.')
   expect(html).toContain('href="/privacidade"')
-  expect(html).toContain('href="/"')
-  expect(html).toContain('Como funciona o acesso com Google')
+  expect(html).toContain('href="/login"')
+  expect(html).toContain('Como funciona o login com Google')
   expect(html).toContain('mailto:suporte@payrep.com.br')
   expect(html).not.toContain('id="root"')
  })
@@ -62,17 +85,17 @@ describe('Payrep public OAuth pages',()=>{
   expect(html).toContain('Supabase')
   expect(html).toContain('holerites')
   expect(html).toContain('exclusão')
-  expect(html).toContain('Minuta para revisão em HML')
+  expect(html).toContain('Documento V1.0 em revisão pré-lançamento.')
   expect(html).toContain('mailto:suporte@payrep.com.br')
   expect(html).toContain('Maileroo')
   expect(html).toContain('Google Gmail')
   expect(html).toContain('identificação formal do controlador')
  })
- it('provides linked terms while awaiting final legal contact',()=>{
+ it('provides linked terms while awaiting confirmed legal identity',()=>{
   const html=page('termos')
   expect(html).toContain('Termos de Uso')
   expect(html).toContain('href="/privacidade"')
-  expect(html).toContain('Minuta em revisão para HML.')
+  expect(html).toContain('Documento V1.0 em revisão pré-lançamento.')
   expect(html).toContain('mailto:suporte@payrep.com.br')
  })
  it('opens archived legal revisions without embedding a preview',()=>{
@@ -112,9 +135,11 @@ describe('Payrep public OAuth pages',()=>{
    expect(page(key)).toContain('<strong>Versão:</strong> V1.0')
   }
  })
- it('routes all three pages directly without changing the existing root login',()=>{
+ it('routes public pages directly without redirecting the original root login',()=>{
   const config=JSON.parse(readFileSync('vercel.json','utf8')) as {rewrites:Array<{source:string;destination:string}>}
   expect(config.rewrites).toEqual([
+   {source:'/home',destination:'/home.html'},
+   {source:'/login',destination:'/index.html'},
    {source:'/sobre',destination:'/sobre.html'},
    {source:'/privacidade',destination:'/privacidade.html'},
    {source:'/termos',destination:'/termos.html'}

@@ -8,3 +8,9 @@
 - Em `Administração > Configurações > Histórico dos documentos legais`, o administrador seleciona documento e revisão. A consulta exibe os metadados e fornece um link para abrir a cópia integral arquivada em nova aba, sem pré-visualização incorporada.
 - As páginas legais são documentos públicos, de modo que URLs dos arquivos arquivados também são acessíveis publicamente mesmo que a interface de pesquisa seja exibida apenas a administradores. Para restringir integralmente os arquivos históricos, será necessária entrega autenticada no servidor.
 - Depois da abertura pública, não alterar as versões divulgadas retroativamente. Registrar uma nova versão, preservando os snapshots da V1.0; alterar `launchState` apenas mediante autorização explícita de lançamento.
+
+## Revisões de 20/11/2026
+
+- Política de Privacidade V1.0 revisão 06 e Termos de Uso V1.0 revisão 05 registram as alterações relativas a Pep, processamento externo de IA, planos e pagamentos Asaas, suporte por e-mail e exclusão de dados.
+- Os HTMLs arquivados anteriores permanecem intocados, inclusive terminologia histórica. O conteúdo ao vivo das páginas públicas não deve exibir referências internas a HML/PRD.
+- A identidade formal do controlador e os critérios detalhados de retenção continuam pendentes; a atualização de redação não substitui a validação jurídica pré-lançamento.
