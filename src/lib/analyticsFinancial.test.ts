@@ -78,6 +78,17 @@ describe('Multi-ring composition reconciles to payroll gross, with no duplicate 
   expect(result.inner.find(s=>s.key==='others')?.value).toBe(50)
   expect(result.warnings.join(' ')).toContain('ESPP')
  })
+ it('excludes official-only years from gross-based rings without hiding the official series',()=>{
+  const rows=[annual({year:'2025'}),annual({
+   year:'2024',payrollGross:null,net:null,irrf:500,inss:350,pension:250,
+   taxableOfficial:900,months:0
+  })]
+  const donut=financialComposition(rows,none)
+  expect(donut.gross).toBe(1000)
+  expect(total(donut.inner)).toBe(1000)
+  expect(donut.warnings.join(' ')).toContain('2024')
+  expect(rows[1].taxableOfficial).toBe(900)
+ })
  it('never divides by zero for percentage tooltips',()=>{
   expect(percentOfGross(100,1000)).toBe('10,0%')
   expect(percentOfGross(100,0)).toBe('—')
