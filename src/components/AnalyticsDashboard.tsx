@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
 import {Bar,BarChart,CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
-import {FileText,Info,ChevronDown,CheckCircle2} from 'lucide-react'
+import {FileText,Info,ChevronDown} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
 import type {SavedStatement} from '../lib/data'
@@ -121,17 +121,15 @@ export function AnalyticsDashboard({
  const hasComposition=composition.gross!==null&&composition.inner.length>0
  const evolutionRows=year==='all'
   ?annualRows.map(row=>({
-    label:row.year,
-    bruto:row.payrollGross,tributavel:row.taxableOfficial,
+    label:row.year,bruto:row.payrollGross,
     liquido:row.net,inss:row.inss,irrf:row.irrf,
     monthlyStatements:row.months
    }))
-  :comparisonRows.map(row=>({...row,tributavel:null}))
- const sourceDifferences=annualRows.filter(r=>r.taxableOfficial!==null&&r.payrollGross!==null)
+  :comparisonRows
  const documentsCovered=composition.coveredMonths
  const legendGroups:readonly {title:string;segments:ChartSegment[]}[]=[
   {title:'Base da composição',segments:composition.gross===null?[]:[{
-   key:'gross',name:'Proventos brutos (folha)',value:composition.gross,fill:financialColors.gross
+   key:'gross',name:'Proventos brutos',value:composition.gross,fill:financialColors.gross
   }]},
   {title:'Distribuição do bruto',segments:composition.inner},
   {title:'Síntese',segments:composition.outer},
@@ -170,14 +168,15 @@ export function AnalyticsDashboard({
 
   <div className="analytics-main-grid">
    <Panel title="Composição dos proventos">
-    {hasComposition?<div className="analytics-donut-layout analytics-multiring-layout">
-     <div className="analytics-donut-chart analytics-multiring-chart">
+    {hasComposition?<div className="analytics-composition-layout">
+     <div className="analytics-composition-chart" role="img"
+      aria-label="Gráfico concêntrico com proventos brutos no centro, distribuição por descontos e líquido no anel interno e agrupamentos no anel externo">
       <ResponsiveContainer width="100%" height="100%">
        <PieChart>
-        {showPie([{key:'gross',name:'Proventos brutos (folha)',value:composition.gross!,fill:financialColors.gross}],0,48)}
-        {showPie(composition.inner,58,86)}
-        {showPie(composition.outer,96,116)}
-        {composition.origin.length>0&&showPie(composition.origin,122,139)}
+        {showPie([{key:'gross',name:'Proventos brutos',value:composition.gross!,fill:financialColors.gross}],0,44)}
+        {showPie(composition.inner,55,81)}
+        {showPie(composition.outer,91,110)}
+        {composition.origin.length>0&&showPie(composition.origin,118,130)}
         <Tooltip content={({active,payload})=>{
          if(!active||!payload?.length)return null
          const item=payload[0]
@@ -191,15 +190,20 @@ export function AnalyticsDashboard({
        </PieChart>
       </ResponsiveContainer>
      </div>
-     <div className="analytics-donut-legend analytics-multiring-legend">
-      {legendGroups.map(group=>group.segments.length>0&&<div className="analytics-ring-group" key={group.title}>
-       <small>{group.title}</small>
-       {group.segments.map(entry=><div className={'analytics-ring-item'+(hoveredSegment===entry.key?' is-highlighted':'')}
-        key={entry.key} onMouseEnter={()=>setHoveredSegment(entry.key)} onMouseLeave={()=>setHoveredSegment(null)}>
-        <span className="analytics-color-dot" style={{backgroundColor:entry.fill}}/>
-        <span>{entry.name}</span><strong>{valueOrDash(entry.value)}</strong>
-       </div>)}
-      </div>)}
+     <div className="analytics-composition-legend" aria-label="Valores da composição dos proventos">
+      {legendGroups.map(group=>group.segments.length>0&&
+       <section className="analytics-composition-group" key={group.title}>
+        <h3>{group.title}</h3>
+        {group.segments.map(entry=><div
+         className={'analytics-composition-row'+(hoveredSegment===entry.key?' is-highlighted':'')}
+         key={entry.key}
+         onMouseEnter={()=>setHoveredSegment(entry.key)}
+         onMouseLeave={()=>setHoveredSegment(null)}>
+         <span className="analytics-color-dot" style={{backgroundColor:entry.fill}}/>
+         <span className="analytics-composition-label">{entry.name}</span>
+         <strong className="analytics-composition-value">{valueOrDash(entry.value)}</strong>
+        </div>)}
+       </section>)}
      </div>
     </div>:<Empty label="A composição ainda não pode ser conciliada com os holerites disponíveis."/>}
     <div className="analytics-ring-options" aria-label="Detalhes opcionais da composição">
@@ -219,10 +223,10 @@ export function AnalyticsDashboard({
     </div>}
     {composition.warnings.map((warning,i)=><div className="detail-hint" key={i}><Info size={16}/>{warning}</div>)}
     {officialError&&<div className="detail-hint"><Info size={16}/>Os valores oficiais não puderam ser consultados. Exibindo somente dados dos holerites.</div>}
-    <div className="detail-hint"><Info size={16}/>Percentuais calculados sempre sobre o bruto dos holerites mensais ({documentsCovered} folha(s)). Passe o mouse sobre cada anel para destacar a parcela e visualizar sua porcentagem. Campos não identificados ficam no residual, sem estimativa automática.</div>
+    <div className="detail-hint"><Info size={16}/>Os anéis representam os proventos brutos dos holerites e totalizadoras ({documentsCovered} folha(s) mensais identificadas). Passe o mouse para ver o percentual de cada parcela. Valores não identificados permanecem como ajustes, sem estimativas.</div>
    </Panel>
    <Panel title={year==='all'?'Evolução anual da remuneração':'Evolução mensal da remuneração'}>
-    {evolutionRows.some(row=>row.bruto!==null||row.liquido!==null||row.tributavel!==null)?
+    {evolutionRows.some(row=>row.bruto!==null||row.liquido!==null)?
      <div className="chart analytics-evolution-chart"><ResponsiveContainer width="100%" height="100%">
       <LineChart data={evolutionRows} margin={{top:12,right:8,left:0,bottom:5}}>
        <CartesianGrid stroke="#eee3fa" vertical={false}/>
@@ -230,27 +234,18 @@ export function AnalyticsDashboard({
        <YAxis width={77} tick={{fontSize:11}} tickFormatter={formatMoneyAxisTick}/>
        <Tooltip formatter={fmt} wrapperStyle={{pointerEvents:"none"}}/>
        <Legend wrapperStyle={{fontSize:11}}/>
-       <Line type="monotone" dataKey="bruto" name="Proventos brutos (holerites)" stroke={color.purple}
+       <Line type="monotone" dataKey="bruto" name="Proventos brutos" stroke={color.purple}
         strokeWidth={2.4} dot={{r:3}} connectNulls={false}/>
-       {year==='all'&&<Line type="monotone" dataKey="tributavel" name="Rendimentos tributáveis (Informe IR)"
-        stroke={financialColors.trienio} strokeWidth={2.5} strokeDasharray="6 4" dot={{r:4}} connectNulls={false}/>}
        <Line type="monotone" dataKey="liquido" name="Líquido recebido" stroke={color.green}
         strokeWidth={2.4} dot={{r:3}} connectNulls={false}/>
-       <Line type="monotone" dataKey="inss" name={year==='all'?'INSS anual (informe quando disponível)':'INSS mensal'}
+       <Line type="monotone" dataKey="inss" name="INSS"
         stroke={color.blue} strokeWidth={2} dot={{r:2}} connectNulls={false}/>
-       <Line type="monotone" dataKey="irrf" name={year==='all'?'IRRF anual (informe quando disponível)':'IRRF mensal'}
+       <Line type="monotone" dataKey="irrf" name="IRRF"
         stroke={color.red} strokeWidth={2} dot={{r:2}} connectNulls={false}/>
       </LineChart>
      </ResponsiveContainer></div>:<Empty label="Importe holerites para acompanhar os rendimentos."/>}
-    {year==='all'&&sourceDifferences.length>0&&<div className="analytics-tax-comparison">
-     <div><CheckCircle2 size={16}/> Comparação com Informes IR conferidos</div>
-     {sourceDifferences.map(r=><p key={r.year}>
-      <strong>{r.year}:</strong> bruto da folha {brl(r.payrollGross!)} · tributável do informe {brl(r.taxableOfficial!)}
-      {' '}· diferença {brl(Math.round((r.payrollGross!-r.taxableOfficial!)*100)/100)}
-     </p>)}
-    </div>}
     <div className="detail-hint"><Info size={16}/>{year==='all'
-     ?'Proventos brutos são créditos dos holerites. A linha tracejada representa a base tributável anual do Informe IR conferido, que não é o mesmo conceito. Para IRRF e INSS, prevalece o informe quando houver campo confirmado.'
+     ?'Proventos brutos incluem os créditos dos holerites e pagamentos complementares. Rendimentos tributáveis são apresentados somente em Informe IR. Para INSS e IRRF, valores confirmados no informe têm prioridade quando disponíveis.'
      :'As linhas representam competências mensais dos holerites. O Informe IR não distribui totais oficiais por mês, por isso não é usado para preencher lacunas mensais.'} 13º e PPR permanecem separados para evitar dupla contagem.</div>
    </Panel>
   </div>
