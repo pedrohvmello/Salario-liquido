@@ -11,7 +11,6 @@ import {BasePicker} from './components/BasePicker'
 import {PayrepSelect} from './components/PayrepSelect'
 import {PayrepDatePicker} from './components/PayrepDatePicker'
 import {FortnightTimesheet} from './components/FortnightTimesheet'
-import {UserBankProfileSettings} from './components/UserBankProfileSettings'
 import {todayInSaoPaulo,fortnightDisplay,shiftFortnight} from './lib/fortnight'
 import {FortnightPeriodPicker} from './components/FortnightPeriodPicker'
 import {TaxPreview} from './components/TaxPreview'
@@ -670,7 +669,7 @@ export default function App(){
     {section==='help'&&user&&<SupportPage user={user}/>}
     {section==='pep-personal'&&user&&<PersonalPepPage
      onBack={()=>setSection('overview')} onSubscribe={()=>setSection('subscription')}/>}
-     {section==='definitions'&&<div className="stack"><UserBankProfileSettings onChanged={()=>refresh()}/><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel></div>}
+     {section==='definitions'&&<div className="stack"><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel></div>}
    </div>
  )
  return <div className={'app'+(sidebarCollapsed?' app--sidebar-collapsed':'')}>
