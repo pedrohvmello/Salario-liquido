@@ -5,7 +5,7 @@ import {PayslipPdfViewer} from './PayslipPdfViewer'
 import {PayrepSelect} from './PayrepSelect'
 
 const typeLabels:Record<SavedStatement['document_type'],string>={
- monthly:'Holerite mensal',thirteenth:'13º salário',vacation:'Férias',ppr:'PPR'
+ monthly:'Holerite mensal',thirteenth:'13º salário',vacation:'Férias',ppr:'PPR',adjustment:'Folha complementar'
 }
 type Viewer={blob:Blob;title:string;page:number;filename:string}
 type PreparedPdf={id:string;blob:Blob;filename:string}
@@ -189,6 +189,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
       <option value="thirteenth">13º salário</option>
       <option value="vacation">Férias</option>
       <option value="ppr">PPR</option>
+      <option value="adjustment">Folhas complementares</option>
      </PayrepSelect>
     </div>
     <span className="payslip-doc-count">{filtered.length} documento(s) exibido(s)</span>
@@ -220,10 +221,15 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
      onKeyDown={e=>{if(e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();if(!batchBusy&&!busyId)toggleRow(s.id,!selectedIds.includes(s.id))}}}>
      <div className="payslip-doc-icon"><FileText size={24}/></div>
      <div className="payslip-doc-details">
-      <strong>{typeLabels[s.document_type]} · {periodLabel(s.period)}</strong>
+      <strong>{s.document_type==='adjustment'?
+        s.payroll_subtype==='totalizer'?'Folha totalizadora':s.payroll_subtype==='rectification'?'Folha retificadora':'Folha diferença'
+        :typeLabels[s.document_type]} · {periodLabel(s.period)}</strong>
+       {s.document_type==='adjustment'&&<small className="payslip-duplicate-badge">{s.payroll_subtype==='totalizer'
+        ?'Pagamento complementar, contado uma vez': 'Referência para conciliação, sem novo pagamento'}</small>}
       {s.duplicate_of&&<small className="payslip-duplicate-badge">Duplicado · não contabilizado nos valores salariais</small>}
       <small title={s.source_file}>{s.source_file} · {s.storage_key.endsWith('-p'+s.source_page+'.pdf')?'PDF individual':'página '+s.source_page+' do PDF original'}</small>
       {s.payment_date&&<small>Pagamento: {s.payment_date.split('-').reverse().join('/')}</small>}
+      {s.document_type==='adjustment'&&s.source_periods?.length>0&&<small>Origem: {s.source_periods.join(', ')}</small>}
      </div>
      <div className="payslip-doc-actions" onClick={e=>e.stopPropagation()}>
       <button type="button" className="secondary" disabled={!!busyId} onClick={()=>void openDocument(s)} aria-label={'Visualizar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)} title="Visualizar PDF"><Eye size={16}/><span>Ver</span></button>
