@@ -151,19 +151,6 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível validar o ano do informe.')}
   finally{setBusy(false)}
  }
- async function requestReprocess(){
-  if(!report||busy||!canUpload)return
-  setBusy(true);setError('');setMessage('')
-  try{
-   const blob=await downloadIncomeTaxReport(report)
-   const file=new File([blob],report.original_filename||('informe-'+year+'.pdf'),{type:'application/pdf'})
-   const analysis=await extractIncomeTaxPdf(file)
-   if(analysis.detectedYear!==null&&analysis.detectedYear!==year)
-    throw Error('O ano do PDF não corresponde ao ano do informe salvo. Não foi feita nenhuma alteração.')
-   setPending({file,analysis,year,existing:report,reprocessOnly:true})
-  }catch(e){setError(e instanceof Error?e.message:'Não foi possível reprocessar o documento.')}
-  finally{setBusy(false)}
- }
  async function showPdf(download:boolean){
   if(!report||busy)return
   setBusy(true);setError('')
@@ -252,12 +239,14 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      }}/>
    </div>
   </div>
-  {viewingYears.length>0&&<nav className="ir-report-years" aria-label="Informes importados por ano-calendário">
-   <span>Informes disponíveis</span>
-   {viewingYears.map(y=><button key={y} type="button"
-    className={'ir-year-button'+(y===year?' is-active':'')} aria-current={y===year?'true':undefined}
-    onClick={()=>{if(busy||saving)return;setError('');setMessage('');setYear(y)}}>{y}</button>)}
-  </nav>}
+  {viewingYears.length>0&&<div className="ir-year-filter">
+   <label htmlFor="ir-year-selector">Ano-calendário</label>
+   <PayrepSelect id="ir-year-selector" value={String(year)} title="Selecionar informe por ano"
+    aria-label="Ano-calendário do informe" disabled={busy||saving}
+    onChange={value=>{setError('');setMessage('');setYear(Number(value))}}>
+    {viewingYears.map(y=><option key={y} value={y}>{y}</option>)}
+   </PayrepSelect>
+  </div>}
   {message&&<div className="notice success" role="status"><CheckCircle2 size={17}/>{message}</div>}
   {error&&<div className="notice danger" role="alert"><AlertTriangle size={17}/>{error}</div>}
   {!canUpload&&<div className="notice subtle-notice"><Info size={17}/>
@@ -286,10 +275,8 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      <div className="ir-attachment-actions">
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(false)}><Eye size={15}/> Ver PDF</button>
       <button type="button" className="secondary" disabled={busy} onClick={()=>void showPdf(true)}><Download size={15}/> Baixar</button>
-      {canUpload&&<button type="button" className="secondary" disabled={busy}
-       onClick={()=>void requestReprocess()}><FileCheck2 size={15}/> Reprocessar dados</button>}
-      {canUpload&&<button type="button" className="secondary" disabled={busy}
-       onClick={()=>fileRef.current?.click()}><FileUp size={15}/> Substituir</button>}
+
+
       {canUpload&&<button type="button" className="secondary ir-danger-action" disabled={busy}
        onClick={()=>setDeleteConfirm(true)}><Trash2 size={15}/> Excluir</button>}
      </div>
@@ -301,7 +288,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
       <div className="ir-report-paper-identifiers">
        <div><small>Ano-calendário</small><strong>{year}</strong></div>
        <div><small>Exercício</small><strong>{year+1}</strong></div>
-       <div className="ir-report-source">
+       <div className={'ir-report-source'+(sourceConfirmed?' ir-report-source--confirmed':'')}>
         {sourceConfirmed?<><ShieldCheck size={16}/><span>Conferido · fonte oficial</span></>:
          <><Info size={16}/><span>Conferência pendente</span></>}
        </div>
