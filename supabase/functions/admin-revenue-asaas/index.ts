@@ -3,8 +3,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 // Read-only Payrep HML revenue time series. Only paid Asaas checkouts with a
 // verified SUBSCRIPTION_CREATED event are included, even after cancellation.
 // No customer details, raw payments, keys, or webhook payloads leave the server.
-const origin='https://payrep-hml.vercel.app'
-const project='nrpqcrhschztdwbfgnyo'
+const origin='https://payrep.com.br'
+const project='klvurrcmfrwetmynscjc'
 const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Access-Control-Allow-Origin':origin,
@@ -29,7 +29,7 @@ const zero=():BucketValues=>({grossCents:0,netCents:0,paymentCount:0,missingNetC
 const monthNames=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 const maxRows=5000
 const pageSize=100
-const api='https://api-sandbox.asaas.com/v3/'
+const api='https://api.asaas.com/v3/'
 async function getPayments(key:string,from:string,to:string){
  const payments:Record<string,unknown>[]=[]
  for(let offset=0;offset<maxRows;offset+=pageSize){
@@ -38,7 +38,7 @@ async function getPayments(key:string,from:string,to:string){
    'paymentDate[ge]':from,'paymentDate[le]':to
   })
   const response=await fetch(api+'payments?'+params.toString(),{
-   headers:{access_token:key,'User-Agent':'Payrep-HML/1.0',Accept:'application/json'},
+   headers:{access_token:key,'User-Agent':'Payrep-PRD/1.0',Accept:'application/json'},
    signal:AbortSignal.timeout(18000)
   })
   if(!response.ok)throw Error('Asaas HTTP '+response.status)
@@ -57,9 +57,9 @@ Deno.serve(async(req:Request)=>{
  const url=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
- const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
+ const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(url!=='https://'+project+'.supabase.co'||!anon||!service||!key
-  ||Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true')
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
   return respond({error:'Relatório de faturamento não configurado no HML.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return respond({error:'Faça login novamente.'},401)
@@ -158,7 +158,7 @@ Deno.serve(async(req:Request)=>{
    else entry.netCents+=net
   }
   return respond({
-   environment:'sandbox',source:'asaas',currency:'BRL',
+   environment:'production',source:'asaas',currency:'BRL',
    view,year:view==='monthly'?year:null,firstYear,lastYear,
    fetchedAt:new Date().toISOString(),
    buckets,ignoredOutsidePayrep,invalidRows,
