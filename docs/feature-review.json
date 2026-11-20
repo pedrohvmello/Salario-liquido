@@ -10,7 +10,7 @@
     "pepAjuda": "Mesma fonte de FAQ; contexto filtrado para poupar Neurons; contador oculto só na tela; termos internos de ambientes removidos da base."
   },
   "sourceTrees": {
-    "src": "9e54c2f69ac86f39a54d693838c09131877c1288",
+    "src": "6762ded9c226355090a2b6342c6feb7cfb60b1bd",
     "supabase/functions": "2f9d7b0729ad9b017fa30ee740f196a15df0a985",
     "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
   }
