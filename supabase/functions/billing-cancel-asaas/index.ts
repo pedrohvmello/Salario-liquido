@@ -22,7 +22,7 @@ Deno.serve(async(req:Request)=>{
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
  const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(projectUrl!=='https://'+ref+'.supabase.co'||!anon||!service||!key
-  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||Deno.env.get('PAYREP_ASAAS_LIVE_RELEASED')!=='true')
   return reply({error:'Cancelamento indisponível em homologação.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return reply({error:'Sessão inválida.'},401)
