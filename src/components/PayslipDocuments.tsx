@@ -229,7 +229,7 @@ export function PayslipDocuments({statements,onRemoved}:{statements:SavedStateme
       {s.duplicate_of&&<small className="payslip-duplicate-badge">Duplicado · não contabilizado nos valores salariais</small>}
       <small title={s.source_file}>{s.source_file} · {s.storage_key.endsWith('-p'+s.source_page+'.pdf')?'PDF individual':'página '+s.source_page+' do PDF original'}</small>
       {s.payment_date&&<small>Pagamento: {s.payment_date.split('-').reverse().join('/')}</small>}
-      {s.document_type==='adjustment'&&s.source_periods?.length>0&&<small>Origem: {s.source_periods.join(', ')}</small>}
+      {s.document_type==='adjustment'&&(s.source_periods?.length??0)>0&&<small>Origem: {(s.source_periods||[]).join(', ')}</small>}
      </div>
      <div className="payslip-doc-actions" onClick={e=>e.stopPropagation()}>
       <button type="button" className="secondary" disabled={!!busyId} onClick={()=>void openDocument(s)} aria-label={'Visualizar '+typeLabels[s.document_type]+' de '+periodLabel(s.period)} title="Visualizar PDF"><Eye size={16}/><span>Ver</span></button>
