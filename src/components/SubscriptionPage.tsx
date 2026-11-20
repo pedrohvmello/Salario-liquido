@@ -55,7 +55,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [reconciling,setReconciling]=useState(false)
  const [reconciliationMessage,setReconciliationMessage]=useState('')
  const reconciliationText=(result:BillingReconciliationResult)=>{
-  if(result.state==='active')return 'A cobrança foi confirmada pelo Asaas e a assinatura está ativa no Payrep HML.'
+  if(result.state==='active')return 'A cobrança foi confirmada pelo Asaas e a assinatura está ativa no Payrep.'
   if(result.state==='pending')return 'O checkout foi pago. A cobrança individual ainda está como '+(result.providerPaymentStatus||'pendente')+' no Asaas.'
   if(result.state==='needs_review')return 'O checkout foi pago, mas a assinatura ou cobrança precisa de conciliação antes de liberar benefícios.'
   if(result.state==='provider_unavailable')return 'Não foi possível consultar o Asaas agora. Nenhum benefício foi liberado.'
@@ -166,7 +166,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    const billing=await loadMyBilling()
    setData(billing)
    setCancelConfirm(false)
-   setCancelMessage('A renovação automática foi interrompida no Asaas Sandbox. O acesso permanece até a data de fim do período pago. Cobranças já geradas não são canceladas por esta operação.')
+   setCancelMessage('A renovação automática foi interrompida no Asaas. O acesso permanece até a data de fim do período pago. Cobranças já geradas não são canceladas por esta operação.')
   }catch(e){setCancelMessage(e instanceof Error?e.message:'Falha ao cancelar a renovação.')}
   finally{setCancelBusy(false)}
  }
@@ -245,7 +245,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       </>}
      {cancelMessage&&<p role="status" className="subtle">{cancelMessage}</p>}
     </div>}
-    <div className="detail-hint"><Info size={16}/>Integração Asaas exclusivamente em homologação. Não há movimentação financeira real. A interrupção da renovação não estorna pagamentos nem remove cobranças já emitidas.</div>
+    <div className="detail-hint"><Info size={16}/>A assinatura será cobrada de forma recorrente quando a contratação estiver disponível. O cancelamento da renovação não estorna valores pagos nem exclui cobranças já emitidas.</div>
    </section>
    {paidCheckoutPending&&<section className="panel" aria-labelledby="subscription-pending-title">
     <div className="panel-heading">
@@ -253,7 +253,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      <span className="pill">Em andamento</span>
     </div>
     <p role="status"><strong>Status: Aguardando confirmação do pagamento</strong></p>
-    <p className="subtle">O checkout foi concluído no Asaas Sandbox. O plano Free permanece ativo até a conciliação, sem necessidade de realizar outra compra.</p>
+    <p className="subtle">O checkout foi concluído no Asaas. O plano Free permanece ativo até a conciliação, sem necessidade de realizar outra compra.</p>
     {reconciliationMessage&&<p className="subtle" role="status">{reconciliationMessage}</p>}
     <button type="button" className="secondary" onClick={()=>void checkPayment()} disabled={reconciling}>
      {reconciling?'Verificando cobrança...':'Verificar pagamento no Asaas'}
@@ -266,7 +266,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      return <div key={code} className={'subscription-plan subscription-plan-with-features '+(access?.effectivePlan===code?'subscription-plan-active':'')}>
       <span>{names[code]}</span>
       <strong>{code==='free'?'Gratuito':plan?.monthly_price_cents==null?'Preço a definir':currency(plan.monthly_price_cents,plan.currency)}</strong>
-      <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Sandbox habilitado':'Em preparação'}</small>
+      <small>{access?.effectivePlan===code?(access.promoApplied?'Promoção ativa':access.trialActive?'Teste Full ativo':'Plano atual'):pendingCheckout?.plan_code===code?'Assinatura em andamento · aguardando confirmação':plan?.available_for_checkout&&plan.monthly_price_cents!=null?'Contratação disponível':'Em preparação'}</small>
       <div className="subscription-plan-features">
        <span className="subscription-plan-features-heading">Funcionalidades incluídas</span>
        <ul aria-label={'Funcionalidades do plano '+names[code]}>
@@ -280,7 +280,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     })}</div>
    </section>}
    {checkoutHistory.length>0&&<section className="panel">
-    <div className="panel-heading"><h2>Checkouts de homologação</h2></div>
+    <div className="panel-heading"><h2>Checkouts de assinatura</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
     <div className="table-scroll"><table><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
      <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':c.status}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
