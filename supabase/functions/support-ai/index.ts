@@ -5,7 +5,7 @@ import {runPepAgent} from './pepAgentRuntime.ts'
 
 // HML-only Payrep assistant; personal financial data stays scoped to the authenticated user.
 const cors={
- 'Access-Control-Allow-Origin':'https://payrep-hml.vercel.app',
+ 'Access-Control-Allow-Origin':'https://payrep.com.br',
  'Access-Control-Allow-Methods':'POST, OPTIONS',
  'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type',
  'Vary':'Origin',
@@ -24,13 +24,13 @@ Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors})
  if(req.method!=='POST')return reply({error:'method_not_allowed'},405)
  const origin=req.headers.get('origin')
- if(origin&&origin!=='https://payrep-hml.vercel.app')return reply({error:'origin_not_allowed'},403)
+ if(origin&&origin!=='https://payrep.com.br')return reply({error:'origin_not_allowed'},403)
  const size=Number(req.headers.get('content-length')||0)
  if(size>6500)return reply({error:'payload_too_large'},413)
 
  const apiUrl=Deno.env.get('SUPABASE_URL')
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
- if(!apiUrl||!serviceKey||!apiUrl.includes('nrpqcrhschztdwbfgnyo.supabase.co'))
+ if(!apiUrl||!serviceKey||!apiUrl.includes('klvurrcmfrwetmynscjc.supabase.co'))
   return reply({error:'environment_unavailable'},503)
 
  const authHeader=req.headers.get('authorization')||''
