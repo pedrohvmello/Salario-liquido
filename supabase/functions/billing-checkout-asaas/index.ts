@@ -1,9 +1,9 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
-// HML only. Hosted recurring checkout (Asaas Sandbox). No card data reaches Payrep.
+// Production-capable hosted recurring checkout. No card data reaches Payrep.
 // Fail closed until API key, test-mode flag, and saleable plan prices exist.
-const origin='https://payrep-hml.vercel.app'
-const projectRef='nrpqcrhschztdwbfgnyo'
+const origin='https://payrep.com.br'
+const projectRef='klvurrcmfrwetmynscjc'
 const headers={
  'Access-Control-Allow-Origin':origin,
  'Access-Control-Allow-Headers':'authorization,apikey,x-client-info,content-type',
@@ -55,18 +55,11 @@ function checkoutCustomerData(profile:PayerProfile|null,email:string|undefined,c
  // The CPF is read separately from private.payrep_billing_identity.
  return data
 }
-// Use the exact hosted checkout URL returned by Asaas Sandbox, never a manually built production URL.
-const sandboxCheckoutUrl=(candidate:unknown,id:string):string|null=>{
- if(typeof candidate!=='string'||candidate.length>400)return null
- try{
-  const url=new URL(candidate)
-  if(url.protocol!=='https:'||url.hostname!=='sandbox.asaas.com'
-   ||url.username||url.password||url.search||url.hash)return null
-  const parts=url.pathname.split('/').filter(Boolean)
-  const tail=parts.length===4&&/^[0-9]{3}$/.test(parts[0])?parts.slice(1):parts
-  if(tail.length!==3||tail[0]!=='checkoutSession'||tail[1]!=='show'||tail[2]!==id)return null
-  return url.toString()
- }catch{return null}
+// Construct only the documented Asaas Production checkout destination.
+// Never redirect to URLs supplied in the request or an untrusted provider field.
+const productionCheckoutUrl=(_candidate:unknown,id:string):string|null=>{
+ if(!/^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/.test(id))return null
+ return 'https://asaas.com/checkoutSession/show?id='+id
 }
 const reply=(body:Record<string,unknown>,status=200)=>
  new Response(JSON.stringify(body),{status,headers})
@@ -78,10 +71,10 @@ Deno.serve(async(req:Request)=>{
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
  if(url!==('https://'+projectRef+'.supabase.co')||!anon||!service)
-  return reply({error:'Configuração de homologação indisponível.'},503)
- const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
- if(Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true'||!key)
-  return reply({error:'Checkout de teste ainda não habilitado. Configure o Sandbox Asaas no Supabase HML.'},503)
+  return reply({error:'Configuração de produção indisponível.'},503)
+ const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
+ if(Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||!key)
+  return reply({error:'Checkout de produção indisponível até a conclusão da configuração e homologação financeira.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return reply({error:'Faça login novamente.'},401)
  let plan=''
@@ -132,8 +125,8 @@ Deno.serve(async(req:Request)=>{
  if(knownCustomer){
   let savedCustomer:Record<string,unknown>|null=null
   try{
-   const response=await fetch('https://api-sandbox.asaas.com/v3/customers/'+encodeURIComponent(knownCustomer),{
-    method:'GET',headers:{access_token:key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'},
+   const response=await fetch('https://api.asaas.com/v3/customers/'+encodeURIComponent(knownCustomer),{
+    method:'GET',headers:{access_token:key,'User-Agent':'Payrep-PRD/1.0','Accept':'application/json'},
     signal:AbortSignal.timeout(12000)
    })
    if(response.ok)savedCustomer=await response.json()
@@ -160,9 +153,9 @@ Deno.serve(async(req:Request)=>{
    .eq('provider_checkout_id',existing.provider_checkout_id)
    .order('received_at',{ascending:false}).limit(1).maybeSingle()
   if(eventError)return reply({error:'Checkout localizado, mas a URL ainda não pôde ser verificada.'},503)
-  const resumedLink=sandboxCheckoutUrl(event?.payload?.checkout?.link,existing.provider_checkout_id)
+  const resumedLink=productionCheckoutUrl(event?.payload?.checkout?.link,existing.provider_checkout_id)
   if(!resumedLink)return reply({error:'Checkout existente, mas o link do Asaas ainda não foi recebido ou validado. Não gere uma nova cobrança.'},409)
-  return reply({checkoutUrl:resumedLink,checkoutId:existing.id,mode:'sandbox',plan,intentStatus:'checkout_created',resumed:true})
+  return reply({checkoutUrl:resumedLink,checkoutId:existing.id,mode:'production',plan,intentStatus:'checkout_created',resumed:true})
  }
  const {data:intent,error:intentError}=await userClient.rpc('begin_my_billing_checkout',{p_plan:plan})
  if(intentError)return reply({error:intentError.message},409)
@@ -180,7 +173,7 @@ Deno.serve(async(req:Request)=>{
    expiredUrl:origin+'/?billing=expired'
   },
   items:[{name:'Payrep '+(plan==='basic'?'Basic':'Full'),
-   description:'Assinatura mensal de teste. Sandbox sem movimentação financeira real.',
+   description:'Assinatura mensal Payrep. Cobrança real recorrente após confirmação no Asaas.',
    quantity:1,value:intent.amountCents/100}],
   subscription:{cycle:'MONTHLY',nextDueDate},
   // Asaas supports either an existing linked customer OR prefilled payer data.
@@ -190,9 +183,9 @@ Deno.serve(async(req:Request)=>{
  }
  let response:Response
  try{
-  response=await fetch('https://api-sandbox.asaas.com/v3/checkouts',{
+  response=await fetch('https://api.asaas.com/v3/checkouts',{
    method:'POST',headers:{
-    'access_token':key,'User-Agent':'Payrep-HML/1.0',
+    'access_token':key,'User-Agent':'Payrep-PRD/1.0',
     'Content-Type':'application/json','Accept':'application/json'},
    body:JSON.stringify(body),signal:AbortSignal.timeout(60000)
   })
@@ -219,7 +212,7 @@ Deno.serve(async(req:Request)=>{
    if(forbidden.some(word=>normalized.includes(word))||/[0-9]{6,}/.test(description))return null
    return description
   }).filter((x:string|null):x is string=>x!==null)
-  console.error('asaas_sandbox_checkout_rejected',JSON.stringify({
+  console.error('asaas_production_checkout_rejected',JSON.stringify({
    status:response.status,codes,descriptions,parseable:result!==null
   }))
   if(response.status>=400&&response.status<500){
@@ -227,11 +220,11 @@ Deno.serve(async(req:Request)=>{
     .eq('id',intent.id).eq('user_id',user.id).eq('status','pending')
   }
   const reason=response.status===401
-   ?'Verifique se a chave de API corresponde ao Sandbox e possui permissão para criar checkouts.'
+   ?'Verifique se a chave de API corresponde ao ambiente de produção e possui permissão para criar checkouts.'
    :response.status===403
-   ?'O Asaas negou a operação. Verifique as permissões da conta Sandbox.'
+   ?'O Asaas negou a operação. Verifique as permissões da conta de produção.'
    :descriptions.length?descriptions.join(' '):'Consulte o suporte com o status informado.'
-  return reply({error:'Asaas Sandbox (HTTP '+response.status+'): '+reason,
+  return reply({error:'Asaas (HTTP '+response.status+'): '+reason,
    providerStatus:response.status,providerErrorCodes:codes},502)
  }
  if(!/^[0-9a-zA-Z_-]{8,120}$/.test(result.id))
@@ -241,8 +234,8 @@ Deno.serve(async(req:Request)=>{
   .eq('id',intent.id).eq('user_id',user.id).eq('status','pending')
   .select('id').maybeSingle()
  if(saveError||!saved)return reply({error:'Checkout criado no provedor, mas a vinculação precisa de revisão pelo suporte. Não repita o pagamento.'},503)
- const providerLink=sandboxCheckoutUrl(result.link,result.id)
- if(!providerLink)return reply({error:'Checkout criado no Asaas, mas a URL devolvida não passou na validação do Sandbox. Não repita a cobrança; contate o suporte.',checkoutId:intent.id},503)
+ const providerLink=productionCheckoutUrl(result.link,result.id)
+ if(!providerLink)return reply({error:'Checkout criado no Asaas, mas a URL do checkout não passou na validação de produção. Não repita a cobrança; contate o suporte.',checkoutId:intent.id},503)
  return reply({checkoutUrl:providerLink,
-  checkoutId:intent.id,mode:'sandbox',plan,intentStatus:'checkout_created'})
+  checkoutId:intent.id,mode:'production',plan,intentStatus:'checkout_created'})
 })
