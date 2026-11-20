@@ -50,32 +50,41 @@ describe('Annual Payrep figures distinguish payroll gross from confirmed taxable
   expect(rows[0].net).toBe(600)
  })
 })
-describe('Multi-ring composition reconciles to payroll gross, with no duplicate triênio',()=>{
- it('reconciles inner and outer rings to gross before and after splitting ESPP and pension',()=>{
+describe('Multi-ring composition: constant liquid allocations and no duplicate income',()=>{
+ const none={espp:false,privatePension:false}
+ it('includes ESPP and previdência in a fixed combined liquid group regardless of checked filters',()=>{
   const base=financialComposition([annual()],none)
+  expect(base.cashNet).toBe(600)
+  expect(base.netAndInvestments).toBe(645)
+  expect(base.inner.find(s=>s.key==='net')?.value).toBe(645)
+  expect(base.unclassified).toBe(5)
   expect(total(base.inner)).toBe(1000)
   expect(total(base.outer)).toBe(1000)
-  expect(base.inner.find(s=>s.key==='others')?.value).toBe(50)
-  const detailed=financialComposition([annual()],{trienio:true,espp:true,privatePension:true})
-  expect(total(detailed.inner)).toBe(1000)
-  expect(total(detailed.outer)).toBe(1000)
-  expect(total(detailed.origin)).toBe(1000)
-  expect(detailed.inner.find(s=>s.key==='espp')?.value).toBe(30)
-  expect(detailed.inner.find(s=>s.key==='privatePension')?.value).toBe(15)
-  expect(detailed.inner.find(s=>s.key==='others')?.value).toBe(5)
-  expect(detailed.origin.find(s=>s.key==='trienio')?.value).toBe(80)
-  expect(detailed.inner.find(s=>s.key==='trienio')).toBeUndefined()
+  const selected=financialComposition([annual()],{espp:true,privatePension:true})
+  expect(selected.cashNet).toBe(base.cashNet)
+  expect(selected.netAndInvestments).toBe(base.netAndInvestments)
+  expect(selected.unclassified).toBe(base.unclassified)
+  expect(total(selected.inner)).toBe(1000)
+  expect(total(selected.outer)).toBe(1000)
+  expect(selected.inner.find(s=>s.key==='net')?.value).toBe(600)
+  expect(selected.inner.find(s=>s.key==='espp')?.value).toBe(30)
+  expect(selected.inner.find(s=>s.key==='privatePension')?.value).toBe(15)
+  expect(selected.outer.find(s=>s.key==='outerNet')?.value).toBe(745)
+  expect(selected.inner.some(s=>s.key==='trienio')).toBe(false)
  })
- it('refuses to invent an amount if the composition does not reconcile',()=>{
+ it('never invents balancing adjustments when known values exceed gross',()=>{
   const result=financialComposition([annual({payrollGross:500})],none)
   expect(result.inner).toHaveLength(0)
   expect(result.outer).toHaveLength(0)
   expect(result.warnings.join(' ')).toContain('ultrapassam')
  })
- it('does not clip ESPP if it exceeds the residual; it reports the limitation',()=>{
-  const result=financialComposition([annual({espp:70})],{trienio:false,espp:true,privatePension:false})
+ it('preserves unclassified values and declines to include excessive ESPP',()=>{
+  const result=financialComposition([annual({espp:70})],{espp:true,privatePension:false})
+  expect(result.included.espp).toBe(0)
+  expect(result.netAndInvestments).toBe(615)
+  expect(result.unclassified).toBe(35)
   expect(result.inner.some(s=>s.key==='espp')).toBe(false)
-  expect(result.inner.find(s=>s.key==='others')?.value).toBe(50)
+  expect(total(result.inner)).toBe(1000)
   expect(result.warnings.join(' ')).toContain('ESPP')
  })
  it('excludes official-only years from gross-based rings without hiding the official series',()=>{
