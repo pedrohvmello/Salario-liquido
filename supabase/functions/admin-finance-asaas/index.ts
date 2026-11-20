@@ -2,8 +2,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
 // Read-only, admin-only Asaas financial reporting for Payrep HML.
 // This function never creates transfers, refunds, payments or customers.
-const origin='https://payrep-hml.vercel.app'
-const project='nrpqcrhschztdwbfgnyo'
+const origin='https://payrep.com.br'
+const project='klvurrcmfrwetmynscjc'
 const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Access-Control-Allow-Origin':origin,
@@ -26,8 +26,8 @@ const limited=(v:unknown,max=5000)=>{
 function todayUTC(){return new Date().toISOString().slice(0,10)}
 function daysBefore(days:number){return new Date(Date.now()-days*86400000).toISOString().slice(0,10)}
 async function asaasGet(path:string,key:string){
- const response=await fetch('https://api-sandbox.asaas.com/v3/'+path,{
-  method:'GET',headers:{'access_token':key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'},
+ const response=await fetch('https://api.asaas.com/v3/'+path,{
+  method:'GET',headers:{'access_token':key,'User-Agent':'Payrep-PRD/1.0','Accept':'application/json'},
   signal:AbortSignal.timeout(14000)
  })
  if(!response.ok)throw Error('Asaas status '+response.status)
@@ -39,9 +39,9 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return respond({error:'Método não permitido.'},405)
  const url=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
- const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
+ const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(url!=='https://'+project+'.supabase.co'||!anon||!key||
-  Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true')
+  Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
   return respond({error:'Consulta Asaas indisponível em homologação.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return respond({error:'Sessão necessária.'},401)
@@ -88,7 +88,7 @@ Deno.serve(async(req:Request)=>{
    }
   })
   return respond({
-   environment:'sandbox',currency:'BRL',periodDays:period,
+   environment:'production',currency:'BRL',periodDays:period,
    fetchedAt:new Date().toISOString(),balance,
    transactions,transactionsHasMore:row(statementData).hasMore===true,
    transactionsOffset:offset,transactionsLimit:limit,
