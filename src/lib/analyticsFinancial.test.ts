@@ -10,7 +10,6 @@ const annual=(values:Partial<AnnualFinancialRow>={}):AnnualFinancialRow=>({
  taxableOfficial:950,espp:30,privatePension:15,trienio:80,months:12,
  officialFields:['taxable_salary','inss','salary_irrf','alimony'],...values
 })
-const none={trienio:false,espp:false,privatePension:false}
 const total=(rows:{value:number}[])=>Math.round(rows.reduce((sum,row)=>sum+row.value,0)*100)/100
 describe('Annual Payrep figures distinguish payroll gross from confirmed taxable IR base',()=>{
  it('keeps both figures without falsely equating fiscal income and payroll credits',()=>{
