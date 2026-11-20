@@ -131,7 +131,7 @@ export function financialComposition(
  ] as const){
   if(amount===null||amount<=0)continue
   if(amount>available+0.01){
-   warnings.push(title+' não cabe na conciliação do bruto. O valor foi preservado nos indicadores, mas não incorporado à composição.')
+   warnings.push(title+' não está integralmente conciliado no saldo residual. Seu destaque é apenas visual, sem adicionar valor ao grupo líquido nem alterar os totais.')
    continue
   }
   included[key]=money(amount)
