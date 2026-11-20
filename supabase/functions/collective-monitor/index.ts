@@ -50,7 +50,7 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'method_not_allowed'},405)
  const url=Deno.env.get('SUPABASE_URL')
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
- if(!url||!service||!url.includes('nrpqcrhschztdwbfgnyo.supabase.co'))
+ if(!url||!service||!url.includes('klvurrcmfrwetmynscjc.supabase.co'))
   return json({error:'environment_unavailable'},503)
  const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}})
  const token=req.headers.get('x-payrep-collective-worker-token')||''
