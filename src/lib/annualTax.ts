@@ -1,7 +1,7 @@
 import {roundMoney} from './money'
 
 export type TaxStatement={
-  id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';payment_date:string|null;
+  id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth'|'adjustment';payment_date:string|null;
   gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;
   thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;
   thirteenth_irrf:number;thirteenth_pension:number;
