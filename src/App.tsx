@@ -63,13 +63,13 @@ type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'pep
 type TimeRecord=DayEntry&{id:string}
 const nav=[
  {id:'overview',label:'Visão geral',icon:LayoutDashboard},
+ {id:'imports',label:'Meus Holerites',icon:FileInput},
+ {id:'events',label:'Eventos e vigências',icon:CalendarClock},
  {id:'history',label:'Histórico salarial',icon:History},
  {id:'hours',label:'Controle de horas',icon:Clock3},
- {id:'events',label:'Eventos e vigências',icon:CalendarClock},
  {id:'analytics',label:'Análises',icon:ChartNoAxesCombined},
  {id:'income-tax',label:'Informe IR',icon:FileSpreadsheet},
  {id:'pep-personal',label:'Pergunte ao Pep',icon:Bot},
- {id:'imports',label:'Meus Holerites',icon:FileInput},
  {id:'definitions',label:'Definições',icon:Settings2},
  {id:'admin-settings',label:'Configurações',icon:Settings2},
  {id:'admin-pep',label:'Configurações do Pep',icon:Sparkles},

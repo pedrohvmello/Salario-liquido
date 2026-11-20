@@ -3042,3 +3042,61 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .help-faq-category h3{font-size:13px;color:#6b298d;margin:12px 0 9px}
 .help-faq-toggle:focus-visible,.help-faq-item summary:focus-visible{outline:2px solid #953cd4;outline-offset:3px}
 @media(max-width:650px){.help-faq-toggle{padding:17px 15px;gap:8px;flex-wrap:wrap}.help-faq-toggle strong{font-size:14px}.help-faq-count{font-size:11px}.help-faq-categories{padding:10px 14px 20px}}
+
+/* FAQ local keyword search and closed-by-default category accordion */
+.help-faq-content{border-top:1px solid #eee3f4;padding:18px 23px 23px}
+.help-faq-search-label{display:block;margin-bottom:8px;font-size:12px;font-weight:750;color:#4b3064}
+.help-faq-search{display:flex;align-items:center;gap:10px;border:1px solid #d9c3eb;border-radius:11px;background:white;padding:0 12px;min-height:48px;color:#7c3ba2}
+.help-faq-search:focus-within{border-color:#9b4ddd;box-shadow:0 0 0 3px rgba(155,77,221,.12)}
+.help-faq-search input{flex:1;width:100%;min-width:0;border:0;outline:none;box-shadow:none!important;background:transparent;font-size:14px;color:#391857;padding:10px 0}
+.help-faq-clear{background:none;border:0;color:#725b86;padding:5px;display:grid;place-items:center;min-width:30px;min-height:30px;cursor:pointer}
+.help-faq-search-hint{font-size:12px;margin:8px 0 16px}
+.help-faq-panel .help-faq-categories{border-top:0;padding:0;gap:9px}
+.help-faq-category{border:1px solid #e7d8ef;border-radius:12px;background:#fcfaff;overflow:hidden}
+.help-faq-category-toggle{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:14px 16px;font-size:13px;font-weight:750;color:#45175c}
+.help-faq-category-toggle::-webkit-details-marker{display:none}
+.help-faq-category-toggle span{flex:1}
+.help-faq-category-toggle small{font-size:11px;color:#826d93;font-weight:500}
+.help-faq-category-toggle svg{transition:transform .2s ease;flex:0 0 auto}
+.help-faq-category[open] .help-faq-category-toggle svg{transform:rotate(180deg)}
+.help-faq-category .help-faq-list{padding:0 13px 13px}
+.help-faq-results-count{font-size:12px;color:#6a5081;font-weight:700;margin:0 0 12px}
+.help-faq-search-results{margin-top:15px}
+.help-faq-search-result{padding:16px 18px;margin:0 0 10px;border:1px solid #e6d8ed;background:#fcfaff;border-radius:12px}
+.help-faq-result-category{display:block;color:#7b37a4;font-size:11px;font-weight:750;margin-bottom:6px}
+.help-faq-search-result h3{font-size:14px;line-height:1.5;color:#391857;margin:0 0 7px}
+.help-faq-search-result p{color:#6a537d;font-size:13px;line-height:1.65;margin:0}
+.help-faq-empty{margin:10px 0 0;padding:18px;border:1px dashed #d9c3e7;border-radius:11px}
+.help-faq-category-toggle:focus-visible,.help-faq-clear:focus-visible{outline:2px solid #953cd4;outline-offset:2px}
+
+/* Personal Pep upgrade offer: only subscription screen displays live prices and availability */
+.pep-upgrade{padding:0;overflow:hidden}
+.pep-upgrade-hero{display:flex;gap:22px;align-items:center;justify-content:space-between;background:linear-gradient(115deg,#361054,#6e1ca2 78%,#8e39be);padding:30px 34px;color:white}
+.pep-upgrade-copy{max-width:700px}
+.pep-upgrade-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#ecdcfc}
+.pep-upgrade-hero h2{font-size:clamp(22px,2.4vw,31px);line-height:1.25;max-width:640px;color:white;margin:14px 0}
+.pep-upgrade-hero p{font-size:14px;line-height:1.7;color:#f1e6f8;margin:0}
+.pep-upgrade-mascot{width:145px;height:145px;object-fit:contain;flex:0 0 145px;filter:drop-shadow(0 12px 20px rgba(30,0,56,.2))}
+.pep-upgrade-plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:22px 25px 8px}
+.pep-upgrade-plan{border:1px solid #e9dbea;border-radius:15px;padding:19px;background:white}
+.pep-upgrade-plan-full{background:#fcf8ff;border-color:#dfc6f3}
+.pep-upgrade-plan-head{display:flex;align-items:center;gap:12px;color:#7e28b9}
+.pep-upgrade-plan-head h3{color:#35154d;font-size:18px;margin:0 0 2px}
+.pep-upgrade-plan-head p{font-size:12px;margin:0;color:#7d6891}
+.pep-upgrade-plan ul{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.pep-upgrade-plan li{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.5;color:#513a64}
+.pep-upgrade-plan li svg{flex:0 0 17px;margin-top:2px;color:#8f2fc9}
+.pep-upgrade-footer{display:flex;justify-content:space-between;align-items:center;gap:22px;padding:16px 25px 10px}
+.pep-upgrade-footer strong{display:block;color:#34164e;font-size:15px}
+.pep-upgrade-footer p{color:#7c688c;font-size:12px;margin:5px 0 0}
+.pep-upgrade-cta{white-space:nowrap;min-height:46px}
+.pep-upgrade-note{font-size:11px;color:#836e93;line-height:1.6;margin:0;padding:8px 25px 23px}
+@media(max-width:700px){
+ .help-faq-content{padding:14px}.help-faq-category-toggle{padding:13px 12px}
+ .pep-upgrade-hero{padding:23px 19px;align-items:flex-start}.pep-upgrade-hero h2{font-size:23px}
+ .pep-upgrade-mascot{width:80px;height:80px;flex-basis:80px}
+ .pep-upgrade-plans{grid-template-columns:1fr;padding:17px 16px 8px}
+ .pep-upgrade-footer{flex-direction:column;align-items:stretch;padding:15px 16px 10px}
+ .pep-upgrade-cta{justify-content:center}.pep-upgrade-note{padding:8px 16px 19px}
+}
+@media(max-width:410px){.pep-upgrade-mascot{display:none}.help-faq-category-toggle small{font-size:10px}}

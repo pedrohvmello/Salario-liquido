@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react'
-import {ArrowLeft,Bot,LockKeyhole} from 'lucide-react'
+import {ArrowLeft,Bot,CheckCircle2,FileText,LockKeyhole,Sparkles} from 'lucide-react'
 import {SupportAiChat} from './SupportAiChat'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {db} from '../lib/data'
@@ -39,12 +39,38 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
  if(loading)return <div className="panel" role="status">Verificando seu plano para consultas com o Pep...</div>
  if(error)return <section className="panel"><h2>Pergunte ao Pep</h2><p className="error" role="alert">{error}</p>
   <button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></section>
- if(!usage?.unlimited&&usage?.effectivePlan==='free')return <section className="panel">
-  <div className="panel-heading"><h2><LockKeyhole size={18}/> Pergunte ao Pep</h2></div>
-  <p>Consultas sobre seus dados salariais estão disponíveis nos planos Basic e Full. O Pep Ajuda continua gratuito para dúvidas sobre como usar o Payrep.</p>
-  <div className="row"><button className="primary" type="button" onClick={onSubscribe}>
-   <Bot size={16}/> Conhecer os planos</button>
-   <button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
+ if(!usage?.unlimited&&usage?.effectivePlan==='free')return <section className="panel pep-upgrade" aria-labelledby="pep-upgrade-title">
+  <div className="pep-upgrade-hero">
+   <div className="pep-upgrade-copy">
+    <span className="pep-upgrade-eyebrow"><LockKeyhole size={15}/> Recurso dos planos pagos</span>
+    <h2 id="pep-upgrade-title">Seu salário tem perguntas. O Pep pode ajudar nas respostas.</h2>
+    <p>Vá além da projeção: consulte os dados cadastrados na sua conta, explore cenários e entenda melhor os componentes da sua remuneração, conforme o plano contratado.</p>
+   </div>
+   <img className="pep-upgrade-mascot" src="/brand/pep-reply-avatar.webp" alt="Pep, assistente financeiro do Payrep" width={156} height={156} decoding="async"/>
+  </div>
+  <div className="pep-upgrade-plans">
+   <article className="pep-upgrade-plan">
+    <div className="pep-upgrade-plan-head"><Sparkles size={21}/><div><h3>Basic</h3><p>Mais clareza para suas decisões</p></div></div>
+    <ul>
+     <li><CheckCircle2 size={17}/> Pergunte ao Pep sobre eventos e parâmetros salariais da sua conta</li>
+     <li><CheckCircle2 size={17}/> Explore simulações de salário e descontos</li>
+     <li><CheckCircle2 size={17}/> Salve e consulte suas conversas com o Pep</li>
+    </ul>
+   </article>
+   <article className="pep-upgrade-plan pep-upgrade-plan-full">
+    <div className="pep-upgrade-plan-head"><FileText size={21}/><div><h3>Full</h3><p>Seus holerites também entram na conversa</p></div></div>
+    <ul>
+     <li><CheckCircle2 size={17}/> Tudo o que está disponível no Basic</li>
+     <li><CheckCircle2 size={17}/> Importação inteligente de holerites em PDF</li>
+     <li><CheckCircle2 size={17}/> Perguntas ao Pep sobre os dados extraídos dos holerites</li>
+    </ul>
+   </article>
+  </div>
+  <div className="pep-upgrade-footer">
+   <div><strong>Escolha o nível de análise ideal para você.</strong><p>Confira preços, condições e disponibilidade atual dos planos antes de contratar.</p></div>
+   <button className="primary pep-upgrade-cta" type="button" onClick={onSubscribe}><Bot size={18}/> Ver planos e preços</button>
+  </div>
+  <p className="pep-upgrade-note">O Pep Ajuda continua gratuito na Central de Ajuda para dúvidas de uso. As respostas pessoais do Pep são auxiliares e devem ser conferidas com seus documentos.</p>
  </section>
  return <SupportAiChat mode="personal" onBack={onBack} pepPreviewUrl={pepVideoUrl} pepVideoLoading={pepVideoLoading}/>
 }

@@ -1,12 +1,13 @@
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import type {User} from '@supabase/supabase-js'
-import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Send,Sparkles,Ticket} from 'lucide-react'
+import {ArrowLeft,BookOpen,CheckCircle2,ChevronDown,ExternalLink,Info,LifeBuoy,Mail,RefreshCw,Search,Send,Sparkles,Ticket,X} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {SupportAiChat} from './SupportAiChat'
 import {PepMascot} from './PepMascot'
 import {pepAssistantEnabled} from '../lib/environment'
 import {PAYREP_SUPPORT_FAQ} from '../../supabase/functions/support-ai/knowledge'
+import {searchPayrepFaq} from '../lib/helpFaqSearch'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
@@ -122,6 +123,8 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
+ const [faqQuery,setFaqQuery]=useState('')
+ const faqMatches=useMemo(()=>searchPayrepFaq(helpFaq,faqQuery),[faqQuery])
  const aiEnabled=pepAssistantEnabled
  const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
  const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'local'|'ready'>('checking')
@@ -227,13 +230,28 @@ export function SupportPage({user}:{user:User}){
   <section className="panel help-faq-panel">
    <details className="help-faq-accordion">
     <summary className="help-faq-toggle"><BookOpen size={18}/><strong>Perguntas frequentes (FAQ)</strong><span className="help-faq-count">{helpFaq.length} perguntas</span><ChevronDown size={18} className="help-faq-chevron" aria-hidden="true"/></summary>
-    <div className="help-faq-categories">
-     {[...new Set(helpFaq.map(item=>item.category))].map(category=><section className="help-faq-category" key={category}>
-      <h3>{category}</h3>
-      <div className="help-faq-list">{helpFaq.filter(item=>item.category===category).map(item=><details className="help-faq-item" key={item.question}>
-       <summary>{item.question}</summary><p>{item.answer}</p>
-      </details>)}</div>
-     </section>)}
+    <div className="help-faq-content">
+     <label htmlFor="help-faq-query" className="help-faq-search-label">Pesquisar respostas</label>
+     <div className="help-faq-search"><Search size={18} aria-hidden="true"/>
+      <input id="help-faq-query" type="search" value={faqQuery} onChange={e=>setFaqQuery(e.target.value)}
+       autoComplete="off" placeholder="Digite palavras-chave: férias, pensão, assinatura..." aria-describedby="help-faq-search-hint"/>
+      {faqQuery&&<button type="button" className="help-faq-clear" aria-label="Limpar busca do FAQ" onClick={()=>setFaqQuery('')}><X size={17}/></button>}
+     </div>
+     <p id="help-faq-search-hint" className="subtle help-faq-search-hint">Busque por assunto, pergunta ou palavras da resposta. A pesquisa é automática.</p>
+     {faqQuery.trim()?<div className="help-faq-search-results" aria-live="polite">
+      <p className="help-faq-results-count">{faqMatches.length} {faqMatches.length===1?'resposta encontrada':'respostas encontradas'}</p>
+      {faqMatches.length?faqMatches.map(item=><article className="help-faq-search-result" key={item.question}>
+       <span className="help-faq-result-category">{item.category}</span><h3>{item.question}</h3><p>{item.answer}</p>
+      </article>):<p className="subtle help-faq-empty">Nenhuma resposta encontrada. Tente outras palavras ou pergunte ao Pep Ajuda.</p>}
+     </div>:
+     <div className="help-faq-categories">
+      {[...new Set(helpFaq.map(item=>item.category))].map(category=><details className="help-faq-category" key={category}>
+       <summary className="help-faq-category-toggle"><span>{category}</span><small>{helpFaq.filter(item=>item.category===category).length} perguntas</small><ChevronDown size={17} aria-hidden="true"/></summary>
+       <div className="help-faq-list">{helpFaq.filter(item=>item.category===category).map(item=><details className="help-faq-item" key={item.question}>
+        <summary>{item.question}</summary><p>{item.answer}</p>
+       </details>)}</div>
+      </details>)}
+     </div>}
     </div>
    </details>
   </section>
