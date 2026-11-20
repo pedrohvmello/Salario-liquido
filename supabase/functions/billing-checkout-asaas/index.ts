@@ -73,7 +73,7 @@ Deno.serve(async(req:Request)=>{
  if(url!==('https://'+projectRef+'.supabase.co')||!anon||!service)
   return reply({error:'Configuração de produção indisponível.'},503)
  const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
- if(Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||!key)
+ if(Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||Deno.env.get('PAYREP_ASAAS_LIVE_RELEASED')!=='true'||!key)
   return reply({error:'Checkout de produção indisponível até a conclusão da configuração e homologação financeira.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return reply({error:'Faça login novamente.'},401)
