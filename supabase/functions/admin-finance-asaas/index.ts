@@ -41,7 +41,7 @@ Deno.serve(async(req:Request)=>{
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(url!=='https://'+project+'.supabase.co'||!anon||!key||
-  Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
+  Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||Deno.env.get('PAYREP_ASAAS_LIVE_RELEASED')!=='true')
   return respond({error:'Consulta Asaas indisponível em homologação.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return respond({error:'Sessão necessária.'},401)
