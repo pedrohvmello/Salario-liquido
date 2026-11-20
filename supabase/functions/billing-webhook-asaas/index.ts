@@ -169,7 +169,7 @@ Deno.serve(async(req:Request)=>{
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
  const expected=Deno.env.get('ASAAS_PRODUCTION_WEBHOOK_TOKEN')||''
  if(url!==('https://'+projectRef+'.supabase.co')||!service
-  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'||Deno.env.get('PAYREP_ASAAS_LIVE_RELEASED')!=='true'
   ||expected.length<32)return respond({error:'Webhook de produção ainda não configurado.'},503)
  if(!sameToken(req.headers.get('asaas-access-token')||'',expected))
   return respond({error:'Webhook não autenticado.'},401)
