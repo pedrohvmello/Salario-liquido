@@ -13,3 +13,19 @@ export function validatedSandboxCheckoutUrl(candidate:unknown):string{
   throw Error('Destino de pagamento não autorizado.')
  return url.toString()
 }
+
+/** Live subscriptions are redirected only to the documented Asaas checkout host.
+ * The only allowed query field is an Asaas UUID checkout identifier.
+ */
+export function validatedProductionCheckoutUrl(candidate:unknown):string{
+ if(typeof candidate!=='string'||candidate.length>400)throw Error('Destino de pagamento não autorizado.')
+ let url:URL
+ try{url=new URL(candidate)}catch{throw Error('Destino de pagamento não autorizado.')}
+ const id=url.searchParams.get('id')
+ const allowedId=id!==null&&/^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/.test(id)
+ if(url.protocol!=='https:'||url.hostname!=='asaas.com'||
+   url.pathname!=='/checkoutSession/show'||url.username||url.password||
+   url.hash||url.searchParams.size!==1||!allowedId)
+  throw Error('Destino de pagamento não autorizado.')
+ return url.toString()
+}
