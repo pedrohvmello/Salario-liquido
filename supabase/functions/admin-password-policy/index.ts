@@ -1,8 +1,8 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.105.0'
 
 // HML only. A scoped Management API token stays exclusively in Edge Secrets.
-const PROJECT_REF='nrpqcrhschztdwbfgnyo'
-const ALLOWED_ORIGIN='https://payrep-hml.vercel.app'
+const PROJECT_REF='klvurrcmfrwetmynscjc'
+const ALLOWED_ORIGIN='https://payrep.com.br'
 const CHARSETS:Record<string,string>={
   "none": "",
   "letters_numbers": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789",
