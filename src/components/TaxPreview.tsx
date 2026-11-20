@@ -36,7 +36,7 @@ const draftsFrom=(values:OfficialValues):Record<string,string>=>Object.fromEntri
  OFFICIAL_FIELDS.map(field=>[field.key,formatAmount(values[field.key])])
 )
 type PendingImport={
- file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null;reprocessOnly?:boolean
+ file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null
 }
 
 export function TaxPreview({userId,statements}:{userId:string|null;statements:TaxStatement[]}){
@@ -350,7 +350,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
 
   {pending&&<div className="ir-dialog-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setPending(null)}}>
    <section className="ir-dialog" role="dialog" aria-modal="true" aria-label="Confirmar importação do informe">
-    <div className="ir-dialog-head"><h3>{pending.year===null?'Confirmar ano-calendário':pending.reprocessOnly?'Reprocessar informe salvo?':'Substituir informe existente?'}</h3>
+    <div className="ir-dialog-head"><h3>{pending.year===null?'Confirmar ano-calendário':'Substituir informe existente?'}</h3>
      <button type="button" className="secondary" disabled={busy} aria-label="Fechar"
       onClick={()=>setPending(null)}><X size={17}/></button></div>
     {pending.year===null?<div className="ir-dialog-content">
@@ -362,9 +362,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      </label>
      <p className="subtle">O ano só é solicitado quando o documento não permite identificação automática, como em PDFs digitalizados.</p>
     </div>:<div className="ir-dialog-content">
-     <p>{pending.reprocessOnly
-      ?'Reprocessar o PDF já armazenado para o ano-calendário '+pending.year+' com as regras atualizadas?'
-      :<>Já existe um informe armazenado para o ano-calendário <strong>{pending.year}</strong>. Deseja substituir o documento?</>}</p>
+     <p>Já existe um informe armazenado para o ano-calendário <strong>{pending.year}</strong>. Deseja substituir o documento?</p>
      <p className="subtle">Os valores antigos deixarão de ser fonte oficial até a conferência do novo PDF. Nenhum holerite será alterado.</p>
     </div>}
     <div className="ir-dialog-actions">
@@ -372,7 +370,7 @@ export function TaxPreview({userId,statements}:{userId:string|null;statements:Ta
      <button type="button" className="primary" disabled={busy} onClick={()=>{
       if(pending.year===null)void confirmMissingYear()
       else void commitImport(pending.file,pending.analysis,pending.year)
-     }}>{busy?'Processando...':pending.year===null?'Continuar':pending.reprocessOnly?'Reprocessar dados':'Substituir informe'}</button>
+     }}>{busy?'Processando...':pending.year===null?'Continuar':'Substituir informe'}</button>
     </div>
    </section>
   </div>}
