@@ -44,15 +44,15 @@ export function classifyPayrollLine(line:Pick<StatementRubric,'code'|'descriptio
   return null
  }
  if(line.side!=='debit')return null
- if(code==='07780'||/\b(?:VGBL|PGBL)\b|PREVIDENCIA (?:PRIVADA|COMPLEMENTAR)/.test(desc))
+ if(['07780','7610'].includes(code)||/\b(?:VGBL|PGBL)\b|PREVIDENCIA (?:PRIVADA|COMPLEMENTAR)/.test(desc))
    return 'privatePension'
  if(/\bESPP\b|\bSTOCK PURCHASE\b|\bCOMPRA DE ACOES\b/.test(desc))
    return 'espp'
- if(['07020','07040'].includes(code)||/^INSS (?:MES|FERIAS|DESCONTADO FERIAS)\b/.test(desc))
+ if(['07020','07040','/314','7020'].includes(code)||/^INSS (?:MES|FERIAS|DESCONTADO FERIAS|DESC[.]? FERIAS)\b/.test(desc)||/^CONTR[.]? INSS\b/.test(desc))
    return 'inss'
  if(code==='07065'||/IRRF.*FERIAS|IMPOSTO.*FERIAS/.test(desc))return 'irrfVacation'
- if(code==='07050'||/^IRRF (?:MES|MENSAL)\b/.test(desc)||desc==='IRRF')return 'irrfSalary'
- if(['07150','07145','07550'].includes(code)||/PENSAO ALIMENTICIA|PENSAO ALIM|PENSAO ALIM/.test(desc))
+ if(['07050','/401'].includes(code)||/^IRRF (?:MES|MENSAL)\b/.test(desc)||/^TRIBUTO IRRF\b/.test(desc)||desc==='IRRF')return 'irrfSalary'
+ if(['07150','07145','07550','MG11','8503'].includes(code)||/PENSAO ALIMENTICIA|PENSAO ALIM|PAGAMENTO PENSAO REG|PENSAO PG ADTO/.test(desc))
    return 'pension'
  return null
 }
