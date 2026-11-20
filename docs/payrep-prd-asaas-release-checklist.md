@@ -26,7 +26,7 @@ Data de revisão: 20/11/2026. **Este arquivo não autoriza cobranças reais.**
   caminho `/checkoutSession/show` e único parâmetro `id` em UUID.
 - Backend usa `https://api.asaas.com/v3`, origem CORS `https://payrep.com.br`,
   projeto Supabase PRD e secrets distintos de HML.
-- As funções **devem permanecer desabilitadas** sem `PAYREP_ASAAS_PRODUCTION_ENABLED=true`.
+- As funções **devem permanecer desabilitadas** sem **ambas** as flags `PAYREP_ASAAS_PRODUCTION_ENABLED=true` e `PAYREP_ASAAS_LIVE_RELEASED=true`. A segunda só deve ser habilitada após o teste formal de cobrança.
 - Não colocar API keys no frontend, código Git, logs ou comentários de banco.
 
 ## Ordem necessária antes do deploy principal
@@ -67,7 +67,7 @@ Data de revisão: 20/11/2026. **Este arquivo não autoriza cobranças reais.**
 
 - Deploy PRD de frontend: **bloqueado** enquanto migrações, RLS e autenticação divergirem.
 - Criação de cobrança Asaas: **bloqueada** sem três condições simultâneas:
-  preço comercial publicado, credenciais produção e `PAYREP_ASAAS_PRODUCTION_ENABLED=true`.
+  preço comercial publicado, credenciais produção e as duas flags `PAYREP_ASAAS_PRODUCTION_ENABLED=true` e `PAYREP_ASAAS_LIVE_RELEASED=true`.
 - A ausência de erro no build não prova que billing/RLS/assinaturas funcionam.
 - O status de pagamento real precisa ser confirmado contra a API e eventos autenticados
   do Asaas; não por `?billing=success`.
