@@ -5,7 +5,7 @@
 import {roundMoney} from './money'
 import type {StatementRubric} from './vacation'
 export type ThirteenthStatement={
- id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';
+ id:string;period:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth'|'adjustment';
  payment_date:string|null;credits:number|null;net:number|null;
  thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;
  thirteenth_irrf:number;thirteenth_pension:number
