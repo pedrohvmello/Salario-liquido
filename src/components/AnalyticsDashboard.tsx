@@ -176,8 +176,9 @@ export function AnalyticsDashboard({
   <div className="analytics-main-grid">
    <Panel title="Composição dos proventos">
     {hasComposition?<div className="analytics-composition-layout">
-     <div className="analytics-composition-chart"
-      aria-label="Gráfico concêntrico dos proventos, com percentuais e detalhes exibidos fora dos anéis">
+     <div className="analytics-composition-visual">
+      <div className="analytics-composition-chart"
+       aria-label="Gráfico concêntrico dos proventos, com percentuais e detalhes exibidos abaixo dos anéis">
       <ResponsiveContainer width="100%" height="100%">
        <PieChart>
         {showPie([{key:'gross',name:'Proventos brutos',value:composition.gross!,fill:financialColors.gross}],0,44)}
@@ -187,6 +188,11 @@ export function AnalyticsDashboard({
         <text x="50%" y="53%" textAnchor="middle" fill="#fff" fontSize={11} fontWeight={650} pointerEvents="none">100%</text>
        </PieChart>
       </ResponsiveContainer>
+      </div>
+      <div className="analytics-hover-detail" role="status" aria-live="off">
+       {hoveredInfo?<><strong>{hoveredInfo.name}</strong><span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span></>
+        :<span>Passe o mouse sobre o gráfico para ver o percentual de cada parcela.</span>}
+      </div>
      </div>
      <div className="analytics-composition-legend" aria-label="Valores da composição dos proventos">
       {legendGroups.map(group=>group.segments.length>0&&
@@ -204,12 +210,8 @@ export function AnalyticsDashboard({
        </section>)}
       {composition.cashNet!==null&&<div className="analytics-net-fact">
        Recebido efetivamente: <strong>{brl(composition.cashNet)}</strong>.
-       O agrupamento verde também inclui ESPP e previdência quando identificados.
+       ESPP e previdência podem ser destacados no gráfico sem alterar os valores totais.
       </div>}
-      <div className="analytics-hover-detail" role="status" aria-live="off">
-       {hoveredInfo?<><strong>{hoveredInfo.name}</strong><span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span></>
-        :<span>Passe o mouse sobre um anel ou item da legenda para ver o percentual.</span>}
-      </div>
      </div>
     </div>:<Empty label="A composição ainda não pode ser conciliada com os holerites disponíveis."/>}
     <div className="analytics-ring-options" aria-label="Detalhes opcionais da composição">
@@ -218,7 +220,7 @@ export function AnalyticsDashboard({
       ['espp','ESPP'],
       ['privatePension','Previdência']
      ] as const).map(([key,label])=><label key={key}>
-      <input type="checkbox" checked={visibleParts[key]} disabled={composition.included[key]<=0}
+      <input type="checkbox" checked={visibleParts[key]} disabled={composition.extras[key]===null||composition.extras[key]===0||(composition.netAndInvestments??0)<=0}
        onChange={event=>setVisibleParts(prev=>({...prev,[key]:event.target.checked}))}/>
       {label}
      </label>)}
