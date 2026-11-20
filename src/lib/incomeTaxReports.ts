@@ -126,3 +126,21 @@ export async function deleteIncomeTaxReport(row:IncomeTaxReport):Promise<void>{
  const cleaned=await client().storage.from(BUCKET).remove([key])
  if(cleaned.error)throw Error('Cadastro removido, mas a exclusão do PDF ficou pendente. Contate o suporte.')
 }
+
+export type ConfirmedTaxFigure={
+ calendar_year:number;confirmed_at:string;reviewed_values:OfficialValues
+}
+/** Confidential annual figures: only reports confirmed by their authenticated owner.
+ * No unreviewed extraction, document bytes or other accounts are accessed. */
+export async function loadConfirmedTaxFigures():Promise<ConfirmedTaxFigure[]>{
+ const userId=await ownerId()
+ const {data,error}=await client().from('annual_tax_reports')
+  .select('calendar_year,confirmed_at,reviewed_values')
+  .eq('user_id',userId).not('confirmed_at','is',null)
+  .order('calendar_year',{ascending:true})
+ if(error)throw Error('Não foi possível consultar os informes IR confirmados: '+error.message)
+ return (data||[]).filter(x=>Boolean(x.confirmed_at)).map(x=>({
+  calendar_year:Number(x.calendar_year),confirmed_at:String(x.confirmed_at),
+  reviewed_values:sanitizeTaxValues((x.reviewed_values||{}) as OfficialValues)
+ }))
+}
