@@ -111,7 +111,8 @@ function destination(r:FinancialTrend,source:readonly FinancialMonth[]):Destinat
  const known=[r.net,espp,privatePension,r.pension,r.inss,r.irrf]
  const allocated=sum(known.filter(valid))
  const remaining=r.gross===null?null:money(r.gross-allocated)
- const classified=r.gross!==null&&r.net!==null&&remaining!==null&&remaining>=-0.02
+ const allCashKnown=rows.filter(x=>x.gross!==null).every(x=>x.net!==null)
+ const classified=r.gross!==null&&r.net!==null&&allCashKnown&&remaining!==null&&remaining>=-0.02
  const value=(v:number|null):number|null=>classified?v??0:null
  return {
   label:r.label,period:r.period,gross:r.gross,classified,
@@ -141,7 +142,8 @@ export function annualComparison(monthsData:readonly FinancialMonth[],year:strin
    year:y,months:docs.length,
    gross:available(rows.map(x=>x.gross)),net:available(rows.map(x=>x.net)),
    commonMonths:shared.length,
-   grossChange:shared.length?money(100*(currentGross-previousGross)/(previousGross||Infinity)):null,
+   grossChange:shared.length&&previousGross>0?
+    money(100*(currentGross-previousGross)/previousGross):null,
    netChange:shared.length&&previousNet!==null&&previousNet>0&&currentNet!==null?
     money(100*(currentNet-previousNet)/previousNet):null
   }
