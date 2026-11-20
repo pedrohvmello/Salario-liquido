@@ -66,7 +66,7 @@ export function annualFinancialRows(
   const fields:(keyof OfficialValues)[]=['taxable_salary','inss','salary_irrf','alimony']
   const officialFields=fields.filter(k=>officialValue(o,k)!==null)
   return {
-   year,monthlyCount:undefined,
+   year,
    payrollGross:p?sumAvailable(p.gross):null,
    net:p?sumAvailable(p.net):null,
    taxableOfficial:officialValue(o,'taxable_salary'),
@@ -76,7 +76,7 @@ export function annualFinancialRows(
    espp:m?.espp??null,privatePension:m?.privatePension??null,
    trienio:m?.trienio??null,months:m?.monthlyStatements??0,officialFields
   }
- }).map(({monthlyCount:_,...row})=>row)
+ })
 }
 const segment=(key:string,name:string,value:number,fill:string):ChartSegment=>({
  key,name,value:money(value),fill
