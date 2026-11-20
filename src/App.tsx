@@ -623,7 +623,7 @@ export default function App(){
    await refresh()
    setEventToDelete(null)
   },'Evento removido')}/>}</div>}
-    {section==='analytics'&&<AnalyticsDashboard year={year} onYearChange={setYear} years={months}
+    {section==='analytics'&&<AnalyticsDashboard userId={user?.id||null} year={year} onYearChange={setYear} years={months}
       statements={statements} lines={allLines} monthlyGraph={monthlyGraph}
       vacationLedger={vacationLedger} thirteenthLedger={thirteenthLedger} parameters={params}/>}
     {section==='income-tax'&&<TaxPreview userId={user?.id||null} statements={statements}/>}
