@@ -138,9 +138,20 @@ export function financialComposition(
   available=money(Math.max(0,available-amount))
  }
  const netAndInvestments=money(cashNet+included.espp+included.privatePension)
- const visibleESPP=show.espp?included.espp:0
- const visiblePension=show.privatePension?included.privatePension:0
+ // Highlights are overlays within the already displayed group, not a second
+ // allocation or a change to the cash received/annual gross reconciliation.
+ // A known investment may be greater than the residual (e.g. overlapping
+ // fiscal/cash classifications); still allow its amount to be inspected.
+ const visibleESPP=show.espp&&espp!==null&&espp<=netAndInvestments?espp:0
+ const visiblePension=show.privatePension&&privatePension!==null&&
+   privatePension+visibleESPP<=netAndInvestments?privatePension:0
  const unhighlightedNet=money(netAndInvestments-visibleESPP-visiblePension)
+ if(show.espp&&espp!==null&&espp>netAndInvestments){
+  warnings.push('ESPP identificado excede o grupo líquido; não é possível destacá-lo proporcionalmente sem distorcer o gráfico.')
+ }
+ if(show.privatePension&&privatePension!==null&&privatePension+visibleESPP>netAndInvestments){
+  warnings.push('Previdência identificada excede a parcela restante do grupo líquido; não será destacada para evitar dupla contagem.')
+ }
  const inner=[
   segment('net','Líquido e aplicações',unhighlightedNet,financialColors.net),
   ...(visibleESPP>0?[segment('espp','ESPP destacado',visibleESPP,financialColors.espp)]:[]),
