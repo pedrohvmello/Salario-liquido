@@ -3,7 +3,7 @@ import {cloudflareNeuronsQuery,parseAiNeuronUsage} from './metrics.ts'
 
 // HML-only, admin-only Cloudflare Workers AI analytics. Never discloses tokens.
 // Cloudflare's GraphQL dataset is account-wide and adaptively sampled.
-const ORIGIN='https://payrep-hml.vercel.app'
+const ORIGIN='https://payrep.com.br'
 const cors={
  'Access-Control-Allow-Origin':ORIGIN,
  'Access-Control-Allow-Methods':'GET, OPTIONS',
@@ -22,7 +22,7 @@ Deno.serve(async req=>{
  if(origin&&origin!==ORIGIN)return json({error:'origin_not_allowed'},403)
  const apiUrl=Deno.env.get('SUPABASE_URL')
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
- if(!apiUrl?.includes('nrpqcrhschztdwbfgnyo.supabase.co')||!serviceKey)
+ if(!apiUrl?.includes('klvurrcmfrwetmynscjc.supabase.co')||!serviceKey)
   return json({error:'environment_unavailable'},503)
  const bearer=/^Bearer\s+(\S+)$/i.exec(req.headers.get('authorization')||'')
  if(!bearer)return json({error:'authentication_required'},401)
