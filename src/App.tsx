@@ -644,7 +644,7 @@ export default function App(){
     {section==='analytics'&&<AnalyticsDashboard userId={user?.id||null} year={year} onYearChange={setYear} years={months}
       statements={statements} lines={allLines} monthlyGraph={monthlyGraph}
       vacationLedger={vacationLedger} thirteenthLedger={thirteenthLedger} parameters={params}/>}
-    {section==='income-tax'&&<TaxPreview userId={user?.id||null} statements={statements}/>}
+    {section==='income-tax'&&<TaxPreview userId={user?.id||null} statements={statements} lines={allLines}/>}
     {section==='imports'&&<div className="stack">
      <div className="page-intro"><div><h2>Meus Holerites</h2><p>Importe, visualize e gerencie seus documentos salariais em um único lugar.</p></div></div>
      <div className="payslip-tabs" role="tablist" aria-label="Áreas de Meus Holerites">
