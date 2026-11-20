@@ -6,7 +6,7 @@
   "documents": {
     "privacidade": {
       "title": "Política de Privacidade",
-      "currentRevisionId": "privacidade-v1.0-r06",
+      "currentRevisionId": "privacidade-v1.0-r07",
       "revisions": [
         {
           "id": "privacidade-v1.0-r01",
@@ -67,12 +67,22 @@
           "path": "/legal-history/privacidade-v1.0-r06.html",
           "sourceCommit": "c383c2b815d8918a12a2c1aff71878554d7bc9b1",
           "blobSha": "b2028edac244526937e0ddd69ebb4160b3825dd5"
+        },
+        {
+          "id": "privacidade-v1.0-r07",
+          "version": "V1.0",
+          "revision": 7,
+          "changedAt": "2026-11-20T20:24:01Z",
+          "summary": "Identificação do controlador e critérios de conservação por categoria",
+          "path": "/legal-history/privacidade-v1.0-r07.html",
+          "sourceCommit": "4230992b3c236751ac01f12029a44b23c6799026",
+          "blobSha": "ec9d5f0ddb3fab0199f34aa61abfeb675062c6d2"
         }
       ]
     },
     "termos": {
       "title": "Termos de Uso",
-      "currentRevisionId": "termos-v1.0-r05",
+      "currentRevisionId": "termos-v1.0-r06",
       "revisions": [
         {
           "id": "termos-v1.0-r01",
@@ -123,6 +133,16 @@
           "path": "/legal-history/termos-v1.0-r05.html",
           "sourceCommit": "c383c2b815d8918a12a2c1aff71878554d7bc9b1",
           "blobSha": "91d6e0e760156c4482c773d4e459a7c4c46dc7e2"
+        },
+        {
+          "id": "termos-v1.0-r06",
+          "version": "V1.0",
+          "revision": 6,
+          "changedAt": "2026-11-20T20:24:01Z",
+          "summary": "Identificação formal do responsável e ligação com FAQ e privacidade",
+          "path": "/legal-history/termos-v1.0-r06.html",
+          "sourceCommit": "4230992b3c236751ac01f12029a44b23c6799026",
+          "blobSha": "02968ba83936f01cf4746cf1abba819b94ca7193"
         }
       ]
     }

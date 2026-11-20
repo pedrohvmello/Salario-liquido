@@ -26,6 +26,10 @@ describe('Payrep public OAuth pages',()=>{
   expect(terms).toContain('Free, Basic e Full')
   expect(terms).toContain('cancelamento integrado')
   expect(terms).toContain('exclusão permanente automática não está disponível')
+  expect(privacy).toContain('Pedro Henrique Vieira de Mello')
+  expect(terms).toContain('Pedro Henrique Vieira de Mello')
+  expect(privacy).toContain('Cópias de segurança')
+  expect(privacy).toContain('prazos de expurgo automático individualizados')
  })
 
  it('reuses the existing horizontal Payrep logo across all public headers',()=>{
@@ -56,6 +60,7 @@ describe('Payrep public OAuth pages',()=>{
   for(const name of ['privacidade','termos']){
    const html=page(name)
    expect(html).toContain('<strong>Versão:</strong> V1.0')
+   expect(html).toContain('Pedro Henrique Vieira de Mello')
    expect(html).toContain('<strong>Data da versão:</strong> 20 de novembro de 2026')
    expect(html).toContain('<strong>Aplicação:</strong> Payrep')
    const metadataStart=html.indexOf('class="legal-document-info"')

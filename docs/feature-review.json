@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-11-20",
+  "feature": "FAQ completo, Pep Ajuda sincronizado e identificação do controlador",
+  "review": {
+    "sobre": "Revisado: controlador e descrição das funções existentes",
+    "privacidade": "Revisada: identificação do controlador, critérios de conservação e processamento da IA",
+    "termos": "Revisados: responsável, funcionamento e assistência",
+    "faq": "79 perguntas verificadas em 10 categorias; expandir ao clicar; inicial recolhido",
+    "pepAjuda": "Mesma fonte de FAQ; contexto filtrado para poupar Neurons; contador oculto só na tela"
+  },
+  "sourceTrees": {
+    "src": "a72e6efdebde126ccc2d323c9729e228237f429e",
+    "supabase/functions": "267bc001fc9195a6854133ea8d1f2f46da420466",
+    "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
+  }
+}

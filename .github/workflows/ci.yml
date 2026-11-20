@@ -2,7 +2,7 @@ name: Tests and build
 on:
   pull_request:
   push:
-    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120]
+    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120, codex/payrep-help-legal-sync-20261120]
 permissions:
   contents: read
 jobs:
@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - run: node scripts/check-feature-review.cjs
       - run: npm run build
+      - run: npx vitest run src/lib/helpKnowledge.test.ts
       - run: npx vitest run src/lib/publicPages.test.ts
       - run: npm test

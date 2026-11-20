@@ -14,3 +14,9 @@
 - Política de Privacidade V1.0 revisão 06 e Termos de Uso V1.0 revisão 05 registram as alterações relativas a Pep, processamento externo de IA, planos e pagamentos Asaas, suporte por e-mail e exclusão de dados.
 - Os HTMLs arquivados anteriores permanecem intocados, inclusive terminologia histórica. O conteúdo ao vivo das páginas públicas não deve exibir referências internas a HML/PRD.
 - A identidade formal do controlador e os critérios detalhados de retenção continuam pendentes; a atualização de redação não substitui a validação jurídica pré-lançamento.
+
+## Revisão do controlador e FAQ (20/11/2026)
+
+- Controlador informado pelo operador: **Pedro Henrique Vieira de Mello**, pessoa física, contato `suporte@payrep.com.br`. CPF e endereço não foram fornecidos e não devem ser inventados.
+- Política de Privacidade, revisão 07, e Termos de Uso, revisão 06. A política diferencia critérios de conservação por categoria, sem declarar expurgo periódico automático inexistente. A versão pública permanece V1.0.
+- A revisão do FAQ e do Pep Ajuda utiliza fonte de conhecimento comum em `supabase/functions/support-ai/knowledge.ts`. Qualquer alteração funcional deve revisar Sobre, Privacidade, Termos, FAQ e conhecimento do Pep antes da publicação.
