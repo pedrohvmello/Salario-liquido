@@ -1,7 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.105.0'
 import {cleanAiTitle,extractModelText,conversationTopicFallback} from './title.ts'
 
-const allowedOrigin='https://payrep-hml.vercel.app'
+const allowedOrigin='https://payrep.com.br'
 const cors={
  'Access-Control-Allow-Origin':allowedOrigin,
  'Access-Control-Allow-Methods':'POST, OPTIONS',
@@ -34,7 +34,7 @@ Deno.serve(async req=>{
  const url=Deno.env.get('SUPABASE_URL')||''
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
  const anonKey=Deno.env.get('SUPABASE_ANON_KEY')||''
- if(!url.includes('nrpqcrhschztdwbfgnyo.supabase.co')||!serviceKey||!anonKey)
+ if(!url.includes('klvurrcmfrwetmynscjc.supabase.co')||!serviceKey||!anonKey)
   return response({error:'environment_unavailable'},503)
  const db=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}})
  const {data:{user},error:authError}=await db.auth.getUser(auth.replace(/^Bearer\s+/i,''))
