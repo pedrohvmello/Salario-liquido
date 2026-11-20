@@ -14,7 +14,7 @@ import {isThirteenthPayslip,thirteenthFigures} from './thirteenth'
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 export type PayrollLine={code:string; description:string; amount:number; side:'credit'|'debit'|'unknown'}
 export type ParsedStatement={
- period:string; format:'old'|'new'; documentType:'monthly'|'ppr'|'vacation'|'thirteenth'; vacationStart:string|null; vacationEnd:string|null; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; thirteenthGross:number|null; thirteenthAdvance:number; thirteenthInss:number; thirteenthIrrf:number; thirteenthPension:number; salaryContract:number|null; trienio:number|null; dependentsIrrf:number|null; dependentsTotal?:number|null;
+ period:string; format:'old'|'new'; documentType:'monthly'|'ppr'|'vacation'|'thirteenth'|'adjustment'; payrollSubtype?:'difference'|'rectification'|'totalizer'|null; sourcePeriods?:string[]; vacationStart:string|null; vacationEnd:string|null; paymentDate:string|null; grossPpr:number|null; pprIncomeTax:number; pprUnionContribution:number; thirteenthGross:number|null; thirteenthAdvance:number; thirteenthInss:number; thirteenthIrrf:number; thirteenthPension:number; salaryContract:number|null; trienio:number|null; dependentsIrrf:number|null; dependentsTotal?:number|null;
  credits:number|null; debits:number|null; net:number|null; salaryAdvance:number|null; netReceived:number|null; irBase:number|null; fgts:number|null;
  lines:PayrollLine[]; warnings:string[]; sourceFile:string; page:number
 }
@@ -38,13 +38,18 @@ function group(items:Item[]):Row[]{
 }
 function rowValue(row:Pick<Row,'items'>,needle:RegExp){return row.items.find(i=>needle.test(i.text))?.text||''}
 function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
-  const isPpr=isPprPayslip(rows)
-  const isVacation=isVacationPayslip(rows)
-  const isThirteenth=isThirteenthPayslip(rows)
+  const header=rows.slice(0,14).map(row=>row.text).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()
+  const subtype:ParsedStatement['payrollSubtype']=/\bMENSAL\s+TOTALIZADORA\b/.test(header)?'totalizer':/\bMENSAL\s+RETIFICADORA\b/.test(header)?'rectification':/\bMENSAL\s+DIFERENCA\b/.test(header)?'difference':null
+  const isPpr=!subtype&&isPprPayslip(rows)
+  const isVacation=!subtype&&isVacationPayslip(rows)
+  const isThirteenth=!subtype&&isThirteenthPayslip(rows)
   const vacationDates=isVacation?vacationPeriodFromHeader(rows):{start:null,end:null}
   const whole=rows.map(r=>r.text).join('\n')
   const range=whole.match(/\d{2}\/(\d{2})\/(\d{4})\s+a\s+\d{2}\/\d{2}\/\d{4}/i)
-  const period=range ? range[2]+'-'+range[1] : ''
+  // Supplemental receipts print Referência MM/YYYY but no date range.
+  // Only a standalone MM/YYYY in the header is accepted, never a date substring.
+  const reference=rows.slice(0,12).map(r=>r.text).join(' ').match(/(?:^|[^0-9/])(0[1-9]|1[0-2])\/(20\d{2})(?![0-9/])/)
+  const period=subtype?(reference?reference[2]+'-'+reference[1]:''):(range?range[2]+'-'+range[1]:'')
   const salaryRow=rows.find(r=>r.text.includes('Salário contratual:'))
   const salaryIndex=salaryRow?rows.indexOf(salaryRow):-1
   const salaryContract=salaryIndex>=0?money(rowValue(rows[salaryIndex+1]||{items:[]},/^\d{1,3}(?:\.\d{3})*,\d{2}$/))||null:null
@@ -66,16 +71,17 @@ function oldParse(rows:Row[],name:string,page:number):ParsedStatement{
   const ppr=isPpr?pprDetails(lines):null
   const thirteenth=isThirteenth?thirteenthFigures(lines):null
   const dependents=readDependentCounts(rows)
-  const result:ParsedStatement={period,format:'old',documentType:isPpr?'ppr':isVacation?'vacation':isThirteenth?'thirteenth':'monthly',
+  const result:ParsedStatement={period,format:'old',documentType:subtype?'adjustment':isPpr?'ppr':isVacation?'vacation':isThirteenth?'thirteenth':'monthly',
+    payrollSubtype:subtype,sourcePeriods:subtype==='totalizer'?[]:subtype?[period]:[],
     vacationStart:vacationDates.start,vacationEnd:vacationDates.end,
     paymentDate:paymentDateFromHeader(rows),grossPpr:ppr?.gross??null,
     pprIncomeTax:ppr?.incomeTax??0,pprUnionContribution:ppr?.unionContribution??0,
     thirteenthGross:thirteenth?.gross??null,thirteenthAdvance:thirteenth?.advance??0,
     thirteenthInss:thirteenth?.inss??0,thirteenthIrrf:thirteenth?.irrf??0,
     thirteenthPension:thirteenth?.pension??0,
-    salaryContract:isPpr||isVacation||isThirteenth?null:salaryContract,trienio:isPpr||isVacation||isThirteenth?null:trienio,
-    dependentsIrrf:isPpr||isVacation||isThirteenth?null:dependents.irrf,
-    dependentsTotal:isPpr||isVacation||isThirteenth?null:dependents.total,
+    salaryContract:isPpr||isVacation||isThirteenth||subtype?null:salaryContract,trienio:isPpr||isVacation||isThirteenth||subtype?null:trienio,
+    dependentsIrrf:isPpr||isVacation||isThirteenth||subtype?null:dependents.irrf,
+    dependentsTotal:isPpr||isVacation||isThirteenth||subtype?null:dependents.total,
     credits,debits,net,salaryAdvance:null,netReceived:null,irBase:figures2.length>=4?money(figures2[3]):null,fgts:figures2.length>=3?money(figures2[2]):null,lines,warnings:[],sourceFile:name,page}
   return validate(result,rows)
 }
@@ -111,6 +117,24 @@ function newParse(rows:Row[],name:string,page:number):ParsedStatement{
     lines,warnings:[],sourceFile:name,page},rows)
 }
 function validate(s:ParsedStatement,rows:Row[]):ParsedStatement {
+  if(s.documentType==='adjustment'){
+    if(s.payrollSubtype==='totalizer'){
+      if(!s.paymentDate)s.warnings.push('Data do pagamento da folha totalizadora não encontrada: não importar até conferir.')
+      if(s.credits===null||s.credits<=0||s.debits===null||s.net===null||
+        Math.abs(s.credits-s.debits-s.net)>.02)
+        s.warnings.push('Totalizadora sem proventos, descontos e líquido conciliados: não importar.')
+    }else if(s.payrollSubtype==='difference'){
+      s.warnings.push('Folha DIFERENÇA é evidência por competência: seus totalizadores impressos em zero não são pagamentos adicionais.')
+    }else if(s.payrollSubtype==='rectification'){
+      s.warnings.push('Folha RETIFICADORA substitui os valores de referência, mas não cria pagamento adicional.')
+    }
+    s.salaryAdvance=null
+    s.netReceived=null
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(s.period))s.warnings.push('Competência da folha complementar não identificada.')
+    if(!s.lines.length)s.warnings.push('Rubricas da folha complementar não identificadas.')
+    if(s.lines.some(x=>x.side==='unknown'))s.warnings.push('Rubricas sem classificação na folha complementar.')
+    return s
+  }
   if(s.documentType==='thirteenth'){
     if(!s.paymentDate)s.warnings.push('Data de pagamento do 13º não encontrada')
     if(s.thirteenthGross===null)s.warnings.push('13º bruto não identificado')
