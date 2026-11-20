@@ -7,11 +7,11 @@
     "privacidade": "Revisada: identificação do controlador, critérios de conservação e processamento da IA",
     "termos": "Revisados: responsável, funcionamento e assistência",
     "faq": "79 perguntas verificadas em 10 categorias; expandir ao clicar; inicial recolhido",
-    "pepAjuda": "Mesma fonte de FAQ; contexto filtrado para poupar Neurons; contador oculto só na tela"
+    "pepAjuda": "Mesma fonte de FAQ; contexto filtrado para poupar Neurons; contador oculto só na tela; termos internos de ambientes removidos da base."
   },
   "sourceTrees": {
-    "src": "a72e6efdebde126ccc2d323c9729e228237f429e",
-    "supabase/functions": "267bc001fc9195a6854133ea8d1f2f46da420466",
+    "src": "9e54c2f69ac86f39a54d693838c09131877c1288",
+    "supabase/functions": "2f9d7b0729ad9b017fa30ee740f196a15df0a985",
     "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
   }
 }
