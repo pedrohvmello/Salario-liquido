@@ -18,7 +18,7 @@ const hmlRef=import.meta.env.VITE_HML_SUPABASE_PROJECT_REF
 // Fail closed on HML if its published URL or key is accidentally changed to PRD.
 const backendMatches=!hmlRef||(url===`https://${hmlRef}.supabase.co`&&Boolean(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY))
 export const db:SupabaseClient | null=url&&anon&&backendMatches?createClient(url,anon,{auth:{persistSession:true,autoRefreshToken:true,...(import.meta.env.VITE_ENABLE_PASSKEYS==='true'?{experimental:{passkey:true}}:{})}}):null
-export type SavedStatement={id:string;duplicate_of?:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth';vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;dependents_total?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
+export type SavedStatement={id:string;duplicate_of?:string|null;storage_key:string;source_page:number;period:string;format:string;document_type:'monthly'|'ppr'|'vacation'|'thirteenth'|'adjustment';payroll_subtype?:'difference'|'rectification'|'totalizer'|null;source_periods?:string[];vacation_start:string|null;vacation_end:string|null;payment_date:string|null;gross_ppr:number|null;ppr_income_tax:number;ppr_union_contribution:number;thirteenth_gross:number|null;thirteenth_advance:number;thirteenth_inss:number;thirteenth_irrf:number;thirteenth_pension:number;salary_contract:number|null;trienio:number|null;dependents_irrf?:number|null;dependents_total?:number|null;event_use_competence_end?:boolean;credits:number|null;debits:number|null;net:number|null;salary_advance:number|null;net_received:number|null;ir_base:number|null;fgts:number|null;warnings:string[];source_file:string}
 export type SalaryEvent={id:string;effective_date:string;kind:string;value:number;notes:string;created_at?:string;source_statement_id?:string|null;user_override?:boolean;hidden?:boolean}
 export type SavedTimeEntry=DayEntry & {id:string}
 export const eventsKinds=[
@@ -255,6 +255,16 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       throw new Error('O PDF '+name+' contém páginas sem competência reconhecida. Revise ou separe esse arquivo antes de importar, para não descartar páginas de um holerite.')
   }
   for(const s of chosen){
+    if(s.documentType==='adjustment'){
+      if(!s.payrollSubtype)throw Error('Tipo da folha complementar não reconhecido: '+s.sourceFile)
+      if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(s.period))
+       throw Error('Referência da folha complementar não reconhecida.')
+      if(s.payrollSubtype==='totalizer'){
+       if(!s.paymentDate||s.credits===null||s.credits<=0||s.debits===null||s.net===null||
+        Math.abs(s.credits-s.debits-s.net)>.02)
+        throw Error('Folha totalizadora sem pagamento real ou totais conciliados. Confira o PDF antes de importar.')
+      }
+    }
     if(s.documentType==='ppr')makePprEvent(s)
     if(s.documentType==='thirteenth')validateThirteenthPay(s)
     if(s.documentType==='vacation'){
@@ -329,7 +339,7 @@ export async function saveStatements(pages:ParsedStatement[],files:File[],select
       throw new Error('Falha ao salvar o PDF individual de '+s.period+': '+uploaded.error.message)
     const {data:statement,error}=await db.from('statements').insert({
       user_id,period:s.period,source_sha256:original.hash,source_page:s.page,source_file:s.sourceFile,
-      storage_key:key,format:s.format,document_type:s.documentType,payment_date:s.paymentDate,
+      storage_key:key,format:s.format,document_type:s.documentType,payroll_subtype:s.payrollSubtype??null,source_periods:s.sourcePeriods||[],payment_date:s.paymentDate,
       vacation_start:s.vacationStart,vacation_end:s.vacationEnd,
       gross_ppr:s.grossPpr,ppr_income_tax:s.pprIncomeTax,ppr_union_contribution:s.pprUnionContribution,
       thirteenth_gross:s.thirteenthGross,thirteenth_advance:s.thirteenthAdvance,
