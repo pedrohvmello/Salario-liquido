@@ -2953,3 +2953,79 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .analytics-indicator-header .analytics-indicator-summary span{font-size:10px}
  .analytics-indicator-header .analytics-indicator-summary strong{font-size:16px}
 }
+
+
+/* Selectable supplementary insights: one focused analysis at a time. */
+.financial-insights-panel{min-width:0;display:flex;flex-direction:column;gap:15px}
+.financial-insights-heading h2{font-size:16px;color:#3b2050;margin:0 0 5px}
+.financial-insights-heading p{font-size:12px;color:#80688e;line-height:1.55;margin:0}
+.financial-insights-tabs{
+ display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+ padding:4px 0 13px;border-bottom:1px solid #e9dcf2
+}
+.financial-insights-tabs button{
+ display:inline-flex;justify-content:center;align-items:center;text-align:center;
+ padding:10px 15px;min-height:38px;white-space:nowrap;
+ border:1px solid #e1d2f1;border-radius:9px;
+ background:#fff;color:#5c3b78;font-weight:750;font-size:12px;
+ transition:background .15s ease,border-color .15s ease
+}
+.financial-insights-tabs button.is-active,
+.financial-insights-tabs button[aria-selected=true]{
+ background:#f2e6fc;color:#68129b;border-color:#bd86ed
+}
+.financial-insights-tabs button:focus-visible{outline:2px solid #8a19d9;outline-offset:2px}
+.financial-insights-content{display:flex;flex-direction:column;gap:12px;min-width:0}
+.financial-insights-headline h3{font-size:15px;font-weight:800;color:#44215f;margin:0 0 5px}
+.financial-insights-headline p{font-size:12px;color:#836d96;line-height:1.55;margin:0}
+.financial-insights-chart{width:100%;height:350px;min-width:0}
+.financial-insights-note{
+ border-top:1px solid #ece1f5;padding-top:11px;
+ font-size:11px;line-height:1.65;color:#866f97;margin:0
+}
+.financial-insights-empty{
+ display:flex;align-items:center;justify-content:center;gap:10px;
+ min-height:175px;color:#8a7699;font-size:12px;text-align:center;
+ border:1px dashed #e5d5f0;border-radius:12px;padding:24px
+}
+.financial-insights-rate{
+ display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;
+ align-items:center;padding:12px 15px;border:1px solid #e7d5f2;
+ border-radius:11px;background:#faf6ff;width:max-content;max-width:100%
+}
+.financial-insights-rate span{font-size:12px;font-weight:700;color:#654576}
+.financial-insights-rate strong{font-size:22px;color:#6913a1;font-variant-numeric:tabular-nums}
+.financial-insights-rate small{grid-column:1/-1;color:#8b7798;font-size:10px;line-height:1.5}
+.financial-insights-table-wrap{overflow-x:auto;max-width:100%;border:1px solid #ebdef4;border-radius:11px}
+.financial-insights-table{width:100%;border-collapse:collapse;font-size:12px;color:#553b65;white-space:nowrap}
+.financial-insights-table th,.financial-insights-table td{
+ padding:13px 15px;border-bottom:1px solid #eee5f5;text-align:right;
+ font-variant-numeric:tabular-nums
+}
+.financial-insights-table th:first-child,.financial-insights-table td:first-child{text-align:left}
+.financial-insights-table thead th{
+ font-size:11px;font-weight:800;color:#80658e;background:#f8f4fc
+}
+.financial-insights-table tbody th{color:#502477;font-size:12px}
+.financial-insights-table tbody tr:last-child th,.financial-insights-table tbody tr:last-child td{border-bottom:0}
+.financial-insights-table td small{display:block;font-size:10px;color:#967ca4;margin-top:2px}
+.financial-insights-status{
+ display:inline-flex;align-items:center;gap:5px;
+ border-radius:7px;padding:5px 8px;font-size:10px;font-weight:750
+}
+.financial-insights-status.is-reconciled{color:#087451;background:#e9f8ef}
+.financial-insights-status.is-divergent{color:#a43232;background:#fff0f0}
+.financial-insights-status.is-partial{color:#885b21;background:#fff7e9}
+.financial-insights-status.is-without-report{color:#745c86;background:#f2ebf8}
+@media(max-width:760px){
+ .financial-insights-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .financial-insights-tabs button{white-space:normal;font-size:11px;padding:9px 8px;min-height:44px}
+ .financial-insights-chart{height:300px}
+ .financial-insights-rate{grid-template-columns:minmax(0,1fr) max-content;width:100%}
+ .financial-insights-rate span{font-size:11px}
+ .financial-insights-rate strong{font-size:19px}
+}
+@media(max-width:380px){
+ .financial-insights-tabs{grid-template-columns:1fr}
+ .financial-insights-chart{height:285px}
+}
