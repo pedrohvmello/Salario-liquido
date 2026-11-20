@@ -18,8 +18,25 @@ export const METRICS=[
  {key:'pension',label:'Pensão alimentícia',note:'Retenções da folha mensal, incluindo rubricas de férias e adiantamentos.'},
  {key:'overtime',label:'Horas extras',note:'Proventos de horas extras na folha, sem somar DSR à mesma rubrica.'}
 ] as const satisfies readonly {key:MetricKey;label:string;note:string}[]
+export type IndicatorKey=MetricKey|'irrf'|'fgts'
+export const INDICATORS=[
+ ...METRICS,
+ {key:'irrf',label:'IRRF',note:'Imposto de renda retido nos holerites mensais, incluindo férias registradas na folha. 13º e PPR têm tributação separada.'},
+ {key:'fgts',label:'FGTS',note:'Valores informados nos holerites mensais. Não representa o saldo acumulado da conta FGTS.'}
+] as const satisfies readonly {key:IndicatorKey;label:string;note:string}[]
 export type MonthlyMetrics={period:string;fgts:number|null;irrfSalary:number|null;irrfVacation:number|null}&Record<MetricKey,number|null>
 export type TimeMetrics=MonthlyMetrics&{label:string;monthlyStatements:number}
+/** Indicators are based solely on imported payroll evidence. IRRF combines
+ * ordinary and vacation withholding without inventing values for missing months.
+ * PPR/13º taxes are deliberately outside this series. */
+export function indicatorValue(row:TimeMetrics,key:IndicatorKey):number|null{
+ if(key==='fgts')return row.fgts
+ if(key==='irrf'){
+  const values=[row.irrfSalary,row.irrfVacation].filter((v):v is number=>v!==null)
+  return values.length?roundMoney(values.reduce((sum,v)=>sum+v,0)):null
+ }
+ return row[key]
+}
 export type TaxTime={label:string;salary:number|null;vacation:number|null;thirteenth:number|null;ppr:number|null;total:number|null}
 export type ComparisonRow={label:string;gross:number;net:number;pension?:number;inss?:number;irrf:number;other:number}
 export type IrrfStackKey='salary'|'vacation'|'thirteenth'|'ppr'
