@@ -89,17 +89,24 @@ const segment=(key:string,name:string,value:number,fill:string):ChartSegment=>({
 export function financialComposition(
  rows:readonly AnnualFinancialRow[],show:Readonly<Record<CompositionOption,boolean>>
 ):FinancialComposition{
- const gross=sumAvailable(rows.map(r=>r.payrollGross))
- const net=sumAvailable(rows.map(r=>r.net))
- const pension=sumAvailable(rows.map(r=>r.pension))
- const irrf=sumAvailable(rows.map(r=>r.irrf))
- const inss=sumAvailable(rows.map(r=>r.inss))
- const espp=sumAvailable(rows.map(r=>r.espp))
- const privatePension=sumAvailable(rows.map(r=>r.privatePension))
- const trienio=sumAvailable(rows.map(r=>r.trienio))
- const officialYears=rows.filter(r=>r.officialFields.length>0).map(r=>r.year)
- const coveredMonths=rows.reduce((n,r)=>n+r.months,0)
+ // Do not let an official-only year inflate the deductions relative to a
+ // gross total from other years. Years without a payroll gross or cash amount
+ // are excluded from the doughnut, but remain in the annual tax trend.
+ const eligible=rows.filter(r=>valid(r.payrollGross)&&r.payrollGross>0&&valid(r.net))
+ const omitted=rows.filter(r=>!eligible.includes(r)&&(r.taxableOfficial!==null||r.months>0))
+ const gross=sumAvailable(eligible.map(r=>r.payrollGross))
+ const net=sumAvailable(eligible.map(r=>r.net))
+ const pension=sumAvailable(eligible.map(r=>r.pension))
+ const irrf=sumAvailable(eligible.map(r=>r.irrf))
+ const inss=sumAvailable(eligible.map(r=>r.inss))
+ const espp=sumAvailable(eligible.map(r=>r.espp))
+ const privatePension=sumAvailable(eligible.map(r=>r.privatePension))
+ const trienio=sumAvailable(eligible.map(r=>r.trienio))
+ const officialYears=eligible.filter(r=>r.officialFields.length>0).map(r=>r.year)
+ const coveredMonths=eligible.reduce((n,r)=>n+r.months,0)
  const warnings:string[]=[]
+ if(omitted.length)warnings.push('Os anos '+omitted.map(r=>r.year).join(', ')+
+  ' não entraram na composição porque faltam proventos brutos e/ou líquido mensal para uma base comparável.')
  const extras={trienio,espp,privatePension}
  const empty={gross,inner:[],outer:[],origin:[],categories:[],coveredMonths,officialYears,warnings,extras}
  if(gross===null||gross<=0){
@@ -150,7 +157,7 @@ export function financialComposition(
    if(gross-trienio>0.01)origin.push(segment('originOther','Demais proventos',gross-trienio,financialColors.originOther))
   }
  }
- if(rows.some(r=>r.months>0&&(
+ if(eligible.some(r=>r.months>0&&(
    r.net===null||r.inss===null||r.irrf===null||r.pension===null)))
   warnings.push('Uma ou mais rubricas estão ausentes em parte dos anos. A parcela residual não substitui esses dados.')
  if(officialYears.length)warnings.push('Informe IR conferido fornece IRRF, INSS e pensão anuais quando esses campos estão presentes. O bruto da folha continua separado da base tributável.')
