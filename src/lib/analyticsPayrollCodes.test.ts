@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {payrollMetrics,timeMetrics} from './analytics'
+import {payrollMetrics,timeMetrics,indicatorValue,INDICATORS} from './analytics'
 import type {SavedStatement} from './data'
 import type {StatementRubric} from './vacation'
 
@@ -42,5 +42,32 @@ describe('New and old payslip rubrics are comparable without missing taxation',(
   expect(year[0].irrfSalary).toBe(4235.77)
   expect(year[0].pension).toBe(5784.99)
   expect(year[0].monthlyStatements).toBe(2)
+ })
+})
+
+describe('Indicator dropdown includes documented IRRF and FGTS series',()=>{
+ it('adds IRRF and FGTS without removing the other indicators',()=>{
+  expect(INDICATORS.map(x=>x.key)).toContain('irrf')
+  expect(INDICATORS.map(x=>x.key)).toContain('fgts')
+  expect(INDICATORS.map(x=>x.key)).toContain('espp')
+  expect(INDICATORS.map(x=>x.key)).toContain('privatePension')
+ })
+ it('totals ordinary and vacation IRRF, while preserving missing months as null',()=>{
+  const one=doc('jan','2025-01')
+  const feb=doc('feb','2025-02')
+  const rows=payrollMetrics([{...one,fgts:950.22},{...feb,fgts:1000.05}],[
+   rubric('jan','07050','IRRF MES',550.70),
+   rubric('jan','07065','IRRF FERIAS',120.55),
+   rubric('feb','07050','IRRF MES',600.15)
+  ])
+  const monthly=timeMetrics(rows,'2025')
+  expect(indicatorValue(monthly[0],'irrf')).toBe(671.25)
+  expect(indicatorValue(monthly[1],'irrf')).toBe(600.15)
+  expect(indicatorValue(monthly[2],'irrf')).toBeNull()
+  expect(indicatorValue(monthly[0],'fgts')).toBe(950.22)
+  expect(indicatorValue(monthly[2],'fgts')).toBeNull()
+  const annual=timeMetrics(rows,'all')
+  expect(indicatorValue(annual[0],'irrf')).toBe(1271.40)
+  expect(indicatorValue(annual[0],'fgts')).toBe(1950.27)
  })
 })
