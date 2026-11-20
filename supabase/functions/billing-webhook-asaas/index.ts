@@ -1,9 +1,9 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
-// Asaas Sandbox only. Provider-authenticated notifications, no browser CORS.
+// Asaas production (disabled until explicit server-side enablement). Provider-authenticated notifications, no browser CORS.
 // The header token is separate from the Asaas API key.
 // Events are persisted; no paid plan is activated without later reconciliation.
-const projectRef='nrpqcrhschztdwbfgnyo'
+const projectRef='klvurrcmfrwetmynscjc'
 const respond=(data:Record<string,unknown>,status=200)=>
  new Response(JSON.stringify(data),{status,headers:{
  'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}})
@@ -20,12 +20,12 @@ const cents=(value:unknown):number=>typeof value==='number'&&Number.isFinite(val
 const validDate=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)
  &&!Number.isNaN(Date.parse(value+'T12:00:00Z'))
 const asaasHeaders=(key:string)=>({
- 'access_token':key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'
+ 'access_token':key,'User-Agent':'Payrep-PRD/1.0','Accept':'application/json'
 })
 type Admin=ReturnType<typeof createClient>
 async function providerGet(path:string,key:string):Promise<Record<string,unknown>|null>{
  try{
-  const response=await fetch('https://api-sandbox.asaas.com/v3/'+path,{
+  const response=await fetch('https://api.asaas.com/v3/'+path,{
    headers:asaasHeaders(key),signal:AbortSignal.timeout(12000)
   })
   if(!response.ok)return null
@@ -167,10 +167,10 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return respond({error:'Método não permitido.'},405)
  const url=Deno.env.get('SUPABASE_URL')||''
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
- const expected=Deno.env.get('ASAAS_SANDBOX_WEBHOOK_TOKEN')||''
+ const expected=Deno.env.get('ASAAS_PRODUCTION_WEBHOOK_TOKEN')||''
  if(url!==('https://'+projectRef+'.supabase.co')||!service
-  ||Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true'
-  ||expected.length<32)return respond({error:'Webhook do Sandbox ainda não configurado.'},503)
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true'
+  ||expected.length<32)return respond({error:'Webhook de produção ainda não configurado.'},503)
  if(!sameToken(req.headers.get('asaas-access-token')||'',expected))
   return respond({error:'Webhook não autenticado.'},401)
  const len=Number(req.headers.get('content-length')||0)
@@ -191,7 +191,7 @@ Deno.serve(async(req:Request)=>{
  const type=id(payload.event)
  if(['PAYMENT_CONFIRMED','PAYMENT_RECEIVED','PAYMENT_OVERDUE','SUBSCRIPTION_CREATED',
   'CHECKOUT_PAID','PAYMENT_CREATED'].includes(type)){
-  const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
+  const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
   if(!key)return respond({received:true,needsReview:true,reason:'api_not_configured'})
   const overdue=await processOverdue(admin,payload,key)
   if(overdue==='processed'){
