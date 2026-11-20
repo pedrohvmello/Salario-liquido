@@ -53,18 +53,17 @@ async function listAllStatementRubrics(id:string):Promise<StatementRubric[]>{
 }
 export async function getData(){
   const id=await identity();if(!db)throw new Error('Banco não configurado')
-  const [statements,events,entries,settings,lines,profileChoice,profiles]=await Promise.all([
+  const [statements,events,entries,settings,lines,profiles]=await Promise.all([
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
     db.from('salary_events').select('*').eq('user_id',id).eq('hidden',false).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
     db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
     listAllStatementRubrics(id),
-    db.from('user_bank_profile_selections').select('profile_id').eq('user_id',id).maybeSingle(),
     db.from('bank_policy_profiles').select('*').eq('active',true)
   ])
-  for(const r of [statements,events,entries,settings,profileChoice,profiles])if(r.error)throw new Error(r.error.message)
+  for(const r of [statements,events,entries,settings,profiles])if(r.error)throw new Error(r.error.message)
   return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null;bank_weighted_minutes:number|null;bank_policy_id:string|null;bank_profile_id:string|null}>,
-  bankPolicies:(profiles.data||[]).filter(p=>p.id===profileChoice.data?.profile_id)
+  bankPolicies:(profiles.data||[]).filter(p=>p.is_default===true)
    .map(p=>({...p,title:p.name,source_reference:p.source_note})) as TimeBankPolicy[],
   settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,overviewCardColors:settings.data?.parameters?.overviewCardColors as unknown,overviewCardsVersion:settings.data?.parameters?.overviewCardsVersion as number|undefined,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
 }
