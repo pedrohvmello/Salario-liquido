@@ -5,6 +5,7 @@ import {PayrepSelect} from './PayrepSelect'
 import {TicketConversation} from './TicketConversation'
 import {SupportAiChat} from './SupportAiChat'
 import {PepMascot} from './PepMascot'
+import {pepAssistantEnabled} from '../lib/environment'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
@@ -127,7 +128,7 @@ function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
 export function SupportPage({user}:{user:User}){
  const [inTickets,setInTickets]=useState(false)
  const [inAi,setInAi]=useState(false)
- const hmlAiEnabled=Boolean(import.meta.env.VITE_HML_SUPABASE_PROJECT_REF)
+ const aiEnabled=pepAssistantEnabled
  const [pepPreviewUrl,setPepPreviewUrl]=useState<string|null>(null)
  const [pepVideoStatus,setPepVideoStatus]=useState<'checking'|'missing'|'local'|'ready'>('checking')
  const [cachedPepVideo,setCachedPepVideo]=useState<Blob|null>(null)
@@ -147,7 +148,7 @@ export function SupportPage({user}:{user:User}){
  }
  useEffect(()=>{
   let cancelled=false
-  if(!db||!hmlAiEnabled)return
+  if(!db||!aiEnabled)return
   const client=db
   const load=async()=>{
    const {data:membership}=await client.from('app_members').select('role,active,status').eq('user_id',user.id).maybeSingle()
@@ -181,7 +182,7 @@ export function SupportPage({user}:{user:User}){
   }
   void load()
   return ()=>{cancelled=true;if(localVideoUrl.current){URL.revokeObjectURL(localVideoUrl.current);localVideoUrl.current=null}}
- },[user.id,hmlAiEnabled])
+ },[user.id,aiEnabled])
  const uploadPepVideo=async(file:Blob)=>{
   if(!db||!isAdmin||uploadingPepVideo)return
   if(file.type!=='video/mp4'||file.size<1000||file.size>15_000_000){
@@ -204,12 +205,12 @@ export function SupportPage({user}:{user:User}){
   }catch(err){setPepUploadError(err instanceof Error?err.message:'Não foi possível publicar o vídeo. Confira sua autenticação MFA e tente novamente.')}
   finally{setUploadingPepVideo(false)}
  }
- // Never display the AI entrypoint in PRD until the HML pilot is approved.
+ // Pep Ajuda is available according to the active environment's feature flag.
  if(inTickets)return <TicketWorkspace user={user} onBack={()=>setInTickets(false)}/>
- if(inAi&&hmlAiEnabled)return <SupportAiChat mode="help" onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
+ if(inAi&&aiEnabled)return <SupportAiChat mode="help" onBack={()=>setInAi(false)} pepPreviewUrl={pepPreviewUrl} pepVideoLoading={pepVideoStatus==='checking'}/>
  return <div className="stack payrep-help-page">
   <div className="page-intro"><div><h2>Central de Ajuda</h2><p>Consulte as orientações e entre em contato com o suporte quando precisar.</p></div></div>
-  {hmlAiEnabled&&<section className="panel help-ai-entry">
+  {aiEnabled&&<section className="panel help-ai-entry">
    <div className="help-ai-entry-content">
     <div className="panel-heading"><h2><Sparkles size={19}/> Pep Ajuda</h2></div>
     <p>Escreva sua pergunta ao Pep e receba orientações sobre como utilizar o Payrep.</p>
@@ -217,7 +218,7 @@ export function SupportPage({user}:{user:User}){
     <p className="subtle">O Pep Ajuda responde apenas dúvidas sobre o funcionamento do Payrep. Consultas aos seus dados ficam no menu Pergunte ao Pep, a partir do plano Basic.</p>
     {isAdmin&&<details className="pep-admin-media">
      <summary>Gerenciar animação do Pep</summary>
-     <p className="subtle">Publicação definitiva em homologação. O vídeo ficará disponível para todos os usuários deste ambiente.</p>
+     <p className="subtle">O vídeo publicado ficará disponível para todos os usuários deste ambiente.</p>
      {pepVideoStatus==='local'&&cachedPepVideo&&<button type="button" className="secondary" disabled={uploadingPepVideo} onClick={()=>void uploadPepVideo(cachedPepVideo)}>Publicar vídeo atual para todos</button>}
      <label className="secondary" style={{position:'relative',display:'inline-flex',cursor:uploadingPepVideo?'not-allowed':'pointer',marginLeft:pepVideoStatus==='local'?8:0}}>
       {uploadingPepVideo?'Publicando...':pepVideoStatus==='ready'?'Substituir MP4 publicado':'Selecionar MP4 para publicar'}

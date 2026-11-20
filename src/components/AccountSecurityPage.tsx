@@ -5,6 +5,7 @@ import {ChangePassword} from './AuthGate'
 import {db} from '../lib/data'
 import {canConfirmDeletion} from '../lib/profile'
 import {isHomologationHost} from '../lib/overviewPreview'
+import {runtimeEnvironment} from '../lib/environment'
 import {TotpSettings} from './TotpSettings'
 import {PasskeySettings} from './PasskeySettings'
 import {passkeyFeatureEnabled} from '../lib/passkey'
@@ -36,7 +37,7 @@ export function AccountSecurityPage({user,onBack,onPayrollReset,onNavigateSubscr
  const [dataDeleteError,setDataDeleteError]=useState('')
  const [dataDeleteMessage,setDataDeleteMessage]=useState('')
  const [dataDeleteWarning,setDataDeleteWarning]=useState('')
- const hml=isHomologationHost(window.location.hostname)
+ const hml=runtimeEnvironment==='hml'||isHomologationHost(window.location.hostname)
  const endOtherSessions=async()=>{
   if(!db)return
   setSessionsBusy(true);setSessionsError('');setSessionsMessage('')

@@ -3,6 +3,7 @@ import {ArrowLeft,Bot,LockKeyhole} from 'lucide-react'
 import {SupportAiChat} from './SupportAiChat'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {db} from '../lib/data'
+import {pepAssistantEnabled} from '../lib/environment'
 export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscribe:()=>void}){
  const [usage,setUsage]=useState<MyPepUsage|null>(null)
  const [loading,setLoading]=useState(true)
@@ -12,7 +13,7 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
  useEffect(()=>{
   // Match Pep Ajuda: both assistants use the published, shared MP4.
   let active=true
-  if(!db||!import.meta.env.VITE_HML_SUPABASE_PROJECT_REF){
+  if(!db||!pepAssistantEnabled){
    setPepVideoLoading(false)
    return
   }

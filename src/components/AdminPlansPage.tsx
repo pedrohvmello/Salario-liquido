@@ -4,6 +4,7 @@ import {AdminBillingPlans} from './AdminBillingPlans'
 import {AdminFullTrials} from './AdminFullTrials'
 import {AdminPromoCodes} from './AdminPromoCodes'
 import {fetchAdminDashboard,type AdminDashboardData} from '../lib/admin'
+import {asaasMode} from '../lib/environment'
 
 type PlansSection='prices'|'trials'|'promos'|'subscribers'|null
 
@@ -27,7 +28,7 @@ export function AdminPlansPage(){
  return <div className="stack">
   {active===null?<div className="page-intro"><div>
    <h2>Planos e Assinaturas</h2>
-   <p>Preços, assinantes e testes gratuitos. Controles administrativos exclusivos do HML.</p>
+   <p>Preços, assinantes e testes gratuitos. Controles administrativos do ambiente {asaasMode==='sandbox'?'de homologação':'de produção'}.</p>
   </div></div>:<div>
    <button type="button" className="secondary" onClick={()=>setActive(null)}>
     <ArrowLeft size={16}/> Voltar para Planos e Assinaturas

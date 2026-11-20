@@ -3,7 +3,8 @@ import {profileDisplayName} from './profile'
 import {checkoutInvokeErrorMessage} from './checkoutError'
 import {isValidCheckoutName,normalizeCheckoutName} from './checkoutPayerName'
 import {cpfDigits,isValidCpf,validBirthDate} from './brazilIdentity'
-import {validatedProductionCheckoutUrl} from './checkoutUrl'
+import {validatedProductionCheckoutUrl,validatedSandboxCheckoutUrl} from './checkoutUrl'
+import {asaasMode} from './environment'
 import type {User} from '@supabase/supabase-js'
 
 export type PayrepProfile={
@@ -83,8 +84,8 @@ export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<str
  if(error){
   throw Error(await checkoutInvokeErrorMessage(error))
  }
- if(data?.mode!=='production'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
- return validatedProductionCheckoutUrl(data.checkoutUrl)
+ if(data?.mode!==asaasMode||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
+ return asaasMode==='sandbox'?validatedSandboxCheckoutUrl(data.checkoutUrl):validatedProductionCheckoutUrl(data.checkoutUrl)
 }
 
 export type BillingReconciliationResult={
@@ -97,9 +98,7 @@ export async function reconcileMyAsaasSandboxBilling():Promise<BillingReconcilia
  if(!db)throw Error('Banco não configurado.')
  const {data,error}=await db.functions.invoke('billing-reconcile-asaas',{body:{}})
  if(error){
-  const message=await checkoutInvokeErrorMessage(error)
-  throw Error(message.includes('checkout de homologação')?
-   'Não foi possível verificar o pagamento no Asaas. Tente novamente.':message)
+  throw Error(await checkoutInvokeErrorMessage(error,'Não foi possível verificar o pagamento no Asaas. Tente novamente.'))
  }
  const state=data?.state
  if(!['active','pending','needs_review','no_paid_checkout','provider_unavailable'].includes(state))

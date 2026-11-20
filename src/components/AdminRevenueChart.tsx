@@ -3,6 +3,7 @@ import {Bar,BarChart,CartesianGrid,ResponsiveContainer,Tooltip,XAxis,YAxis} from
 import {ChartColumnIncreasing,RefreshCw} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
 import {db} from '../lib/data'
+import {asaasMode,asaasLabel} from '../lib/environment'
 
 type Plan='basic'|'full'
 type Metric='gross'|'net'
@@ -10,7 +11,7 @@ type View='monthly'|'annual'
 type PlanTotals={grossCents:number;netCents:number;paymentCount:number;missingNetCount:number}
 type RevenueBucket={period:string;label:string;basic:PlanTotals;full:PlanTotals}
 type RevenueReport={
- environment:'sandbox';currency:'BRL';view:View;year:number|null;
+ environment:'sandbox'|'production';currency:'BRL';view:View;year:number|null;
  firstYear:number;lastYear:number;fetchedAt:string;
  buckets:RevenueBucket[];ignoredOutsidePayrep:number;invalidRows:number
 }
@@ -58,7 +59,7 @@ export function AdminRevenueChart(){
     body:{view:mode,year:selectedYear}
    })
    if(error)throw error
-   if(!data||data.environment!=='sandbox'||data.view!==mode
+   if(!data||data.environment!==asaasMode||data.view!==mode
      ||!Array.isArray(data.buckets)
      ||(mode==='monthly'&&data.year!==selectedYear))
     throw Error('O Asaas retornou um relatório incompatível com o filtro.')
@@ -89,7 +90,7 @@ export function AdminRevenueChart(){
     {loading?'Consultando...':'Atualizar gráfico'}
    </button>
   </div>
-  <p className="subtle">Recebimentos confirmados ou recebidos no Asaas Sandbox. O valor líquido utiliza o valor informado pelo próprio Asaas após tarifas, sem estimativas.</p>
+  <p className="subtle">Recebimentos confirmados ou recebidos no {asaasLabel}. O valor líquido utiliza o valor informado pelo próprio Asaas após tarifas, sem estimativas.</p>
   <div className="admin-revenue-toolbar">
    <div className="admin-revenue-filter">
     <span>Período</span>

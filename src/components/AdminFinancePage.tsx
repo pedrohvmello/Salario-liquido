@@ -3,6 +3,7 @@ import {ArrowDownToLine,CalendarDays,Landmark,RefreshCw,ShieldCheck,Wallet} from
 import {PayrepSelect} from './PayrepSelect'
 import {AdminRevenueChart} from './AdminRevenueChart'
 import {db} from '../lib/data'
+import {asaasMode,asaasLabel} from '../lib/environment'
 type Transaction={
  id:string;date:string;description:string;type:string;value:number|null;
  balance:number|null;paymentId:string
@@ -12,7 +13,7 @@ type Charge={
  dueDate:string;paymentDate:string;billingType:string;subscription:string
 }
 type FinanceResponse={
- environment:'sandbox';currency:'BRL';periodDays:number;fetchedAt:string;
+ environment:'sandbox'|'production';currency:'BRL';periodDays:number;fetchedAt:string;
  balance:number|null;transactions:Transaction[];transactionsHasMore:boolean;
  transactionsOffset:number;transactionsLimit:number;payments:Charge[];paymentsHasMore:boolean
 }
@@ -37,7 +38,7 @@ export function AdminFinancePage(){
     body:{days:period,offset}
    })
    if(error)throw error
-   if(!data||data.environment!=='sandbox'||!Array.isArray(data.transactions)||!Array.isArray(data.payments))
+   if(!data||data.environment!==asaasMode||!Array.isArray(data.transactions)||!Array.isArray(data.payments))
     throw Error('Formato inesperado da API financeira.')
    setReport(data as FinanceResponse);setPage(offset)
   }catch(e){setError(e instanceof Error?e.message:'Falha ao consultar dados financeiros.')}
@@ -56,7 +57,7 @@ export function AdminFinancePage(){
   const csv='\uFEFF'+rows.map(row=>row.map(csvSafe).join(';')).join('\r\n')
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'})
   const url=URL.createObjectURL(blob),a=document.createElement('a')
-  a.href=url;a.download='payrep-hml-extrato-'+report.periodDays+'d-pagina-'+(page/40+1)+'.csv'
+  a.href=url;a.download='payrep-'+asaasMode+'-extrato-'+report.periodDays+'d-pagina-'+(page/40+1)+'.csv'
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)
  }
  const transactions=report?.transactions||[]
@@ -64,7 +65,7 @@ export function AdminFinancePage(){
  const confirmed=(report?.payments||[]).filter(p=>['CONFIRMED','RECEIVED'].includes(p.status))
  return <div className="stack">
   <div className="page-intro"><div><h2>Financeiro</h2>
-   <p>Saldo, extrato e cobranças diretamente da conta Asaas Sandbox.</p>
+   <p>Saldo, extrato e cobranças diretamente da conta {asaasLabel}.</p>
   </div><div className="row">
     <PayrepSelect value={days} onChange={setDays} title="Período do extrato" disabled={loading}>
      <option value="7">Últimos 7 dias</option>
@@ -76,12 +77,12 @@ export function AdminFinancePage(){
     </button>
    </div></div>
   <div className="detail-hint"><ShieldCheck size={16}/>
-   Área administrativa de consulta. Não realiza transferências, estornos ou pagamentos. Os valores são de testes no Sandbox, sem dinheiro real.
+   Área administrativa de consulta. Não realiza transferências, estornos ou pagamentos. {asaasMode==='sandbox'?'Os valores são simulados, sem dinheiro real.':'Os valores refletem a conta de produção e podem incluir transações reais.'}
   </div>
   {error&&<div className="notice danger" role="alert">{error}</div>}
   <div className="admin-finance-kpis">
    <div className="stat"><span><Wallet size={16}/> Saldo Asaas</span>
-    <strong>{report?money(report.balance):'—'}</strong><small>Disponível na conta de homologação</small></div>
+    <strong>{report?money(report.balance):'—'}</strong><small>{asaasMode==='sandbox'?'Conta de homologação':'Conta de produção'}</small></div>
    <div className="stat"><span><Landmark size={16}/> Cobranças pendentes</span>
     <strong>{report?String(pending.length):'—'}</strong><small>Entre as {report?.payments.length||0} últimas cobranças consultadas</small></div>
    <div className="stat"><span><ArrowDownToLine size={16}/> Cobranças confirmadas</span>
@@ -122,6 +123,6 @@ export function AdminFinancePage(){
    </tbody></table></div>
    {report?.paymentsHasMore&&<p className="subtle">Existem mais cobranças no Asaas. A paginação integral de cobranças será incorporada numa próxima etapa.</p>}
   </section>
-  {report&&<p className="subtle">Atualizado em {new Date(report.fetchedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}. Fonte: Asaas Sandbox, consulta pontual.</p>}
+  {report&&<p className="subtle">Atualizado em {new Date(report.fetchedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}. Fonte: {asaasLabel}, consulta pontual.</p>}
  </div>
 }

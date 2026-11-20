@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {LockKeyhole,RefreshCw,Save} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
+import {asaasMode} from '../lib/environment'
 import {
  callAuthPasswordPolicy,passwordPolicyDefaults,passwordPresetOptions,
  validatePasswordPolicy,type PasswordPolicy,type PasswordPreset
@@ -44,7 +45,7 @@ export function AdminPasswordPolicy(){
     <RefreshCw size={15}/> {loading?'Consultando...':'Atualizar do Supabase'}
    </button>
   </div>
-  <p>Esta configuração altera os requisitos do <strong>Supabase Auth HML</strong> e as validações do Payrep.
+  <p>Esta configuração altera os requisitos do <strong>Supabase Auth {asaasMode==='sandbox'?'HML':'PRD'}</strong> e as validações do Payrep.
    O salvamento só é confirmado após a consulta de verificação ao Supabase.</p>
   <div className="password-policy-layout">
    <label className="password-policy-length">Quantidade mínima de caracteres
@@ -67,9 +68,9 @@ export function AdminPasswordPolicy(){
   {error&&<div className="detail-hint" role="alert">{error}</div>}
   {!saved&&<p className="subtle">
    Edição bloqueada até confirmar a conexão com o Supabase Auth. Gere um token de acesso pessoal
-   restrito ao projeto HML, com Auth Config (Read/Read-write) e Project Settings (Read-write),
+   restrito ao projeto {asaasMode==='sandbox'?'HML':'PRD'}, com Auth Config (Read/Read-write) e Project Settings (Read-write),
    e configure-o como secret <code>PAYREP_AUTH_CONFIG_MANAGEMENT_TOKEN</code>
-   em Supabase HML → Edge Functions → Secrets. Nunca informe o token no Payrep ou neste chat.
+   em Supabase {asaasMode==='sandbox'?'HML':'PRD'} → Edge Functions → Secrets. Nunca informe o token no Payrep ou neste chat.
   </p>}
   <div className="admin-settings-actions">
    <button type="button" className="primary"

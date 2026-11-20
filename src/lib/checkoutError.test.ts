@@ -12,17 +12,17 @@ describe('checkout invoke error handling',()=>{
  it('does not call json on relay or network errors',async()=>{
   const error={context:new TypeError('Failed to fetch')}
   await expect(checkoutInvokeErrorMessage(error))
-   .resolves.toContain('checkout de homologação')
+   .resolves.toContain('checkout do Asaas')
  })
  it('handles non-JSON HTTP error bodies safely',async()=>{
   const error={context:new Response('<html>Unavailable</html>',{status:503})}
   await expect(checkoutInvokeErrorMessage(error))
-   .resolves.toContain('checkout de homologação')
+   .resolves.toContain('checkout do Asaas')
  })
  it('handles missing context and malformed errors',async()=>{
   await expect(checkoutInvokeErrorMessage(new Error('network issue')))
-   .resolves.toContain('checkout de homologação')
+   .resolves.toContain('checkout do Asaas')
   await expect(checkoutInvokeErrorMessage(null))
-   .resolves.toContain('checkout de homologação')
+   .resolves.toContain('checkout do Asaas')
  })
 })

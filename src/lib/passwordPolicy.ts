@@ -1,4 +1,5 @@
 import {db} from './data'
+import {asaasMode} from './environment'
 
 export type PasswordPreset='none'|'letters_numbers'|'mixed_case_numbers'|'mixed_case_numbers_symbols'
 export type PasswordPolicy={minLength:number;preset:PasswordPreset}
@@ -65,9 +66,9 @@ export async function loadPasswordPolicy():Promise<PasswordPolicySnapshot>{
  return {policy:{minLength:data.minLength,preset:data.preset},synced:data.synced===true}
 }
 const errorMessages:Record<string,string>={
- management_token_not_configured:'A integração com o Supabase Auth precisa ser autorizada. Configure o token de gerenciamento nas Edge Function Secrets do HML.',
+ management_token_not_configured:'A integração com o Supabase Auth precisa ser autorizada. Configure o token de gerenciamento nas Edge Function Secrets do '+(asaasMode==='sandbox'?'HML':'PRD')+'.',
  management_permission_denied:'O token de gerenciamento não tem permissão para ler e alterar a configuração de Auth.',
- environment_unavailable:'O ambiente do Supabase HML não está configurado corretamente.',
+ environment_unavailable:'O ambiente do Supabase '+(asaasMode==='sandbox'?'HML':'PRD')+' não está configurado corretamente.',
  admin_mfa_required:'É necessário ser administrador e concluir o 2FA para alterar a política.',
  policy_changed_reload:'A política foi alterada no Supabase. Recarregue para revisar antes de salvar.',
  unsupported_remote_policy:'O Supabase utiliza uma combinação de requisitos ainda não reconhecida pelo Payrep.',

@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import {CreditCard,Save} from 'lucide-react'
 import {db} from '../lib/data'
+import {asaasMode} from '../lib/environment'
 type PlanCode='basic'|'full'
 type PlanRow={code:PlanCode;monthly_price_cents:number|null;available_for_checkout:boolean}
 type Editable={price:string;enabled:boolean}
@@ -59,13 +60,13 @@ export function AdminBillingPlans(){
    setValues(previous=>({...previous,[code]:{
     ...previous[code],price:inReais(amount)
    }}))
-   setMessage('Plano '+(code==='basic'?'Basic':'Full')+' atualizado em HML.')
+   setMessage('Plano '+(code==='basic'?'Basic':'Full')+' atualizado no ambiente '+(asaasMode==='sandbox'?'HML':'PRD')+'.')
   }catch(e){setError(e instanceof Error?e.message:'Falha ao salvar o preço.')}
   finally{setSaving(null)}
  }
  return <section className="panel">
   <div className="panel-heading"><h2><CreditCard size={18}/> Planos e assinaturas</h2></div>
-  <p className="subtle">Valores mensais de teste em reais. Salvar não altera o preço das assinaturas já contratadas no Asaas.</p>
+  <p className="subtle">{asaasMode==='sandbox'?'Valores mensais de teste em reais.':'Valores mensais de produção em reais.'} Salvar não altera o preço das assinaturas já contratadas no Asaas.</p>
   <div className="subscription-plans">
    {(['basic','full'] as const).map(code=><div key={code} className="subscription-plan">
     <strong>{code==='basic'?'Basic':'Full'}</strong>
@@ -89,6 +90,6 @@ export function AdminBillingPlans(){
   </div>
   {message&&<p role="status" className="auth-success">{message}</p>}
   {error&&<p role="alert" className="error">{error}</p>}
-  <p className="subtle">As permissões por plano dependem da definição da matriz de recursos. Os valores atuais não são preços comerciais de produção.</p>
+  <p className="subtle">As permissões por plano dependem da definição da matriz de recursos. {asaasMode==='sandbox'?'Os valores configurados são exclusivos de homologação.':'Alterações de preço e disponibilidade podem afetar novas contratações reais.'}</p>
  </section>
 }
