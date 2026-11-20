@@ -53,7 +53,7 @@ function sumKnown(rows:TimeMetrics[],key:IndicatorKey):number|null {
 }
 function valueOrDash(value:number|null){return value===null?'—':brl(value)}
 export function AnalyticsDashboard({
- userId,year,onYearChange,years,statements,lines,monthlyGraph,parameters
+ userId,year,onYearChange,years,statements,lines,monthlyGraph,vacationLedger,parameters
 }:Props){
  const [metric,setMetric]=useState<IndicatorKey>('privatePension')
  const [visibleParts,setVisibleParts]=useState<Record<CompositionOption,boolean>>({
