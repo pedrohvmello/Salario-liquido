@@ -71,6 +71,32 @@ describe('Multi-ring composition: constant liquid allocations and no duplicate i
   expect(selected.outer.find(s=>s.key==='outerNet')?.value).toBe(745)
   expect(selected.inner.some(s=>s.key==='trienio')).toBe(false)
  })
+ it('splits the 2026 R$ 104.853,63 liquid group into ESPP and retirement without changing the total',()=>{
+  const row=annual({
+   year:'2026',payrollGross:173995.21,net:84814.68,
+   pension:17143,irrf:9688.51,inss:3952.28,
+   espp:16970.85,privatePension:3068.10,
+   taxableOfficial:null,officialFields:[],months:10
+  })
+  const plain=financialComposition([row],{espp:false,privatePension:false})
+  expect(plain.netAndInvestments).toBe(104853.63)
+  expect(plain.inner.find(s=>s.key==='net')?.value).toBe(104853.63)
+  const espp=financialComposition([row],{espp:true,privatePension:false})
+  expect(espp.inner.find(s=>s.key==='net')?.value).toBe(87882.78)
+  expect(espp.inner.find(s=>s.key==='espp')?.value).toBe(16970.85)
+  expect(espp.netAndInvestments).toBe(104853.63)
+  expect(espp.outer.find(s=>s.key==='outerNet')?.value).toBe(121996.63)
+  const both=financialComposition([row],{espp:true,privatePension:true})
+  expect(both.inner.find(s=>s.key==='net')?.value).toBe(84814.68)
+  expect(both.inner.find(s=>s.key==='espp')?.value).toBe(16970.85)
+  expect(both.inner.find(s=>s.key==='privatePension')?.value).toBe(3068.10)
+  expect(both.netAndInvestments).toBe(104853.63)
+  expect(both.cashNet).toBe(84814.68)
+  for(const version of [plain,espp,both]){
+   expect(total(version.inner)).toBe(173995.21)
+   expect(total(version.outer)).toBe(173995.21)
+  }
+ })
  it('never invents balancing adjustments when known values exceed gross',()=>{
   const result=financialComposition([annual({payrollGross:500})],none)
   expect(result.inner).toHaveLength(0)
