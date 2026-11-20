@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
-import {Bar,BarChart,CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,Rectangle,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
-import {FileText,Info,ChevronDown} from 'lucide-react'
+import {Bar,BarChart,CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
+import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
 import {formatMoneyAxisTick} from '../lib/chartAxis'
 import type {SavedStatement} from '../lib/data'
@@ -10,11 +10,9 @@ import type {ThirteenthLedger} from '../lib/thirteenthLedger'
 import {loadConfirmedTaxFigures,type ConfirmedTaxFigure} from '../lib/incomeTaxReports'
 import {annualFinancialRows,financialComposition,percentOfGross,financialColors,
  type ChartSegment,type CompositionOption} from '../lib/analyticsFinancial'
-import {VacationOverview} from './VacationOverview'
-import {ThirteenthOverview} from './ThirteenthOverview'
 import {
- METRICS,payrollMetrics,timeMetrics,taxTimeSeries,thirteenthComparison,pprComparison,topIrrfStackSegment,
- type MetricKey,type TimeMetrics,type IrrfStackKey,type TaxTime
+ METRICS,payrollMetrics,timeMetrics,
+ type MetricKey,type TimeMetrics
 } from '../lib/analytics'
 
 type SalaryGraphRow={period:string;bruto:number|null;liquido:number|null;ferias:number}
@@ -46,20 +44,13 @@ function Bars({data,children}:{data:Array<Record<string,string|number|null>>;chi
   </BarChart>
  </ResponsiveContainer></div>
 }
-function roundedIrrfShape(segment:IrrfStackKey){
- return (props:unknown)=>{
-  const rect=props as React.ComponentProps<typeof Rectangle> & {payload?:TaxTime}
-  const top=rect.payload?topIrrfStackSegment(rect.payload):null
-  return <Rectangle {...rect} radius={top===segment?[6,6,0,0]:[0,0,0,0]}/>
- }
-}
 function sumKnown(rows:TimeMetrics[],key:MetricKey):number|null {
  const present=rows.filter(r=>r[key]!==null)
  return present.length?Math.round(present.reduce((n,r)=>n+(r[key]??0),0)*100)/100:null
 }
 function valueOrDash(value:number|null){return value===null?'—':brl(value)}
 export function AnalyticsDashboard({
- userId,year,onYearChange,years,statements,lines,monthlyGraph,vacationLedger,thirteenthLedger,parameters
+ userId,year,onYearChange,years,statements,lines,monthlyGraph,parameters
 }:Props){
  const [metric,setMetric]=useState<MetricKey>('privatePension')
  const [visibleParts,setVisibleParts]=useState<Record<CompositionOption,boolean>>({
@@ -79,26 +70,11 @@ export function AnalyticsDashboard({
   return ()=>{active=false}
  },[userId])
  const confirmed=officialLoad.owner===userId?officialLoad.reports:[]
- const officialError=officialLoad.owner===userId?officialLoad.error:''
  const evidence=useMemo(()=>payrollMetrics(statements,lines),[statements,lines])
  const timeline=useMemo(()=>timeMetrics(evidence,year),[evidence,year])
- const tax=useMemo(()=>taxTimeSeries(evidence,statements,year),[evidence,statements,year])
- const thirteenth=useMemo(()=>thirteenthComparison(thirteenthLedger.occurrences,year),[thirteenthLedger,year])
- const ppr=useMemo(()=>pprComparison(statements,year),[statements,year])
  const metricInfo=METRICS.find(x=>x.key===metric)!
  const metricEvidence=timeline.some(x=>x[metric]!==null)
- const fgtsEvidence=timeline.some(x=>x.fgts!==null)
- const taxEvidence=tax.some(x=>x.total!==null)
  const metricBars=timeline.map(x=>({label:x.label,value:x[metric]}))
- const fgtsBars=timeline.map(x=>({label:x.label,value:x.fgts}))
- const taxBars=tax.map(x=>({label:x.label,
-  salary:x.salary,vacation:x.vacation,thirteenth:x.thirteenth,ppr:x.ppr}))
- const completeThirteenth=thirteenth.map(x=>({
-  label:x.label,gross:x.gross,net:x.net,pension:x.pension??0,
-  inss:x.inss??0,other:Math.max(0,x.other),irrf:x.irrf
- }))
- const completePpr=ppr.map(x=>({label:x.label,gross:x.gross,net:x.net,irrf:x.irrf}))
-
  const comparisonRows=useMemo(()=>{
   const monthLabel=(period:string)=>period.slice(5,7)+'/'+period.slice(2,4)
   return timeline.map(item=>{
@@ -127,7 +103,6 @@ export function AnalyticsDashboard({
     monthlyStatements:row.months
    }))
   :comparisonRows
- const documentsCovered=composition.coveredMonths
  const legendGroups:readonly {title:string;segments:ChartSegment[]}[]=[
   {title:'Base da composição',segments:composition.gross===null?[]:[{
    key:'gross',name:'Proventos brutos',value:composition.gross,fill:financialColors.gross
@@ -215,10 +190,7 @@ export function AnalyticsDashboard({
          <strong className="analytics-composition-value">{valueOrDash(entry.value)}</strong>
         </div>)}
        </section>)}
-      {composition.cashNet!==null&&<div className="analytics-net-fact">
-       Recebido efetivamente: <strong>{brl(composition.cashNet)}</strong>.
-       ESPP e previdência podem ser destacados no gráfico sem alterar os valores totais.
-      </div>}
+
      </div>
     </div>:<Empty label="A composição ainda não pode ser conciliada com os holerites disponíveis."/>}
     {composition.unclassified!==null&&composition.unclassified>0.01&&
@@ -226,9 +198,7 @@ export function AnalyticsDashboard({
       <summary>O que é o saldo não classificado? <strong>{brl(composition.unclassified)}</strong></summary>
       <p>É uma diferença de conciliação, não um desconto identificado. O Payrep calcula o saldo subtraindo do bruto os valores de líquido e aplicações, pensão, IRRF e INSS. Pode envolver rubricas ainda não categorizadas, adiantamentos ou ajustes entre folhas. Não equivale automaticamente a uma despesa.</p>
      </details>}
-    {composition.warnings.map((warning,i)=><div className="detail-hint" key={i}><Info size={16}/>{warning}</div>)}
-    {officialError&&<div className="detail-hint"><Info size={16}/>Os valores oficiais não puderam ser consultados. Exibindo somente dados dos holerites.</div>}
-    <div className="detail-hint"><Info size={16}/>Os anéis usam os proventos brutos dos holerites e totalizadoras ({documentsCovered} folha(s) mensais). ESPP e Previdência apenas destacam parcelas do agrupamento verde, sem alterar o total. O saldo não classificado é uma diferença de conciliação, não necessariamente um desconto.</div>
+
    </Panel>
    <Panel title={year==='all'?'Evolução anual da remuneração':'Evolução mensal da remuneração'}>
     {evolutionRows.some(row=>row.bruto!==null||row.liquido!==null)?
@@ -249,9 +219,7 @@ export function AnalyticsDashboard({
         stroke={color.red} strokeWidth={2} dot={{r:2}} connectNulls={false}/>
       </LineChart>
      </ResponsiveContainer></div>:<Empty label="Importe holerites para acompanhar os rendimentos."/>}
-    <div className="detail-hint"><Info size={16}/>{year==='all'
-     ?'Proventos brutos incluem os créditos dos holerites e pagamentos complementares. Rendimentos tributáveis são apresentados somente em Informe IR. Para INSS e IRRF, valores confirmados no informe têm prioridade quando disponíveis.'
-     :'As linhas representam competências mensais dos holerites. O Informe IR não distribui totais oficiais por mês, por isso não é usado para preencher lacunas mensais.'} 13º e PPR permanecem separados para evitar dupla contagem.</div>
+
    </Panel>
   </div>
 
@@ -274,71 +242,6 @@ export function AnalyticsDashboard({
    <div className="detail-hint"><Info size={16}/>Um traço (—) indica ausência de valor comprovado na rubrica, não valor zero. Todos os anos soma apenas os meses importados. Ao escolher um ano, o gráfico mostra janeiro a dezembro.</div>
   </Panel>
 
-  <details className="analytics-advanced">
-   <summary><ChevronDown size={18}/> Análises detalhadas: 13º, PPR, impostos, FGTS e férias</summary>
-   <div className="stack">
-  <Panel title={year==='all'?'Histórico anual dos indicadores':'Indicadores mensais de '+year}>
-   <div className="table-scroll">
-    <table><thead><tr>
-     <th>{year==='all'?'Ano':'Mês'}</th><th>Folhas mensais</th>
-     <th>Previdência privada</th><th>ESPP</th><th>Vale-refeição</th><th>Triênio</th>
-     <th>INSS</th><th>Pensão</th><th>Horas extras</th>
-    </tr></thead>
-    <tbody>{timeline.map(x=><tr key={x.period}>
-     <td><strong>{x.label}</strong></td><td>{x.monthlyStatements||'—'}</td>
-     <td>{valueOrDash(x.privatePension)}</td><td>{valueOrDash(x.espp)}</td>
-     <td>{valueOrDash(x.meal)}</td><td>{valueOrDash(x.trienio)}</td>
-     <td>{valueOrDash(x.inss)}</td><td>{valueOrDash(x.pension)}</td>
-     <td>{valueOrDash(x.overtime)}</td>
-    </tr>)}</tbody></table>
-   </div>
-  </Panel>
 
-  <VacationOverview ledger={vacationLedger} year={year}/>
-  <ThirteenthOverview ledger={thirteenthLedger} year={year}/>
-
-  <Panel title="13º salário: bruto x líquido, pensão, INSS e IRRF">
-   {completeThirteenth.length?
-    <Bars data={completeThirteenth}>
-     <Bar dataKey="gross" name="13º bruto" fill={color.purple} barSize={28} radius={[5,5,0,0]}/>
-     <Bar dataKey="net" name="13º líquido total (com adiantamento)" stackId="13o" fill={color.green} barSize={28}/>
-     <Bar dataKey="pension" name="Pensão do 13º" stackId="13o" fill={color.orange} barSize={28}/>
-     <Bar dataKey="inss" name="INSS do 13º" stackId="13o" fill={color.cyan} barSize={28}/>
-     {completeThirteenth.some(x=>x.other>0.01)&&<Bar dataKey="other" name="Outros descontos (diferença)" stackId="13o" fill={color.gray} barSize={28}/>}
-     <Bar dataKey="irrf" name="IRRF do 13º" stackId="13o" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
-    </Bars>
-    :<Empty label="Nenhum recibo de 13º registrado para o período."/>}
-   <div className="detail-hint"><Info size={16}/>A coluna à direita representa líquido total do 13º (fechamento + adiantamento), pensão, INSS e IRRF. Eventuais diferenças residuais aparecem como outros descontos, sem criar novo recebimento. O adiantamento não é somado novamente ao fluxo de caixa.</div>
-  </Panel>
-
-  <Panel title="PPR: bruto x líquido e IRRF">
-   {completePpr.length?
-    <Bars data={completePpr}>
-     <Bar dataKey="gross" name="PPR bruto" fill={color.purple} barSize={28} radius={[5,5,0,0]}/>
-     <Bar dataKey="net" name="PPR líquido" stackId="ppr" fill={color.green} barSize={28}/>
-     <Bar dataKey="irrf" name="IRRF PPR" stackId="ppr" fill={color.red} barSize={28} radius={[5,5,0,0]}/>
-    </Bars>
-    :<Empty label="Nenhum holerite de PPR importado para o período."/>}
-   <div className="detail-hint"><Info size={16}/>A eventual diferença entre as duas colunas corresponde a outras deduções do PPR, como contribuição negocial. O IRRF do PPR é exclusivo e não é somado ao IRRF mensal como se fosse salário.</div>
-  </Panel>
-
-  <Panel title={year==='all'?'IRRF retido por ano':'IRRF retido por mês em '+year}>
-   {taxEvidence?<Bars data={taxBars}>
-    <Bar dataKey="salary" stackId="irrf" name="IRRF mensal" fill={color.purple} maxBarSize={44} shape={roundedIrrfShape('salary')}/>
-    <Bar dataKey="vacation" stackId="irrf" name="IRRF férias na folha" fill={color.orange} maxBarSize={44} shape={roundedIrrfShape('vacation')}/>
-    <Bar dataKey="thirteenth" stackId="irrf" name="IRRF 13º" fill={color.red} maxBarSize={44} shape={roundedIrrfShape('thirteenth')}/>
-    <Bar dataKey="ppr" stackId="irrf" name="IRRF PPR" fill={color.cyan} maxBarSize={44} shape={roundedIrrfShape('ppr')}/>
-   </Bars>:<Empty label="Nenhum IRRF identificado nos documentos deste período."/>}
-   <div className="detail-hint"><Info size={16}/>O gráfico consolida apenas retenções efetivamente identificadas: mensal, férias contabilizadas na folha, 13º e PPR. Não duplica impostos de recibos de férias quando já constam na folha mensal. Meses não importados permanecem sem informação.</div>
-  </Panel>
-
-  <Panel title={year==='all'?'FGTS registrado por ano':'FGTS de janeiro a dezembro de '+year}>
-   {fgtsEvidence?<Bars data={fgtsBars}>
-    <Bar dataKey="value" name="FGTS informado na folha" fill={color.purple} maxBarSize={44} radius={[5,5,0,0]}/>
-   </Bars>:<Empty label="Nenhum valor de FGTS identificado nas folhas do período."/>}
-   <div className="detail-hint"><Info size={16}/>O FGTS corresponde ao valor informado nos holerites mensais, não necessariamente ao saldo acumulado da conta FGTS. No filtro anual são exibidos os 12 meses, inclusive meses ainda sem holerite.</div>
-  </Panel>
-   </div>
-  </details>
  </div>
 }
