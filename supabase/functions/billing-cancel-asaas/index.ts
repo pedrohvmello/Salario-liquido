@@ -2,8 +2,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 
 // HML only: stop future recurring charges, not a refund or immediate loss of access.
 // A browser session alone is never permitted to choose another subscription ID.
-const origin='https://payrep-hml.vercel.app'
-const ref='nrpqcrhschztdwbfgnyo'
+const origin='https://payrep.com.br'
+const ref='klvurrcmfrwetmynscjc'
 const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Access-Control-Allow-Origin':origin,
@@ -20,9 +20,9 @@ Deno.serve(async(req:Request)=>{
  const projectUrl=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
- const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
+ const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(projectUrl!=='https://'+ref+'.supabase.co'||!anon||!service||!key
-  ||Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true')
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
   return reply({error:'Cancelamento indisponível em homologação.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return reply({error:'Sessão inválida.'},401)
@@ -39,8 +39,8 @@ Deno.serve(async(req:Request)=>{
  const subId=linked.provider_subscription_id
  if(!/^sub_[A-Za-z0-9_]{5,80}$/.test(subId))
   return reply({error:'Identificador de assinatura inválido.'},400)
- const providerHeaders={'access_token':key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'}
- const api='https://api-sandbox.asaas.com/v3/subscriptions/'+encodeURIComponent(subId)
+ const providerHeaders={'access_token':key,'User-Agent':'Payrep-PRD/1.0','Accept':'application/json'}
+ const api='https://api.asaas.com/v3/subscriptions/'+encodeURIComponent(subId)
  let current:Record<string,unknown>|null=null
  try{
   const response=await fetch(api,{headers:providerHeaders,signal:AbortSignal.timeout(15000)})
