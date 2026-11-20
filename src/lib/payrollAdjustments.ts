@@ -31,7 +31,6 @@ export type TaxYearBridge={
 }
 const amount=(n:number)=>roundMoney(n)
 const sum=(a:number[])=>amount(a.reduce((n,x)=>n+x,0))
-const currency=(n:number)=>n.toFixed(2)
 function known(m:SupplementalStatement){return m.duplicate_of==null}
 function isMonth(value:string){return /^\d{4}-(0[1-9]|1[0-2])$/.test(value)}
 function annualOf(s:SupplementalStatement){
