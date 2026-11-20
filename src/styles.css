@@ -2908,3 +2908,31 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:1200px){
  .analytics-main-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* Financial indicator selector and period total share the header row. */
+.analytics-indicator-header{
+ display:flex;align-items:end;justify-content:space-between;
+ gap:16px 24px;margin-top:6px;width:100%;
+}
+.analytics-indicator-header .analytics-filter{
+ display:flex;flex-direction:column;align-items:stretch;gap:8px;
+ flex:1 1 320px;max-width:440px;min-width:0;margin:0
+}
+.analytics-indicator-header .analytics-filter label{margin:0;font-size:12px;font-weight:800}
+.analytics-indicator-header .analytics-filter select{width:100%;max-width:none}
+.analytics-indicator-header .analytics-indicator-summary{
+ flex:0 1 290px;min-width:225px;max-width:300px;
+ display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+ gap:4px;margin:0;padding:9px 14px;text-align:right
+}
+.analytics-indicator-header .analytics-indicator-summary strong{font-size:19px}
+@media(max-width:660px){
+ .analytics-indicator-header{flex-direction:column;align-items:stretch;gap:12px}
+ .analytics-indicator-header .analytics-filter{max-width:none;flex:0 1 auto}
+ .analytics-indicator-header .analytics-indicator-summary{
+  max-width:none;min-width:0;flex:0 1 auto;
+  flex-direction:row;justify-content:space-between;align-items:center;
+  gap:12px;text-align:right
+ }
+}
