@@ -3029,3 +3029,16 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  .financial-insights-tabs{grid-template-columns:1fr}
  .financial-insights-chart{height:285px}
 }
+
+/* FAQ central: collapsed by default; categories and questions expand on demand. */
+.help-faq-panel{padding:0;overflow:hidden}
+.help-faq-toggle{display:flex;align-items:center;gap:12px;padding:20px 23px;cursor:pointer;list-style:none;color:#391857}
+.help-faq-toggle::-webkit-details-marker{display:none}
+.help-faq-toggle strong{font-size:16px;flex:1}
+.help-faq-count{font-size:12px;color:#806a91;font-weight:500}
+.help-faq-chevron{transition:transform .2s ease}
+.help-faq-accordion[open] .help-faq-chevron{transform:rotate(180deg)}
+.help-faq-categories{border-top:1px solid #eee3f4;padding:10px 23px 22px;display:flex;flex-direction:column;gap:21px}
+.help-faq-category h3{font-size:13px;color:#6b298d;margin:12px 0 9px}
+.help-faq-toggle:focus-visible,.help-faq-item summary:focus-visible{outline:2px solid #953cd4;outline-offset:3px}
+@media(max-width:650px){.help-faq-toggle{padding:17px 15px;gap:8px;flex-wrap:wrap}.help-faq-toggle strong{font-size:14px}.help-faq-count{font-size:11px}.help-faq-categories{padding:10px 14px 20px}}

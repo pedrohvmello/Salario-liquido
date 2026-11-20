@@ -161,11 +161,9 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    </aside>}
    <div className="pep-chat-main">
    {saveNotice&&<p className="pep-chat-save-notice" role="status">{saveNotice}</p>}
-   {(!usage?.unlimited)&&<div className="pep-usage-counter" role="status" aria-live="polite">
+   {mode==='personal'&&!usage?.unlimited&&<div className="pep-usage-counter" role="status" aria-live="polite">
     {usageLoading?'Consultando sua franquia...':
-     usage?(mode==='help'
-      ?'Pep Ajuda: '+usage.helpUsed+' de '+usage.helpLimit+' consultas utilizadas hoje'
-      :usage.effectivePlan==='free'?'Disponível nos planos Basic e Full':
+     usage?(usage.effectivePlan==='free'?'Disponível nos planos Basic e Full':
        'Pep '+(usage.effectivePlan==='full'?'Full':'Basic')+': '+usage.personalUsed+' de '+usage.personalLimit+' consultas utilizadas hoje')
       :'Não foi possível consultar a franquia neste momento.'}
    </div>}

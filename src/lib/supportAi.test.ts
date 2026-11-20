@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest'
 import {readFileSync} from 'node:fs'
 import {parseAiInput,parseCloudflareAnswer} from '../../supabase/functions/support-ai/validation'
-import {PAYREP_SUPPORT_KNOWLEDGE} from '../../supabase/functions/support-ai/knowledge'
+import {PAYREP_SUPPORT_FAQ,PAYREP_SUPPORT_KNOWLEDGE,buildPepHelpContext} from '../../supabase/functions/support-ai/knowledge'
 
 describe('Payrep AI input contracts with separate modes',()=>{
  it('accepts a help question and short history with explicit mode',()=>{
@@ -37,6 +37,11 @@ describe('Payrep AI input contracts with separate modes',()=>{
   const ui=readFileSync('src/components/SupportAiChat.tsx','utf8')
   expect(PAYREP_SUPPORT_KNOWLEDGE).toContain('PEP AJUDA')
   expect(PAYREP_SUPPORT_KNOWLEDGE).toContain('PERGUNTE AO PEP')
+  expect(PAYREP_SUPPORT_FAQ.length).toBeGreaterThanOrEqual(65)
+  expect(buildPepHelpContext('Como cancelar renovação')).toContain('Como cancelar a renovação automática?')
+  expect(buildPepHelpContext('Como importar meus holerites?')).toContain('Como importar um PDF com vários holerites?')
+  expect(edge).toContain('buildPepHelpContext')
+  expect(ui).not.toContain("'Pep Ajuda: '+usage.helpUsed")
   expect(edge).toContain('db.auth.getUser(match[1])')
   expect(edge).toContain("membership.status!=='approved'")
   expect(edge).toContain("reserve_pep_request")

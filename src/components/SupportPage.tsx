@@ -6,21 +6,15 @@ import {TicketConversation} from './TicketConversation'
 import {SupportAiChat} from './SupportAiChat'
 import {PepMascot} from './PepMascot'
 import {pepAssistantEnabled} from '../lib/environment'
+import {PAYREP_SUPPORT_FAQ} from '../../supabase/functions/support-ai/knowledge'
 import {db} from '../lib/data'
 import {loadMyProfile} from '../lib/account'
 import {profileDisplayName} from '../lib/profile'
 import {filterMySupportTickets,supportCategories,supportCategoryLabel,supportDate,supportError,supportStatuses,supportTicketCode,supportTicketFields,type MySupportStatusFilter,type SupportTicket} from '../lib/support'
 
 export const SUPPORT_EMAIL='suporte@payrep.com.br'
-export const helpFaq=[
- {question:'Como configurar meu salário e benefícios?',answer:'Defina sua Base em Definições e registre alterações de salário, descontos e benefícios em Eventos e vigências. As regras entram em vigor na data informada.'},
- {question:'Como importar meus holerites?',answer:'Abra Importar holerites, selecione um ou mais PDFs, confira os dados encontrados e confirme a importação. A leitura inicial acontece no navegador.'},
- {question:'Por que a projeção difere do meu holerite?',answer:'A Visão geral apresenta uma estimativa, enquanto o Histórico salarial apresenta valores efetivos importados. Confira competência, eventos vigentes e os descontos específicos da folha.'},
- {question:'Como consultar férias, PPR e 13º salário?',answer:'Importe os respectivos documentos em Importar holerites. O aplicativo mantém as ocorrências separadas e apresenta conciliações no histórico quando houver informações suficientes.'},
- {question:'Como alterar senha ou gerenciar autenticação?',answer:'Abra o avatar no canto superior e entre em Segurança. Ali ficam senha, autenticadores, sessões e chaves de acesso, conforme os recursos habilitados.'},
- {question:'Meus dados financeiros ficam visíveis para outros usuários?',answer:'Os registros financeiros são vinculados à sua conta e protegidos por regras de acesso. Não inclua senhas ou documentos financeiros completos em chamados de suporte.'},
- {question:'Como excluir minha conta?',answer:'Abra o avatar, escolha Segurança e procure Excluir minha conta. Confira cuidadosamente o efeito da exclusão antes de confirmar.'}
-] as const
+export const helpFaq=PAYREP_SUPPORT_FAQ
+
 
 function TicketWorkspace({user,onBack}:{user:User;onBack:()=>void}){
  const [requesterName,setRequesterName]=useState(profileDisplayName(user).replace(/\.\s*$/,'').trim())
@@ -230,11 +224,18 @@ export function SupportPage({user}:{user:User}){
    </div>
    <PepMascot variant="help" videoUrl={pepPreviewUrl} videoLoading={pepVideoStatus==='checking'}/>
   </section>}
-  <section className="panel">
-   <div className="panel-heading"><h2><BookOpen size={18}/> Perguntas frequentes (FAQ)</h2></div>
-   <div className="help-faq-list">{helpFaq.map(item=><details className="help-faq-item" key={item.question}>
-    <summary>{item.question}</summary><p>{item.answer}</p>
-   </details>)}</div>
+  <section className="panel help-faq-panel">
+   <details className="help-faq-accordion">
+    <summary className="help-faq-toggle"><BookOpen size={18}/><strong>Perguntas frequentes (FAQ)</strong><span className="help-faq-count">{helpFaq.length} perguntas</span><ChevronDown size={18} className="help-faq-chevron" aria-hidden="true"/></summary>
+    <div className="help-faq-categories">
+     {[...new Set(helpFaq.map(item=>item.category))].map(category=><section className="help-faq-category" key={category}>
+      <h3>{category}</h3>
+      <div className="help-faq-list">{helpFaq.filter(item=>item.category===category).map(item=><details className="help-faq-item" key={item.question}>
+       <summary>{item.question}</summary><p>{item.answer}</p>
+      </details>)}</div>
+     </section>)}
+    </div>
+   </details>
   </section>
   <section className="panel">
    <div className="panel-heading"><h2><LifeBuoy size={18}/> Abrir chamado</h2></div>
