@@ -165,7 +165,7 @@ export async function downloadPayslipPdf(statementId:string):Promise<{blob:Blob;
  const single=statement.storage_key===individualKey
  const source=String(statement.source_file||'holerite.pdf').replace(/[\/\\\x00-\x1f]/g,'_').slice(0,150)
  const name=single
-  ? (statement.document_type==='monthly'?'Holerite':statement.document_type==='thirteenth'?'13o Salario':statement.document_type==='vacation'?'Ferias':'PPR')+' - '+statement.period+'.pdf'
+  ? (statement.document_type==='monthly'?'Holerite':statement.document_type==='thirteenth'?'13o Salario':statement.document_type==='vacation'?'Ferias':statement.document_type==='adjustment'?'Folha complementar':'PPR')+' - '+statement.period+'.pdf'
   :source
  return {blob:data,page:single?1:Number(statement.source_page)||1,filename:name.toLowerCase().endsWith('.pdf')?name:name+'.pdf'}
 }
