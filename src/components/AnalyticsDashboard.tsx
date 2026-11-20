@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react'
 import {PayrepSelect} from './PayrepSelect'
+import {FinancialInsights} from './FinancialInsights'
 import {CartesianGrid,Legend,Line,LineChart,Pie,PieChart,Cell,Sector,ResponsiveContainer,Tooltip,XAxis,YAxis} from 'recharts'
 import {FileText,Info} from 'lucide-react'
 import {brl,type SalaryParameters} from '../lib/money'
@@ -247,6 +248,9 @@ export function AnalyticsDashboard({
    {metric==='espp'&&parameters.esppPercent>0&&
     <div className="detail-hint"><Info size={16}/>Percentual atualmente configurado: {parameters.esppPercent}%. É uma previsão, não histórico de compra efetivamente descontada.</div>}
   </Panel>
+  <FinancialInsights year={year} statements={statements} lines={lines}
+   vacationLedger={vacationLedger} metrics={evidence} reports={confirmed}/>
+
 
 
  </div>
