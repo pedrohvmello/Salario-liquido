@@ -13,3 +13,13 @@ Após revisar os cinco itens, registrar a decisão em `docs/feature-review.json`
 Orientação para calcular hashes de árvores do commit: `git rev-parse HEAD:src`, `git rev-parse HEAD:supabase/functions`, `git rev-parse HEAD:supabase/migrations`. Para árvore preparada mas não commitada, use `git write-tree` e examine as subárvores. A revisão não é um mecanismo automático de avaliação jurídica; ela é uma trava documental que obriga uma decisão humana explícita.
 
 Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autorização formal de lançamento. As contas, planos e pagamentos em HML e PRD são distintos e não devem ser copiados ou misturados. Preservar a conta administradora.
+
+## Revisão da busca no FAQ, oferta do Pep e navegação (20/11/2026)
+
+- **Sobre:** atualizado para descrever a pesquisa local no FAQ com categorias e perguntas recolhidas por padrão.
+- **Privacidade:** revisada sem alteração textual. A pesquisa é local sobre textos públicos do FAQ, sem nova transmissão de dados pessoais; o tratamento do Pep pessoal e do Asaas permanece igual.
+- **Termos:** revisados sem alteração textual. O novo convite à contratação apenas apresenta recursos já descritos, sem novo preço, período gratuito ou direito contratual.
+- **FAQ:** adicionada orientação sobre a pesquisa instantânea; categorias fechadas inicialmente e resultados exibidos automaticamente durante a digitação.
+- **Pep Ajuda:** atualizado no conhecimento compartilhado para explicar o novo recurso de busca; mantém isolamento de dados e controles de quota.
+- **Interface:** o bloqueio do Pep pessoal Free apresenta benefícios de Basic e Full e direciona à tela Assinatura, que determina preços e disponibilidade atuais. Botão Voltar removido dessa oferta. Menu reorganizado para Visão geral > Meus Holerites > Eventos e vigências.
+- **Versionamento legal:** Política V1.0 revisão 07 e Termos V1.0 revisão 06 inalterados, pois não ocorreram mudanças na finalidade de tratamento nem nas condições comerciais.

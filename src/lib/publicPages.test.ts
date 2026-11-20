@@ -17,6 +17,7 @@ describe('Payrep public OAuth pages',()=>{
   expect(about).toContain('Banco de horas')
   expect(about).toContain('Informe de IR')
   expect(about).toContain('Recursos conforme o plano')
+  expect(about).toContain('FAQ pesquisável por palavras-chave')
   const privacy=page('privacidade')
   expect(privacy).toContain('Cloudflare Workers AI')
   expect(privacy).toContain('Asaas')
