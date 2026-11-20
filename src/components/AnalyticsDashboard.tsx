@@ -131,18 +131,12 @@ export function AnalyticsDashboard({
   {title:'Base da composição',segments:composition.gross===null?[]:[{
    key:'gross',name:'Proventos brutos',value:composition.gross,fill:financialColors.gross
   }]},
-  {title:'Distribuição do bruto',segments:[
-   ...(composition.netAndInvestments===null?[]:[{
-    key:'netTotal',name:'Líquido e aplicações',value:composition.netAndInvestments,fill:financialColors.net
-   }]),
-   ...composition.inner.filter(item=>item.key!=='net')
-  ]},
+  {title:'Distribuição do bruto',segments:composition.inner},
   {title:'Síntese',segments:composition.outer}
  ]
- const allHoverSegments=[...legendGroups.flatMap(group=>group.segments),...composition.inner]
+ const allHoverSegments=legendGroups.flatMap(group=>group.segments)
  const hoveredInfo=hoveredSegment?allHoverSegments.find(item=>item.key===hoveredSegment):undefined
- const highlight=(key:string)=>hoveredSegment===null||hoveredSegment===key||
-  (hoveredSegment==='netTotal'&&['net','espp','privatePension'].includes(key))
+ const highlight=(key:string)=>hoveredSegment===null||hoveredSegment===key
  const activeSector=(props:unknown)=>{
   const shape=props as React.ComponentProps<typeof Sector>
   const radius=Number(shape.outerRadius??0)
@@ -151,7 +145,7 @@ export function AnalyticsDashboard({
  const showPie=(segments:ChartSegment[],innerRadius:number,outerRadius:number)=>(
   <Pie key={innerRadius} data={segments} dataKey="value" nameKey="name"
    cx="50%" cy="50%" innerRadius={innerRadius} outerRadius={outerRadius} paddingAngle={1}
-   activeIndex={segments.findIndex(p=>p.key===hoveredSegment||hoveredSegment==='netTotal'&&p.key==='net')} activeShape={activeSector}
+   activeIndex={segments.findIndex(p=>p.key===hoveredSegment)} activeShape={activeSector}
    onMouseEnter={(entry)=>{
     const current=entry as {key?:string;payload?:{key?:string}}
     setHoveredSegment(current.key??current.payload?.key??null)
@@ -177,21 +171,30 @@ export function AnalyticsDashboard({
    <Panel title="Composição dos proventos">
     {hasComposition?<div className="analytics-composition-layout">
      <div className="analytics-composition-visual">
-      <div className="analytics-composition-chart"
-       aria-label="Gráfico concêntrico dos proventos, com percentuais e detalhes exibidos abaixo dos anéis">
-      <ResponsiveContainer width="100%" height="100%">
-       <PieChart>
-        {showPie([{key:'gross',name:'Proventos brutos',value:composition.gross!,fill:financialColors.gross}],0,44)}
-        {showPie(composition.inner,55,81)}
-        {showPie(composition.outer,91,110)}
-        <text x="50%" y="46%" textAnchor="middle" fill="#fff" fontSize={12} fontWeight={750} pointerEvents="none">Bruto</text>
-        <text x="50%" y="53%" textAnchor="middle" fill="#fff" fontSize={11} fontWeight={650} pointerEvents="none">100%</text>
-       </PieChart>
-      </ResponsiveContainer>
+      <div className="analytics-composition-chart" aria-label="Composição dos proventos em anéis">
+       <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+         {showPie([{key:'gross',name:'Proventos brutos',value:composition.gross!,fill:financialColors.gross}],0,44)}
+         {showPie(composition.inner,55,81)}
+         {showPie(composition.outer,91,110)}
+        </PieChart>
+       </ResponsiveContainer>
+       {hoveredInfo&&<div className="analytics-ring-tooltip" role="status" aria-live="off">
+        <strong>{hoveredInfo.name}</strong>
+        <span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span>
+       </div>}
       </div>
-      <div className="analytics-hover-detail" role="status" aria-live="off">
-       {hoveredInfo?<><strong>{hoveredInfo.name}</strong><span>{percentOfGross(hoveredInfo.value,composition.gross)} dos proventos brutos</span></>
-        :<span>Passe o mouse sobre o gráfico para ver o percentual de cada parcela.</span>}
+      <div className="analytics-ring-options" aria-label="Detalhes opcionais da composição">
+       <strong>Detalhar no gráfico</strong>
+       {([
+        ['espp','ESPP'],
+        ['privatePension','Previdência']
+       ] as const).map(([key,label])=><label key={key}>
+        <input type="checkbox" checked={visibleParts[key]}
+         disabled={composition.extras[key]===null||composition.extras[key]===0||(composition.netAndInvestments??0)<=0}
+         onChange={event=>setVisibleParts(prev=>({...prev,[key]:event.target.checked}))}/>
+        {label}
+       </label>)}
       </div>
      </div>
      <div className="analytics-composition-legend" aria-label="Valores da composição dos proventos">
@@ -214,17 +217,6 @@ export function AnalyticsDashboard({
       </div>}
      </div>
     </div>:<Empty label="A composição ainda não pode ser conciliada com os holerites disponíveis."/>}
-    <div className="analytics-ring-options" aria-label="Detalhes opcionais da composição">
-     <strong>Detalhar no gráfico</strong>
-     {([
-      ['espp','ESPP'],
-      ['privatePension','Previdência']
-     ] as const).map(([key,label])=><label key={key}>
-      <input type="checkbox" checked={visibleParts[key]} disabled={composition.extras[key]===null||composition.extras[key]===0||(composition.netAndInvestments??0)<=0}
-       onChange={event=>setVisibleParts(prev=>({...prev,[key]:event.target.checked}))}/>
-      {label}
-     </label>)}
-    </div>
     {composition.unclassified!==null&&composition.unclassified>0.01&&
      <details className="analytics-remainder-explanation">
       <summary>O que é o saldo não classificado? <strong>{brl(composition.unclassified)}</strong></summary>
