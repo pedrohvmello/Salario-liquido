@@ -3,7 +3,7 @@ import {profileDisplayName} from './profile'
 import {checkoutInvokeErrorMessage} from './checkoutError'
 import {isValidCheckoutName,normalizeCheckoutName} from './checkoutPayerName'
 import {cpfDigits,isValidCpf,validBirthDate} from './brazilIdentity'
-import {validatedSandboxCheckoutUrl} from './checkoutUrl'
+import {validatedProductionCheckoutUrl} from './checkoutUrl'
 import type {User} from '@supabase/supabase-js'
 
 export type PayrepProfile={
@@ -83,8 +83,8 @@ export async function startAsaasSandboxCheckout(plan:'basic'|'full'):Promise<str
  if(error){
   throw Error(await checkoutInvokeErrorMessage(error))
  }
- if(data?.mode!=='sandbox'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
- return validatedSandboxCheckoutUrl(data.checkoutUrl)
+ if(data?.mode!=='production'||typeof data.checkoutUrl!=='string')throw Error('Resposta inesperada do checkout.')
+ return validatedProductionCheckoutUrl(data.checkoutUrl)
 }
 
 export type BillingReconciliationResult={
