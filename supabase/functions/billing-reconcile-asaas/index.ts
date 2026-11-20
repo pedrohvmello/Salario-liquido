@@ -4,8 +4,8 @@ import {createClient} from 'npm:@supabase/supabase-js@2.57.0'
 // Callback navigation does not authorize a subscription.
 // Only a fresh verified provider charge (CONFIRMED/RECEIVED) plus stored,
 // authenticated checkout/subscription/payment webhooks can activate a plan.
-const origin='https://payrep-hml.vercel.app'
-const projectRef='nrpqcrhschztdwbfgnyo'
+const origin='https://payrep.com.br'
+const projectRef='klvurrcmfrwetmynscjc'
 const headers={
  'Content-Type':'application/json; charset=utf-8',
  'Access-Control-Allow-Origin':origin,
@@ -26,9 +26,9 @@ Deno.serve(async(req:Request)=>{
  const url=Deno.env.get('SUPABASE_URL')||''
  const anon=Deno.env.get('SUPABASE_ANON_KEY')||''
  const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||''
- const key=Deno.env.get('ASAAS_SANDBOX_API_KEY')||''
+ const key=Deno.env.get('ASAAS_PRODUCTION_API_KEY')||''
  if(url!=='https://'+projectRef+'.supabase.co'||!anon||!service||!key
-  ||Deno.env.get('PAYREP_ASAAS_SANDBOX_ENABLED')!=='true')
+  ||Deno.env.get('PAYREP_ASAAS_PRODUCTION_ENABLED')!=='true')
   return reply({error:'Conciliação Sandbox indisponível.'},503)
  const token=/^Bearer (.+)$/i.exec(req.headers.get('authorization')||'')?.[1]||''
  if(!token)return reply({error:'Faça login novamente.'},401)
@@ -87,8 +87,8 @@ Deno.serve(async(req:Request)=>{
   return reply({state:'needs_review'})
  const load=async(path:string)=>{
   try{
-   const response=await fetch('https://api-sandbox.asaas.com/v3/'+path,{
-    headers:{'access_token':key,'User-Agent':'Payrep-HML/1.0','Accept':'application/json'},
+   const response=await fetch('https://api.asaas.com/v3/'+path,{
+    headers:{'access_token':key,'User-Agent':'Payrep-PRD/1.0','Accept':'application/json'},
     signal:AbortSignal.timeout(12000)
    })
    if(!response.ok)return null
