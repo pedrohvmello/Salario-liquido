@@ -1,17 +1,17 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-20",
-  "feature": "FAQ completo, Pep Ajuda sincronizado e identificação do controlador",
+  "feature": "Busca instantânea do FAQ, categorias recolhidas, oferta do Pep Free e ordem do menu",
   "review": {
-    "sobre": "Revisado: controlador e descrição das funções existentes",
-    "privacidade": "Revisada: identificação do controlador, critérios de conservação e processamento da IA",
-    "termos": "Revisados: responsável, funcionamento e assistência",
-    "faq": "79 perguntas verificadas em 10 categorias; expandir ao clicar; inicial recolhido",
-    "pepAjuda": "Mesma fonte de FAQ; contexto filtrado para poupar Neurons; contador oculto só na tela; termos internos de ambientes removidos da base."
+    "sobre": "Atualizado: FAQ agora permite pesquisa local automática por palavras-chave, com categorias recolhidas.",
+    "privacidade": "Revisada sem alteração textual: consulta local às perguntas públicas sem novo tratamento pessoal.",
+    "termos": "Revisados sem alteração textual: benefícios de Basic e Full permanecem conforme regras já descritas.",
+    "faq": "80 perguntas e 10 categorias, fechamento inicial por tópico, pesquisa automática e respostas exibidas na busca.",
+    "pepAjuda": "Base compartilhada atualizada para explicar busca FAQ, limites de consumo e separação dos modos mantidos."
   },
   "sourceTrees": {
-    "src": "6762ded9c226355090a2b6342c6feb7cfb60b1bd",
-    "supabase/functions": "2f9d7b0729ad9b017fa30ee740f196a15df0a985",
+    "src": "737df0ae80e262a194b3b71232ff7cb0b6bda2f3",
+    "supabase/functions": "ded4bf35496594155762996abd5d432d4d91f344",
     "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
   }
 }
