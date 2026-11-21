@@ -1,6 +1,7 @@
 import {useMemo,useState} from 'react'
 import {Info,RotateCcw,Save} from 'lucide-react'
 import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
+import {recordedHoursBalanceMinutes,type WorkRegime} from '../lib/workRegime'
 import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
@@ -16,6 +17,7 @@ type Props={
  holidayDates:ReadonlySet<string>|null
  policies:TimeBankPolicy[]
  baseName:string
+ workRegime:WorkRegime
  onSaved:()=>Promise<void>
 }
 const empty=(date:string):DayEntry=>({
@@ -29,7 +31,8 @@ const hours=(value:number)=>value.toLocaleString('pt-BR',{minimumFractionDigits:
 const clock=/^([01]\d|2[0-3]):[0-5]\d$/
 const normalize=(value:string)=>{const m=/^(\d{1,2}):(\d{2})$/.exec(value.trim());return m?m[1].padStart(2,'0')+':'+m[2]:value.trim()}
 
-export function FortnightTimesheet({anchor,records,holidayDates,policies,baseName,onSaved}:Props){
+export function FortnightTimesheet({anchor,records,holidayDates,policies,baseName,workRegime,onSaved}:Props){
+ const trust=workRegime==='trust'
  const [drafts,setDrafts]=useState<Record<string,DayEntry>>({})
  const [saving,setSaving]=useState(false)
  const [resetOpen,setResetOpen]=useState(false)
@@ -54,7 +57,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   }else{
    const modifyingHours=['start','lunchStart','lunchEnd','end','additionalHours','holidayOverride']
     .some(key=>Object.prototype.hasOwnProperty.call(patch,key))
-   if(modifyingHours&&!manuallySetBank[date]){
+   if(modifyingHours&&!trust&&!manuallySetBank[date]){
     const shouldAuto=shouldAutoBankShortDay(next,holidayDates,policies)
     if(shouldAuto&&!existing.bankHours){
      next.bankHours=true
@@ -78,7 +81,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
    try{
     // No calculated value is shown until the actual Base holiday catalog is available.
     const checked=paidOvertime(entry,holidayDates??new Set<string>())
-    if(holidayDates)calculated=checked
+    if(holidayDates||trust)calculated=checked
    }catch{invalid=true}
   }
   return {
@@ -97,6 +100,8 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   }))
  ]
  const previewBank=calculateBankLedger(previewEntries,holidayDates,policies)
+ const savedBalance=trust?recordedHoursBalanceMinutes(records,holidayDates,policies):savedBank.balanceMinutes
+ const previewBalance=trust?recordedHoursBalanceMinutes(previewEntries,holidayDates,policies):previewBank.balanceMinutes
  const calculated=rows.map(row=>row.calculated).filter((value):value is Overtime=>value!==null)
  const totals=calculated.reduce((result,calc)=>({
   worked:result.worked+calc.total,
@@ -160,7 +165,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
     }
    }
   }
-  if(changed.some(entry=>entry.bankHours)&&!holidayDates){
+  if(!trust&&changed.some(entry=>entry.bankHours)&&!holidayDates){
    setError('Aguarde o calendário de feriados para registrar movimentos no banco de horas.')
    setSaving(false);return
   }
@@ -168,7 +173,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
    ...records.filter(row=>!dirtyCurrent.includes(row.date)),
    ...changed
   ],holidayDates,policies)
-  if(hypothetical.firstMissingPolicyDate){
+  if(!trust&&hypothetical.firstMissingPolicyDate){
    setError('Não existe política de Banco de Horas vigente em '+formatDate(hypothetical.firstMissingPolicyDate)+'. Solicite ao administrador uma nova vigência.')
    setSaving(false);return
   }
@@ -200,19 +205,21 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
  return <div className="stack payrep-fortnight">
   <section className="panel">
    <div className="fortnight-summary" aria-label="Totais da quinzena">
-    <div className="stat"><span>Extras 60%</span><strong>{hours(totals.h60)}</strong></div>
-    <div className="stat"><span>Extras 80%</span><strong>{hours(totals.h80)}</strong></div>
-    <div className="stat"><span>Extras 100%</span><strong>{hours(totals.h100)}</strong></div>
-    <div className="stat"><span>Total de horas extras</span><strong>{hours(totals.extra)}</strong></div>
+    <div className={'stat'+(trust?' fortnight-stat-inactive':'')}><span>Extras 60%</span><strong>{trust?'—':hours(totals.h60)}</strong></div>
+    <div className={'stat'+(trust?' fortnight-stat-inactive':'')}><span>Extras 80%</span><strong>{trust?'—':hours(totals.h80)}</strong></div>
+    <div className={'stat'+(trust?' fortnight-stat-inactive':'')}><span>Extras 100%</span><strong>{trust?'—':hours(totals.h100)}</strong></div>
+    <div className={'stat'+(trust?' fortnight-stat-inactive':'')}><span>Total de horas extras</span><strong>{trust?'Não aplicado':hours(totals.extra)}</strong></div>
     <div className="stat"><span>Total trabalhado</span><strong>{hours(totals.worked)}</strong></div>
-    <div className="stat"><span>Saldo de Horas</span>
-     <strong className={savedBank.balanceMinutes<0?'fortnight-negative-balance':''}>{formatBankMinutes(savedBank.balanceMinutes)} h</strong>
+    <div className="stat"><span>Saldo de Horas{trust?' (informativo)':''}</span>
+     <strong className={savedBalance<0?'fortnight-negative-balance':''}>{formatBankMinutes(savedBalance)} h</strong>
      {dirtyCurrent.length>0&&
-      <small className={previewBank.balanceMinutes<0?'fortnight-negative-balance':''}>Após salvar: {formatBankMinutes(previewBank.balanceMinutes)} h</small>}
+      <small className={previewBalance<0?'fortnight-negative-balance':''}>Após salvar: {formatBankMinutes(previewBalance)} h</small>}
     </div>
    </div>
-   {!holidayDates&&<div className="notice warning"><Info size={17}/>
-    Configure sua Base ou aguarde o calendário de feriados para exibir os cálculos.</div>}
+   {trust&&<div className="notice subtle-notice" role="status"><Info size={17}/>
+    Cargo de confiança: sem cálculo de horas extras ou novos movimentos no banco.
+    O saldo informativo compara os horários registrados com a jornada de referência.
+    O histórico do banco permanece armazenado.</div>}
    <div className="table-scroll fortnight-scroll" role="region" tabIndex={0}
     aria-label={'Registro de horas da '+period.label}>
     <table className="fortnight-table">
@@ -224,7 +231,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
      </tr></thead>
      <tbody>{rows.map(row=>{
       const dow=new Date(row.date+'T12:00:00Z').getUTCDay()
-      const movement=previewBank.movements.get(row.date)?.deltaMinutes??0
+      const movement=trust?0:previewBank.movements.get(row.date)?.deltaMinutes??0
       const typed=(key:Field,label:string,placeholder='00:00')=><input
        type="text" inputMode={key==='comments'?'text':'numeric'}
        className={key==='comments'?'fortnight-comment':'fortnight-time-input'}
@@ -259,12 +266,12 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
         title={movement>0?'Crédito ao banco: +'+formatBankMinutes(movement):
           movement<0?'Compensação do banco: '+formatBankMinutes(movement):
           'Crédito ou compensação de horas pelo banco'}
-        checked={Boolean(row.entry.bankHours)}
-        onChange={event=>change(row.date,{bankHours:event.target.checked})}/></td>
-       <td className="fortnight-calculated">{row.invalid?'Inválido':row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
-       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h60):'—'}</td>
-       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h80):'—'}</td>
-       <td className="fortnight-calculated">{row.calculated?hours(row.calculated.h100):'—'}</td>
+        checked={Boolean(row.entry.bankHours)} disabled={trust}
+        onChange={event=>{if(!trust)change(row.date,{bankHours:event.target.checked})}}/></td>
+       <td className="fortnight-calculated">{trust?'—':row.invalid?'Inválido':row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</td>
+       <td className="fortnight-calculated">{!trust&&row.calculated?hours(row.calculated.h60):'—'}</td>
+       <td className="fortnight-calculated">{!trust&&row.calculated?hours(row.calculated.h80):'—'}</td>
+       <td className="fortnight-calculated">{!trust&&row.calculated?hours(row.calculated.h100):'—'}</td>
        <td><div className="fortnight-holiday-cell">
         <input type="checkbox" aria-label={'Feriado em '+formatDate(row.date)}
          checked={row.holiday}
@@ -279,8 +286,8 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
     </table>
    </div>
    <div className="fortnight-color-legend" aria-label="Legenda das cores da tabela">
-    <span><i className="fortnight-legend-swatch fortnight-legend-credit"/> Azul: crédito no Banco de Horas</span>
-    <span><i className="fortnight-legend-swatch fortnight-legend-debit"/> Vermelho: compensação do Banco de Horas</span>
+    {!trust&&<><span><i className="fortnight-legend-swatch fortnight-legend-credit"/> Azul: crédito no Banco de Horas</span>
+    <span><i className="fortnight-legend-swatch fortnight-legend-debit"/> Vermelho: compensação do Banco de Horas</span></>}
     <span><i className="fortnight-legend-swatch fortnight-legend-holiday"/> Verde: feriado</span>
     <span><i className="fortnight-legend-swatch fortnight-legend-today"/> Amarelo: dia atual</span>
    </div>
@@ -298,11 +305,11 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
      </button>
     </div>
    </div>
-   {dirtyCurrent.length>0&&previewBank.firstMissingPolicyDate&&
+   {!trust&&dirtyCurrent.length>0&&previewBank.firstMissingPolicyDate&&
     <p className="error" role="alert">
      Nenhuma política de Banco de Horas vigente em {formatDate(previewBank.firstMissingPolicyDate)}.
     </p>}
-   {dirtyCurrent.length>0&&previewBank.balanceMinutes<0&&
+   {!trust&&dirtyCurrent.length>0&&previewBank.balanceMinutes<0&&
     <p className="fortnight-negative-notice" role="status">
      Saldo projetado negativo: {formatBankMinutes(previewBank.balanceMinutes)} h.
      As horas devidas serão compensadas pelos próximos créditos no Banco de Horas.
@@ -318,10 +325,15 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   <p className="subtle">Base utilizada para os feriados: {baseName}.
    As regras de fechamento e DSR de 16 a 15 permanecem aplicadas às projeções salariais.</p>
   <p className="subtle fortnight-explanation">
-   Somente jornadas completas entram nos totais de horas trabalhadas.
-   Marque Banco de Horas para acumular horas extras ou compensar a jornada.
-   Em dias úteis, uma jornada inferior à referência é marcada automaticamente para compensação.
-   Um dia sem horários e com o flag marcado representa folga integral.
+   {trust?<>
+    Somente jornadas completas registradas entram nos totais. O saldo informativo usa a referência da política vigente ou, na falta dela, 8 horas nos dias úteis; sábados, domingos e feriados não têm jornada de referência.
+    Nenhuma marcação nova de banco de horas é gerada. Registros históricos permanecem preservados.
+   </>:<>
+    Somente jornadas completas entram nos totais de horas trabalhadas.
+    Marque Banco de Horas para acumular horas extras ou compensar a jornada.
+    Em dias úteis, uma jornada inferior à referência é marcada automaticamente para compensação.
+    Um dia sem horários e com o flag marcado representa folga integral.
+   </>}
    {dirtyCurrent.length>0?' Os totais incluem alterações ainda não salvas.':''}
   </p>
  </div>
