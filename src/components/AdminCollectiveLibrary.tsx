@@ -203,7 +203,7 @@ export function AdminCollectiveLibrary(){
      placeholder="https://mediador.trabalho.gov.br/..."/></label>
    </div>
    <button type="button" className="primary" disabled={busy} onClick={()=>void addSource()}>Cadastrar fonte</button>
-   <div className="table-scroll"><table><thead><tr><th>Empresa / UF</th><th>Situação</th><th>URL</th><th>Última consulta</th><th>Ações</th></tr></thead>
+   <div className="table-scroll"><table className="mobile-stack-table mobile-admin-sources"><thead><tr><th>Empresa / UF</th><th>Situação</th><th>URL</th><th>Última consulta</th><th>Ações</th></tr></thead>
     <tbody>{sources.map(s=><SourceRow key={s.id} source={s} busy={busy}
      onSave={(item,u,enabled)=>void act(async()=>{
       if(!db)throw Error('Supabase não configurado')
@@ -233,7 +233,7 @@ export function AdminCollectiveLibrary(){
   </section>
   <section className="panel"><div className="panel-heading"><h2><BookOpen size={18}/> Documentos ({docs.length})</h2>
    <span className="pill">{docs.filter(d=>d.review_status==='pending').length} pendentes</span></div>
-   <div className="table-scroll"><table><thead><tr><th>Documento</th><th>Tipo</th><th>Revisão</th><th>Ações</th></tr></thead>
+   <div className="table-scroll"><table className="mobile-stack-table mobile-admin-documents"><thead><tr><th>Documento</th><th>Tipo</th><th>Revisão</th><th>Ações</th></tr></thead>
     <tbody>{docs.length===0?<tr><td colSpan={4}>Nenhum documento coletado ou importado.</td></tr>:
      docs.map(d=><tr key={d.id}><td>{d.title}</td><td>{d.document_type}</td>
       <td>{d.review_status}</td><td>
