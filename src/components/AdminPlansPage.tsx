@@ -2,11 +2,12 @@ import {useEffect,useState} from 'react'
 import {ArrowLeft,CreditCard,Gift,RefreshCw,UsersRound,Ticket} from 'lucide-react'
 import {AdminBillingPlans} from './AdminBillingPlans'
 import {AdminFullTrials} from './AdminFullTrials'
+import {AdminUserPlans} from './AdminUserPlans'
 import {AdminPromoCodes} from './AdminPromoCodes'
 import {fetchAdminDashboard,type AdminDashboardData} from '../lib/admin'
 import {asaasMode} from '../lib/environment'
 
-type PlansSection='prices'|'trials'|'promos'|'subscribers'|null
+type PlansSection='prices'|'trials'|'promos'|'subscribers'|'users'|null
 
 export function AdminPlansPage(){
  const [active,setActive]=useState<PlansSection>(null)
@@ -28,7 +29,7 @@ export function AdminPlansPage(){
  return <div className="stack">
   {active===null?<div className="page-intro"><div>
    <h2>Planos e Assinaturas</h2>
-   <p>Preços, assinantes e testes gratuitos. Controles administrativos do ambiente {asaasMode==='sandbox'?'de homologação':'de produção'}.</p>
+   <p>Preços, assinantes e acessos promocionais. Controles administrativos do ambiente {asaasMode==='sandbox'?'de homologação':'de produção'}.</p>
   </div></div>:<div>
    <button type="button" className="secondary" onClick={()=>setActive(null)}>
     <ArrowLeft size={16}/> Voltar para Planos e Assinaturas
@@ -44,10 +45,10 @@ export function AdminPlansPage(){
     </button>
    </section>
    <section className="panel">
-    <div className="panel-heading"><h2><Gift size={18}/> Testes gratuitos do Full</h2></div>
-    <p>Conceda, acompanhe e encerre períodos de teste gratuitos para usuários elegíveis.</p>
+    <div className="panel-heading"><h2><Gift size={18}/> Acesso promocional</h2></div>
+    <p>Conceda, acompanhe e revogue acessos temporários Basic e Full.</p>
     <button type="button" className="primary" onClick={()=>setActive('trials')}>
-     <Gift size={17}/> Gerenciar testes gratuitos
+     <Gift size={17}/> Gerenciar acesso promocional
     </button>
    </section>
    <section className="panel">
@@ -58,6 +59,11 @@ export function AdminPlansPage(){
     </button>
    </section>
    <section className="panel">
+    <div className="panel-heading"><h2><UsersRound size={18}/> Planos por usuário</h2></div>
+    <p>Consulte o plano contratado, o acesso efetivo e defina manualmente o nível Free, Basic ou Full de usuários aprovados, sem alterar cobranças no Asaas.</p>
+    <button type="button" className="primary" onClick={()=>setActive('users')}><UsersRound size={17}/> Gerenciar planos dos usuários</button>
+   </section>
+   <section className="panel">
     <div className="panel-heading"><h2><UsersRound size={18}/> Assinantes cadastrados</h2></div>
     <p>Consulte usuários com planos pagos e acompanhe a situação das contas cadastradas.</p>
     <button type="button" className="primary" onClick={()=>setActive('subscribers')}>
@@ -66,6 +72,7 @@ export function AdminPlansPage(){
    </section>
   </>}
   {active==='prices'&&<AdminBillingPlans/>}
+  {active==='users'&&<AdminUserPlans/>}
   {active==='trials'&&<AdminFullTrials/>}
   {active==='promos'&&<AdminPromoCodes/>}
   {active==='subscribers'&&<section className="panel">
@@ -90,7 +97,7 @@ export function AdminPlansPage(){
       <td>{user.status==='approved'?'Aprovado':user.status}</td>
      </tr>)}</tbody>
    </table></div>
-   <p className="subtle">Testes Full gratuitos aparecem na seção específica, não entram na receita e não alteram o plano cobrado pelo Asaas.</p>
+   <p className="subtle">Promoções e substituições administrativas do plano efetivo não representam receita nem alteram o plano cobrado pelo Asaas. Consulte Planos por usuário para o acesso real.</p>
   </section>}
  </div>
 }

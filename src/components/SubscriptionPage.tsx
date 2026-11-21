@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,Check,CreditCard,Info,ShieldCheck} from 'lucide-react'
+import {paymentStatusText} from '../lib/adminEntitlements'
 import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
@@ -201,15 +202,25 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2>
-     <span className="pill">{adminAccess?'Administrador':access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
+     <span className="pill">{adminAccess?'Administrador':access?.adminOverridePlan?(names[access.adminOverridePlan]+' manual'):
+      access?.manualAccessActive?(names[access.manualAccessPlan||'free']+' promocional'):
+      access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
       access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>{adminAccess?'Acesso administrativo integral':access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
+    <div className="subscription-current"><strong>{adminAccess?'Acesso administrativo integral':access?.adminOverridePlan?'Plano '+names[access.adminOverridePlan]+' · definido pelo administrador':
+      access?.manualAccessActive?'Plano '+names[access.manualAccessPlan||'free']+' · acesso promocional':
+      access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
       access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
-     {adminAccess?'Acesso completo a todas as funcionalidades, sem vínculo com um plano comercial.':access?.promoApplied?'Acesso promocional gratuito. O plano pago cadastrado permanece '+names[current.plan_code]+'.':
+     {adminAccess?'Acesso completo a todas as funcionalidades, sem vínculo com um plano comercial.':access?.adminOverridePlan?'Acesso efetivo definido administrativamente. A assinatura e as cobranças no Asaas permanecem independentes.':
+      access?.manualAccessActive?'Acesso temporário concedido pelo administrador, sem nova cobrança e sem alterar a assinatura financeira.':
+      access?.promoApplied?'Acesso promocional gratuito. O plano pago cadastrado permanece '+names[current.plan_code]+'.':
       access?.trialActive?'Acesso temporário concedido pelo Payrep, sem cartão e sem cobrança. A assinatura financeira permanece Free.'
       :current.plan_code==='free'?(paidCheckoutPending?'Gratuito. Assinatura '+pendingPlanName+' em andamento, aguardando confirmação do pagamento.':'Gratuito. Nenhuma cobrança ativa.')
       :current.status==='active'?'Assinatura ativa':'Situação: '+current.status}
     </span></div>
+    {!adminAccess&&access?.manualAccessActive&&access.manualAccessEndsAt&&<div className="payrep-billing-help">
+     <strong>Acesso promocional {names[access.manualAccessPlan||'free']} concedido manualmente</strong>
+     <p>Válido até {date(access.manualAccessEndsAt)}. Ao encerrar, o aplicativo retorna ao plano pago vigente ou ao Free, salvo definição manual de acesso. Não cria nem interrompe cobranças.</p>
+    </div>}
     {!adminAccess&&access?.promoActive&&access.promoEndsAt&&<div className="payrep-billing-help">
      <strong>Código promocional ativado: {names[access.promoPlan||'free']}</strong>
      <p>Válido até {new Intl.DateTimeFormat('pt-BR',{
@@ -283,11 +294,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     <div className="panel-heading"><h2>Checkouts de assinatura</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
     <div className="table-scroll"><table><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
-     <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':c.status}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
+     <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':paymentStatusText(c.status)}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
     </table></div>
    </section>}
    <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Pagamentos</h2></div>
-    {data.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{p.status}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
+    {data.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{paymentStatusText(p.status)}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
    </section>
   </>}
  </div>

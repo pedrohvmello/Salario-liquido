@@ -1,6 +1,7 @@
 import {X,UserRound,CreditCard,MapPin,ShieldCheck} from 'lucide-react'
 import type {AdminUserDetail} from '../lib/admin'
 import {planLabels} from '../lib/adminMetrics'
+import {paymentStatusText} from '../lib/adminEntitlements'
 const date=(value:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(value)):'Não informado'
 const fullDate=(value:string|null)=>value?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(value)):'Não informado'
 const orBlank=(s:string|null|undefined)=>s?.trim()||'Não informado'
@@ -53,7 +54,7 @@ export function AdminUserDetailDialog({user,totalAccesses,loading,error,onClose}
       </div>
       <p className="subtle">Sessões únicas registradas desde a ativação do controle de acessos. Não inclui histórico anterior nem visualizações de páginas.</p>
       {user.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Provedor</th></tr></thead><tbody>
-       {user.payments.map(payment=><tr key={payment.id}><td>{fullDate(payment.paidAt||payment.createdAt)}</td><td>{payment.description||'Cobrança'}</td><td>{amount(payment.amountCents,payment.currency)}</td><td>{payment.status}</td><td>{payment.provider}</td></tr>)}
+       {user.payments.map(payment=><tr key={payment.id}><td>{fullDate(payment.paidAt||payment.createdAt)}</td><td>{payment.description||'Cobrança'}</td><td>{amount(payment.amountCents,payment.currency)}</td><td>{paymentStatusText(payment.status)}</td><td>{payment.provider}</td></tr>)}
       </tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
      </section>
     </>}

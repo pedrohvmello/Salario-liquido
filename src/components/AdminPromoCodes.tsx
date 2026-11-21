@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useState} from 'react'
-import {Copy,Gift,Plus,RefreshCw,ShieldCheck} from 'lucide-react'
+import {Copy,Gift,Plus,RefreshCw,ShieldCheck,Trash2} from 'lucide-react'
+import {daysRemaining,grantStateText,loadAdminPromoRedemptions,planName,revokePromotionalAccess,type AccessGrant} from '../lib/adminEntitlements'
 import {PayrepSelect} from './PayrepSelect'
 import {PayrepDatePicker} from './PayrepDatePicker'
 import {db} from '../lib/data'
@@ -30,6 +31,8 @@ const futureDefault=()=>{
 }
 export function AdminPromoCodes(){
  const [records,setRecords]=useState<Promo[]>([])
+ const [redemptions,setRedemptions]=useState<AccessGrant[]>([])
+ const [pendingRevocation,setPendingRevocation]=useState<string|null>(null)
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState(false)
  const [formOpen,setFormOpen]=useState(false)
@@ -46,10 +49,11 @@ export function AdminPromoCodes(){
  const [message,setMessage]=useState('')
  const reload=useCallback(async()=>{
   if(!db)throw Error('Banco não configurado.')
-  const {data,error}=await db.rpc('list_hml_promo_codes')
-  if(error)throw error
-  if(!Array.isArray(data))throw Error('Resposta inválida ao carregar códigos.')
-  setRecords(data as Promo[])
+  const [codes,grants]=await Promise.all([db.rpc('list_hml_promo_codes'),loadAdminPromoRedemptions()])
+  if(codes.error)throw codes.error
+  if(!Array.isArray(codes.data))throw Error('Resposta inválida ao carregar códigos.')
+  setRecords(codes.data as Promo[])
+  setRedemptions(grants)
  },[])
  useEffect(()=>{
   let active=true
@@ -99,6 +103,16 @@ export function AdminPromoCodes(){
   }catch(e){setError(e instanceof Error?e.message:'Falha ao desativar o código.')}
   finally{setBusy(false)}
  }
+ const revoke=async(row:AccessGrant)=>{
+  if(busy)return
+  setBusy(true);setError('');setMessage('')
+  try{
+   await revokePromotionalAccess(row.id,'code')
+   await reload();setPendingRevocation(null)
+   setMessage('Acesso do código promocional revogado. Não houve mudança no Asaas.')
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao revogar acesso promocional.')}
+  finally{setBusy(false)}
+ }
  const copy=async(code:string)=>{
   if(!code)return
   try{await navigator.clipboard.writeText(code);setMessage('Código copiado.')}
@@ -126,7 +140,7 @@ export function AdminPromoCodes(){
  return <section className="panel">
   <div className="panel-heading">
    <h2><Gift size={18}/> Códigos promocionais</h2>
-   <div className="row">
+   <div className="admin-promo-actions">
     <button className="secondary" type="button" onClick={()=>void reload().catch(e=>setError(String(e)))} disabled={busy||loading}>
      <RefreshCw size={15}/> Atualizar
     </button>
@@ -226,6 +240,27 @@ export function AdminPromoCodes(){
     </button>
    </div>
   </form>}
-  <p className="subtle"><ShieldCheck size={14}/> Um resgate por código e por usuário; uma promoção ativa por vez. Um código desativado fica reservado por seis meses. Desativar ou expirar um código não reduz os dias de acesso já concedidos.</p>
+  <p className="subtle"><ShieldCheck size={14}/> Um resgate por código e por usuário; uma promoção ativa por vez. Um código desativado fica reservado por seis meses. Desativar ou expirar um código não reduz os dias de acesso já concedidos. A revogação administrativa interrompe o acesso individual.</p>
+  <section className="admin-promo-redemptions" aria-labelledby="promo-redemptions-title">
+   <h3 id="promo-redemptions-title">Usuários que utilizaram códigos promocionais</h3>
+   <p className="subtle">Histórico de resgates, inclusive de códigos desativados ou expirados.</p>
+   <div className="table-scroll"><table><thead><tr>
+    <th>Usuário</th><th>Código</th><th>Plano</th><th>Início</th><th>Fim</th><th>Dias restantes</th><th>Status</th><th>Ação</th>
+   </tr></thead><tbody>
+    {redemptions.length===0&&<tr><td colSpan={8}>Nenhum código utilizado.</td></tr>}
+    {redemptions.map(row=><tr key={row.id}>
+     <td><strong>{row.displayName}</strong><br/><small>{row.email}</small></td>
+     <td><code>{row.code||'Não identificado'}</code></td>
+     <td>{planName(row.plan)}</td><td>{dateInSP(row.startsAt)}</td><td>{dateInSP(row.endsAt)}</td>
+     <td>{daysRemaining(row.endsAt,row.state)}</td><td>{grantStateText(row.state)}</td>
+     <td>{row.state!=='active'?'—':pendingRevocation===row.id
+      ?<span className="row"><button type="button" className="secondary" disabled={busy} onClick={()=>setPendingRevocation(null)}>Cancelar</button>
+       <button type="button" className="secondary" disabled={busy} onClick={()=>void revoke(row)}>Confirmar revogação</button></span>
+      :<button type="button" className="secondary" disabled={busy} title="Revogar acesso" aria-label={'Revogar código de '+row.displayName}
+        onClick={()=>setPendingRevocation(row.id)}><Trash2 size={16}/></button>}
+     </td>
+    </tr>)}
+   </tbody></table></div>
+  </section>
  </section>
 }

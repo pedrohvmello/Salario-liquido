@@ -116,7 +116,12 @@ export async function cancelMyAsaasSandboxRenewal():Promise<{canceledRenewal:boo
 
 export type EffectivePayrepPlan={
  isAdmin?:boolean;
- accessSource?:'administrator'|'subscription';
+ accessSource?:'administrator'|'subscription'|'admin_override'|'manual_grant'|'promotion'|'trial';
+ adminOverridePlan?:PlanCode|null;
+ manualAccessActive?:boolean;
+ manualAccessPlan?:'basic'|'full'|null;
+ manualAccessStartsAt?:string|null;
+ manualAccessEndsAt?:string|null;
  effectivePlan:'free'|'basic'|'full';
  paidPlan:'free'|'basic'|'full';
  trialActive:boolean;

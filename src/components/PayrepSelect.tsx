@@ -31,11 +31,12 @@ type Props={
  title?:string
  className?:string
  disabled?:boolean
+ searchable?:boolean
  required?:boolean
  'aria-label'?:string
 }
 export function PayrepSelect(props:Props){
- const {children,value,defaultValue,onChange,id,title,className='',disabled=false,required=false}=props
+ const {children,value,defaultValue,onChange,id,title,className='',disabled=false,required=false,searchable=false}=props
  const [initial,setInitial]=useState(()=>String(defaultValue??''))
  const [open,setOpen]=useState(false)
  const [query,setQuery]=useState('')
@@ -68,7 +69,7 @@ export function PayrepSelect(props:Props){
   {props.name&&<input type="hidden" name={props.name} value={selected}/>}
   {open&&<PayrepPickerDialog title={heading} onClose={()=>setOpen(false)} className="payrep-select-modal"
    description={required?'Selecione uma opção para continuar.':undefined}>
-    {options.length>12&&<label className="payrep-select-search">
+    {(searchable||options.length>12)&&<label className="payrep-select-search">
       <Search size={16} aria-hidden="true"/>
       <input type="search" placeholder="Buscar opção" aria-label="Buscar opção" value={query} onChange={e=>setQuery(e.target.value)} data-picker-focus/>
      </label>}
