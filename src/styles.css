@@ -3193,3 +3193,51 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
   opacity:1!important;transition:none
  }
 }
+
+/* Collapsed, native-accessible sections in Definições. */
+.payrep-definitions{width:100%;max-width:1300px;margin:0 auto}
+.payrep-definition-accordion{background:#fff;border:1px solid #e8dcf4;border-radius:17px;box-shadow:0 5px 20px rgba(64,22,104,.045);overflow:hidden}
+.payrep-definition-accordion>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;list-style:none;padding:21px 24px;font-weight:750;font-size:17px;color:#36164d}
+.payrep-definition-accordion>summary::-webkit-details-marker{display:none}
+.payrep-definition-accordion>summary svg{color:#8430bb;transition:transform .16s}
+.payrep-definition-accordion[open]>summary svg{transform:rotate(90deg)}
+.payrep-definition-accordion[open]>summary{border-bottom:1px solid #eddef7}
+.payrep-definition-body{padding:23px 24px}
+.payrep-definition-accordion>summary:focus-visible{outline:2px solid #9034c1;outline-offset:-3px}
+.payrep-work-regime-options{border:1px solid #e9ddf2;border-radius:12px;padding:15px 18px;margin:0;display:flex;flex-direction:column;gap:18px}
+.payrep-work-regime-options label{display:flex;align-items:center;gap:12px;cursor:pointer;color:#37194e;font-size:14px}
+.payrep-work-regime-options input{accent-color:#8300d2;width:19px;height:19px;flex-shrink:0}
+.payrep-work-regime-explanation{margin-top:16px;padding:13px 0 0;border-top:1px solid #f0e7f6;line-height:1.65}
+.fortnight-stat-inactive{opacity:.6}
+@media(max-width:650px){.payrep-definition-accordion>summary{padding:18px}.payrep-definition-body{padding:17px}}
+
+/* Informe IR upsell for Free users without historical documents. */
+.ir-upgrade{display:flex;flex-direction:column;gap:22px;width:min(100%,1350px);margin:0 auto}
+.ir-upgrade-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.9fr);align-items:center;gap:28px;overflow:hidden;border-radius:18px;background:linear-gradient(114deg,#32104f,#66229d 84%,#873ab5);color:#fff;min-height:310px;padding:34px 45px}
+.ir-upgrade-copy{max-width:680px}
+.ir-upgrade-eyebrow{display:flex;align-items:center;gap:9px;color:#e5ccf7;font-size:12px;font-weight:700}
+.ir-upgrade h2{color:#fff;font-size:clamp(25px,2.8vw,38px);line-height:1.16;margin:18px 0}
+.ir-upgrade-hero p{color:#f2e5fa;font-size:14px;line-height:1.75;max-width:600px;margin:0 0 23px}
+.ir-upgrade-cta{min-height:49px;background:#fff!important;color:#5e1688!important;border-color:#fff!important}
+.ir-upgrade-copy small{display:block;max-width:480px;line-height:1.55;color:#dec9ee;font-size:11px;margin-top:13px}
+.ir-upgrade-art{display:flex;justify-content:center;align-items:center;position:relative;min-height:245px}
+.ir-upgrade-visual-document{background:#fff;border-radius:14px;box-shadow:0 16px 38px rgba(16,0,39,.26);transform:rotate(4deg);padding:23px;width:min(100%,280px);color:#441b63}
+.ir-upgrade-visual-head{display:flex;gap:9px;align-items:center;font-size:12px;font-weight:800}
+.ir-upgrade-visual-head svg{color:#962bce}
+.ir-upgrade-visual-year{font-size:12px;color:#7d6192;padding:17px 0 14px}
+.ir-upgrade-visual-year strong{color:#502373}
+.ir-upgrade-visual-document i{display:block;height:9px;background:#f1e5fa;border-radius:6px;margin:10px 0}
+.ir-upgrade-visual-document i.short{width:58%}
+.ir-upgrade-visual-foot{display:flex;gap:7px;align-items:center;font-size:11px;font-weight:700;color:#6e258e;margin-top:20px}
+.ir-upgrade-floating-icon{position:absolute;right:7%;bottom:1%;display:grid;place-items:center;width:62px;height:62px;border-radius:18px;background:#eecffc;color:#7c22b8;box-shadow:0 9px 25px rgba(25,0,51,.2);transform:rotate(-9deg)}
+.ir-upgrade-benefits{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.ir-upgrade-benefits>div{padding:23px 19px;background:#fff;border:1px solid #e6d8f1;border-radius:14px}
+.ir-upgrade-benefit-icon{display:grid;place-items:center;width:47px;height:47px;border-radius:12px;background:#f4e7ff;color:#8c22c3;margin-bottom:15px}
+.ir-upgrade-benefits h3{font-size:15px;color:#36164d;margin:0 0 10px}
+.ir-upgrade-benefits p{margin:0;font-size:12px;color:#755d87;line-height:1.72}
+.ir-upgrade-footer{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:22px 25px;background:#fff;border:1px solid #e6d8f1;border-radius:14px}
+.ir-upgrade-footer strong{color:#35154b;font-size:15px}
+.ir-upgrade-footer p{color:#78618a;font-size:12px;margin:6px 0 0;line-height:1.6}
+.ir-upgrade-footer button{flex-shrink:0}
+@media(max-width:960px){.ir-upgrade-benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.ir-upgrade-hero{padding:28px;grid-template-columns:minmax(0,1fr) 235px}}
+@media(max-width:640px){.ir-upgrade-hero{grid-template-columns:1fr;padding:25px}.ir-upgrade-art{min-height:180px}.ir-upgrade-visual-document{width:230px}.ir-upgrade-benefits{grid-template-columns:1fr}.ir-upgrade-footer{flex-direction:column;align-items:flex-start}.ir-upgrade-footer button{width:100%;justify-content:center}}

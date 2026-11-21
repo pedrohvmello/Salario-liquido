@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
 import {AlertTriangle,CheckCircle2,Download,Eye,FileCheck2,FileUp,Info,Save,ShieldCheck,Trash2,X} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
+import {IncomeTaxUpgrade} from './IncomeTaxUpgrade'
 import {PayslipPdfViewer} from './PayslipPdfViewer'
 import {brl} from '../lib/money'
 import {db,type SavedStatement} from '../lib/data'
@@ -41,13 +42,14 @@ type PendingImport={
  file:File;analysis:ExtractedTaxReport;year:number|null;existing:IncomeTaxReport|null
 }
 
-export function TaxPreview({userId,statements,lines}:{userId:string|null;statements:SavedStatement[];lines:StatementRubric[]}){
+export function TaxPreview({userId,statements,lines,onSubscribe}:{userId:string|null;statements:SavedStatement[];lines:StatementRubric[];onSubscribe:()=>void}){
  const today=new Date().getFullYear()
  const defaultYear=Math.max(1990,today-1)
  const [year,setYear]=useState(defaultYear)
  const [reportYears,setReportYears]=useState<number[]>([])
  const [report,setReport]=useState<IncomeTaxReport|null>(null)
  const [canUpload,setCanUpload]=useState(false)
+ const [accessState,setAccessState]=useState<'loading'|'ready'|'error'>('loading')
  const [loading,setLoading]=useState(false)
  const [busy,setBusy]=useState(false)
  const [saving,setSaving]=useState(false)
@@ -76,14 +78,15 @@ export function TaxPreview({userId,statements,lines}:{userId:string|null;stateme
 
  useEffect(()=>{
   let active=true
-  if(!db||!userId){setReport(null);setCanUpload(false);return}
+  if(!db||!userId){setReport(null);setCanUpload(false);setAccessState('loading');return}
   void Promise.all([loadIncomeTaxYears(),loadMyEffectivePayrepPlan()])
    .then(([loaded,plan])=>{
     if(!active)return
     setReportYears(loaded)
     setYear(loaded[0]??defaultYear)
     setCanUpload(plan.isAdmin===true||plan.effectivePlan==='basic'||plan.effectivePlan==='full')
-   }).catch(e=>{if(active)setError(e instanceof Error?e.message:'Não foi possível carregar os informes disponíveis.')})
+    setAccessState('ready')
+   }).catch(e=>{if(active){setError(e instanceof Error?e.message:'Não foi possível carregar os informes disponíveis.');setAccessState('error')}})
   return ()=>{active=false}
  },[userId,defaultYear])
 
@@ -226,6 +229,8 @@ export function TaxPreview({userId,statements,lines}:{userId:string|null;stateme
   </label>
  </div>)
 
+ if(accessState==='ready'&&!canUpload&&viewingYears.length===0&&!loading&&!error)
+  return <IncomeTaxUpgrade onSubscribe={onSubscribe}/>
  return <div className="stack ir-page">
   <div className="page-intro ir-page-heading">
    <div>
