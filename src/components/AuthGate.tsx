@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {ChevronRight, CircleCheck, CircleX, LockKeyhole, MailCheck, UserRound} from 'lucide-react'
 import {db} from '../lib/data'
-import {checkPassword,passwordPolicyDefaults,loadPasswordPolicy,passwordRuleIndicators,passwordRequirements,type PasswordPolicy} from '../lib/passwordPolicy'
+import {checkPassword,passwordPolicyDefaults,loadPasswordPolicy,passwordRuleIndicators,type PasswordPolicy} from '../lib/passwordPolicy'
 import {changePasswordWithCurrentVerification} from '../lib/currentPasswordVerification'
 import {autoPromptPreferred,passkeyAutoPromptEnabled,supportsWebAuthn} from '../lib/passkey'
 import {cancelPasskeyCeremony,rememberedCredentialId,signInWithDevicePasskey} from '../lib/devicePasskeys'
@@ -15,6 +15,16 @@ function GoogleGIcon(){
   <path fill="#FBBC05" d="M10.53 28.59C10.05 27.13 9.78 25.59 9.78 24s.27-3.13.75-4.59l-7.98-6.2C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
   <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.92-5.8l-7.73-6c-2.14 1.44-4.88 2.3-8.19 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
  </svg>
+}
+
+/** Use the same live Supabase-backed password rules on signup and password change. */
+function PasswordRuleChecklist({password,policy,id}:{password:string;policy:PasswordPolicy;id:string}){
+ return <div id={id} className="signup-password-rules" aria-label="Requisitos de senha">
+  {passwordRuleIndicators(password,policy).map(rule=><div key={rule.id} className={'signup-password-rule '+(rule.met?'is-met':'is-missing')}>
+   {rule.met?<CircleCheck size={15} aria-hidden="true"/>:<CircleX size={15} aria-hidden="true"/>}
+   <span>{rule.label}</span>
+  </div>)}
+ </div>
 }
 
 export function AuthGate(){
@@ -39,7 +49,6 @@ export function AuthGate(){
    })
    return ()=>{active=false}
   },[])
-  const signupPasswordRules=passwordRuleIndicators(password,passwordPolicy)
   const backToLogin=()=>{
    stopPasskeyAttempt();setMode('login');setPassword('');setConfirmation('')
    setSignupResult(null);setUnconfirmedEmail(false);setError('');setMessage('')
@@ -149,12 +158,7 @@ export function AuthGate(){
       <label>E-mail<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="voce@exemplo.com"/></label>
       {mode!=='reset'&&<label>Senha<input type="password" required minLength={mode==='signup'?passwordPolicy.minLength:6} autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==='signup'?'Mínimo de '+passwordPolicy.minLength+' caracteres':'Sua senha'}/></label>}
       {mode==='signup'&&<label>Confirmar senha<input type="password" required minLength={passwordPolicy.minLength} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby="signup-password-check signup-password-rules" placeholder="Digite a senha novamente"/></label>}
-      {mode==='signup'&&<div id="signup-password-rules" className="signup-password-rules" aria-label="Requisitos de senha">
-       {signupPasswordRules.map(rule=><div key={rule.id} className={'signup-password-rule '+(rule.met?'is-met':'is-missing')}>
-        {rule.met?<CircleCheck size={15} aria-hidden="true"/>:<CircleX size={15} aria-hidden="true"/>}
-        <span>{rule.label}</span>
-       </div>)}
-      </div>}
+      {mode==='signup'&&<PasswordRuleChecklist password={password} policy={passwordPolicy} id="signup-password-rules"/>}
       {mode==='signup'&&confirmation.length>0&&<small id="signup-password-check" className={password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">
        {password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}
       </small>}
@@ -230,12 +234,15 @@ export function ChangePassword({onComplete,requireCurrent=false}:{onComplete?:()
     finally{setBusy(false)}
   }
   return <form className="form" onSubmit={e=>{e.preventDefault();void update()}}>
-    <p className="subtle">{policy?passwordRequirements(policy):'Consultando os requisitos atuais de senha...'}</p>
+    {!policy&&<p className="subtle">Consultando os requisitos atuais de senha...</p>}
     {policyLoadError&&<p className="error" role="alert">{policyLoadError}</p>}
     {requireCurrent&&<label>Senha atual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label>}
-    <label>Nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
-    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>
-    {password&&<small className="password-policy-status" role="status">{checkPassword(password,policy||passwordPolicyDefaults).length?'Faltam: '+checkPassword(password,policy||passwordPolicyDefaults).join(', '):'Senha atende aos requisitos atuais.'}</small>}
+    <label>Nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={password} onChange={e=>setPassword(e.target.value)} aria-describedby={policy?'change-password-rules':undefined}/></label>
+    <label>Confirme a nova senha<input type="password" autoComplete="new-password" minLength={policy?.minLength||passwordPolicyDefaults.minLength} required value={confirmation} onChange={e=>setConfirmation(e.target.value)} aria-invalid={confirmation.length>0&&confirmation!==password} aria-describedby={policy?'change-password-confirmation change-password-rules':'change-password-confirmation'}/></label>
+    {policy&&<PasswordRuleChecklist password={password} policy={policy} id="change-password-rules"/>}
+    {confirmation.length>0&&<small id="change-password-confirmation" className={password===confirmation?'password-confirm-ok':'password-confirm-error'} role="status">
+     {password===confirmation?'Senhas coincidem.':'As senhas não coincidem.'}
+    </small>}
     {error&&<p role="alert" className="error">{error}</p>}
     {message&&<p role="status" className="auth-success">{message}</p>}
     <button type="submit" disabled={!db||busy||!policy} className="primary"><LockKeyhole size={16}/> {requireCurrent?"Alterar senha":"Definir senha"}</button>
