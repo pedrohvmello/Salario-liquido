@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "reviewedAt": "2026-11-20",
-  "feature": "Vídeo de apresentação do Pep na Home e oferta dos planos; animação existente no cabeçalho do paywall",
+  "reviewedAt": "2026-11-21",
+  "feature": "Acessos promocionais Basic/Full, revogações de códigos, alterações manuais de plano e recuperação após login",
   "review": {
-    "sobre": "Revisada sem mudança textual: Pep Ajuda e Pep pessoal continuam descritos corretamente.",
-    "privacidade": "Revisada sem alteração: vídeo público de apresentação não envolve novo tratamento de dados pessoais.",
-    "termos": "Revisados sem alteração: vídeo não muda planos, cobranças, cancelamento ou direitos dos usuários.",
-    "faq": "Revisado sem alteração textual: respostas atuais cobrem acesso ao Pep e contratação dos planos.",
-    "pepAjuda": "Revisado sem alteração no backend: mesma base de 80 perguntas; vídeo somente institucional, não muda assistente."
+    "sobre": "Atualizada: plano efetivo e concessões promocionais administradas separadamente da assinatura financeira.",
+    "privacidade": "V1.0 revisão 08: registros de auditoria de planos, concessões, códigos e revogações.",
+    "termos": "V1.0 revisão 07: benefício administrativo não altera a cobrança e pode ser revogado.",
+    "faq": "Adicionadas 5 perguntas de promoções, planos efetivos, revogação e gestão administrativa.",
+    "pepAjuda": "Conhecimento compartilhado sincronizado com o FAQ atualizado e controles existentes preservados."
   },
   "sourceTrees": {
-    "src": "44122677d6ed25d5bee7ca230935828a597e3e93",
-    "supabase/functions": "ded4bf35496594155762996abd5d432d4d91f344",
-    "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
+    "src": "0798f849cd063395caddbe627a1267daac786eea",
+    "supabase/functions": "114b42c3a39b9a39cf5596423d328730330671bb",
+    "supabase/migrations": "89b50d355f7142681fe6bcd4c2e4bc26d3b8dd86"
   }
 }
