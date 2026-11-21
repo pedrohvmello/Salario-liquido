@@ -8,6 +8,7 @@ import type {StatementRubric} from './vacation'
 import {type DayEntry,type Overtime} from './calendar'
 import {timePayload} from './timeEntryPayload'
 import type {TimeBankPolicy} from './timeBank'
+import {normalizedWorkRegime,type WorkRegime} from './workRegime'
 import type {SalaryParameters} from './money'
 import {type BaseLocation,isValidBase} from './base'
 const url=import.meta.env.VITE_SUPABASE_URL
@@ -57,7 +58,7 @@ export async function getData(){
     db.from('statements').select('*').eq('user_id',id).order('period',{ascending:false}),
     db.from('salary_events').select('*').eq('user_id',id).eq('hidden',false).order('effective_date',{ascending:false}),
     db.from('time_entries').select('*').eq('user_id',id).order('date',{ascending:false}),
-    db.from('user_settings').select('parameters,base_city').eq('user_id',id).maybeSingle(),
+    db.from('user_settings').select('parameters,base_city,work_regime').eq('user_id',id).maybeSingle(),
     listAllStatementRubrics(id),
     db.from('bank_policy_profiles').select('*').eq('active',true)
   ])
@@ -65,7 +66,18 @@ export async function getData(){
   return {statements:(statements.data||[]) as SavedStatement[],lines,events:(events.data||[]) as SalaryEvent[],entries:(entries.data||[]) as Array<{id:string;date:string;start_at:string|null;lunch_start:string|null;lunch_end:string|null;end_at:string|null;holiday_override:boolean|null;additional_minutes:number|null;comments:string|null;bank_hours:boolean;effective_holiday:boolean;bank_delta_minutes:number|null;bank_weighted_minutes:number|null;bank_policy_id:string|null;bank_profile_id:string|null}>,
   bankPolicies:(profiles.data||[]).filter(p=>p.is_default===true)
    .map(p=>({...p,title:p.name,source_reference:p.source_note})) as TimeBankPolicy[],
-  settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,overviewCardColors:settings.data?.parameters?.overviewCardColors as unknown,overviewCardsVersion:settings.data?.parameters?.overviewCardsVersion as number|undefined,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null}
+  settings:(settings.data?.parameters||{}) as Partial<SalaryParameters>,overviewCards:settings.data?.parameters?.overviewCards as unknown,overviewCardColors:settings.data?.parameters?.overviewCardColors as unknown,overviewCardsVersion:settings.data?.parameters?.overviewCardsVersion as number|undefined,base:isValidBase(settings.data?.base_city)?settings.data.base_city:null,workRegime:normalizedWorkRegime(settings.data?.work_regime)}
+}
+/** Save only this preference, never overwriting hours, payroll settings or Base. */
+export async function saveWorkRegime(regime:WorkRegime):Promise<void>{
+ if(!db)throw Error('Banco não configurado')
+ if(regime!=='regular'&&regime!=='trust')throw Error('Regime de Jornada inválido')
+ const user_id=await identity()
+ const {data:saved,error}=await db.from('user_settings')
+  .upsert({user_id,work_regime:regime,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+  .select('work_regime').single()
+ if(error||saved?.work_regime!==regime)
+  throw Error('Não foi possível salvar o regime de jornada: '+(error?.message||'gravação não confirmada'))
 }
 export async function saveBase(base:BaseLocation){
   if(!db)throw new Error('Banco não configurado')

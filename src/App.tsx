@@ -4,6 +4,7 @@ import {LayoutDashboard,History,Clock3,CalendarClock,ChartNoAxesCombined,FileInp
 import {brl,calculatePayroll2026,defaults,type SalaryParameters} from './lib/money'
 import {type DayEntry} from './lib/calendar'
 import {paidOvertime,type TimeBankPolicy} from './lib/timeBank'
+import {type WorkRegime} from './lib/workRegime'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
 import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
@@ -30,7 +31,7 @@ import {reconcileVacations,vacationAdvanceFromLines,type StatementRubric} from '
 import {parsePdf,type ParsedStatement} from './lib/parse'
 import {cashAdjustmentsByMonth} from './lib/payrollAdjustments'
 import {pprReceiptKey} from './lib/pprDuplicate'
-import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,saveEvent,saveBase,saveOverviewCards,saveStatements,type SalaryEvent,type SavedStatement} from './lib/data'
+import {db,eventsKinds,eventCandidates,effectiveParams,getData,getMembership,removeEvent,saveEvent,saveBase,saveWorkRegime,saveOverviewCards,saveStatements,type SalaryEvent,type SavedStatement} from './lib/data'
 import {AuthGate,ChangePassword} from './components/AuthGate'
 import {PayslipDocuments} from './components/PayslipDocuments'
 import {requiresPasswordSetup} from './lib/authRedirect'
@@ -202,6 +203,7 @@ export default function App(){
  const [records,setRecords]=useState<TimeRecord[]>([])
  const [timeBankPolicies,setTimeBankPolicies]=useState<TimeBankPolicy[]>([])
  const [base,setBase]=useState<BaseLocation|null>(null)
+ const [workRegime,setWorkRegime]=useState<WorkRegime>('regular')
  const [holidayCalendar,setHolidayCalendar]=useState<HolidayCatalog|null>(null)
  const [holidayStatus,setHolidayStatus]=useState<'unconfigured'|'loading'|'ready'|'failed'>('unconfigured')
  const [params,setParams]=useState<SalaryParameters>(!db?{...defaults,salary:9500,trienio:100,dependents:1,esppPercent:5,privatePensionPercent:2,pensionMethod:'none'}:defaults)
@@ -328,6 +330,7 @@ export default function App(){
   setOverviewCards(normalizeOverviewCards(d.overviewCards,d.overviewCardsVersion??0))
   setOverviewCardColors(normalizeOverviewCardColors(d.overviewCardColors))
   setBase(d.base)
+  setWorkRegime(d.workRegime)
   setIsAdmin(membership?.role==='admin')
   setAccessDecision({userId:checkedUserId,state:'approved'})
   // Metrics are supplementary: a monitoring error must never block payroll access.
@@ -346,7 +349,7 @@ export default function App(){
   }else{
    setAccessDecision(null)
    setIsAdmin(false)
-   setStatements([]);setDocumentStatements([]);setAllLines([]);setEvents([]);setRecords([]);setTimeBankPolicies([])
+   setStatements([]);setDocumentStatements([]);setAllLines([]);setEvents([]);setRecords([]);setTimeBankPolicies([]);setWorkRegime('regular')
   }
   return ()=>{current=false}
  // User metadata updates (e.g. saving a profile) must not unmount the active screen.
@@ -389,7 +392,7 @@ export default function App(){
   return ()=>{active=false}
  },[base?.ibge,base?.uf,holidayYearsKey])
  const holidayDates=base&&holidayStatus==='ready'&&holidayCalendar?.baseKey===baseKey(base)?holidayCalendar.dates:null
- const computedHours=useMemo(()=>holidayDates?records.flatMap(r=>{try{return [{...r,calc:paidOvertime(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates])
+ const computedHours=useMemo(()=>workRegime==='trust'?[]:holidayDates?records.flatMap(r=>{try{return [{...r,calc:paidOvertime(r,holidayDates)}]}catch{return []}}):[],[records,holidayDates,workRegime])
  const monthHours=useMemo(()=>computedHours.filter(x=>x.calc.payMonth===month).reduce((a,x)=>({h60:a.h60+x.calc.h60,h80:a.h80+x.calc.h80,h100:a.h100+x.calc.h100}),{h60:0,h80:0,h100:0}),[computedHours,month])
  const holidayOverrides=useMemo(()=>new Map(records.filter(r=>r.holidayOverride!==null).map(r=>[r.date,r.holidayOverride as boolean])),[records])
  const effective=useMemo(()=>effectiveParams(params,events,month),[params,events,month])
@@ -636,6 +639,7 @@ export default function App(){
       Não foi possível preparar o calendário de feriados. Verifique sua conexão antes de calcular horas.</div>}
      <FortnightTimesheet anchor={hoursAnchor}
       records={records} holidayDates={holidayDates} policies={timeBankPolicies}
+      workRegime={workRegime}
       baseName={base?baseLabel(base):'Não configurada'} onSaved={()=>refresh()}/>
     </div>}
     {section==='events'&&<div className="stack"><div className="page-intro"><div><h2>Parâmetros com data de início</h2><p>Alterações permanentes afetam as projeções a partir da vigência. Ocorrências pontuais não alteram o salário-base.</p></div></div><div className="two-col"><Panel title={eventId?'Editar evento':'Novo evento'}><form className="form" onSubmit={e=>{e.preventDefault();saveNewEvent()}}><label>Evento<PayrepSelect value={eventKind} disabled={Boolean(eventId&&events.find(e=>e.id===eventId)?.source_statement_id)} onChange={next=>{setEventKind(next);setPensionOptions({...defaultPensionRule})}} title="Tipo de evento">{eventsKinds.map(([id,label])=><option key={id} value={id}>{label}</option>)}</PayrepSelect></label><label>Valor / quantidade<input type="text" inputMode="decimal" required value={eventValue} onChange={e=>setEventValue(e.target.value)} onBlur={()=>setEventValue(value=>formatEventInput(value,eventKind))} placeholder={eventKind==='dependents'?'0':'0,00'} autoComplete="off"/></label>{eventKind==='mealBenefit'&&<div className="detail-hint"><Info size={16}/>Informe o valor diário. A previsão recebida em uma competência corresponde aos dias úteis do mês seguinte, excluindo sábados, domingos e feriados da Base.</div>}{eventKind==='pensionPercent'&&<div className="pension-criteria"><p className="subtle">Defina os critérios de incidência. A projeção mensal aplica os descontos selecionados; 13º, férias e PPR têm cálculos próprios, separados da folha mensal.</p><div className="pension-criteria-grid"><fieldset><legend>Excluir da base</legend>{(['excludeInss','excludeIrrf'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset><fieldset><legend>Incluir na base</legend>{(['includeOvertime','includeVacation','includeVacationThird','includeThirteenth','includePpr'] as const).map(k=><label className="checkbox-label" key={k}><input type="checkbox" checked={pensionOptions[k]} onChange={e=>setPensionOptions(v=>({...v,[k]:e.target.checked}))}/>{pensionRuleLabels[k]}</label>)}</fieldset></div></div>}<label>Data de início<PayrepDatePicker required value={eventDate} onChange={setEventDate} title="Data de início"/></label><label>Observação<textarea value={eventNote} onChange={e=>setEventNote(e.target.value)} rows={2} placeholder="Opcional"/></label><button className="primary" disabled={busy||!db} type="submit"><Plus size={17}/>{eventId?'Atualizar evento':'Adicionar evento'}</button></form></Panel><Panel title="Como funcionam as vigências"><div className="instruction"><div className="step">01</div><p>Cadastre uma mudança com o valor novo, não a diferença.</p></div><div className="instruction"><div className="step">02</div><p>A data define a primeira competência da nova regra. Eventos antigos permanecem no histórico.</p></div><div className="instruction"><div className="step">03</div><p>Importações de holerites sugerem mudanças, mas nunca criam eventos permanentes sem confirmação.</p></div></Panel></div><Panel title="Eventos cadastrados"><div className="filterbar events-filterbar"><label htmlFor="events-year-filter">Ano</label><PayrepSelect id="events-year-filter" value={eventsYear} onChange={setEventsYear} title="Ano do evento"><option value="all">Todos os anos</option>{eventYears.map(y=><option key={y} value={y}>{y}</option>)}</PayrepSelect><label htmlFor="events-type-filter">Evento</label><PayrepSelect id="events-type-filter" value={eventsKindFilter} onChange={setEventsKindFilter} title="Filtrar tipo de evento">
@@ -655,7 +659,7 @@ export default function App(){
     {section==='analytics'&&<AnalyticsDashboard userId={user?.id||null} year={year} onYearChange={setYear} years={months}
       statements={statements} lines={allLines} monthlyGraph={monthlyGraph}
       vacationLedger={vacationLedger} thirteenthLedger={thirteenthLedger} parameters={params}/>}
-    {section==='income-tax'&&<TaxPreview userId={user?.id||null} statements={statements} lines={allLines}/>}
+    {section==='income-tax'&&<TaxPreview userId={user?.id||null} statements={statements} lines={allLines} onSubscribe={()=>setSection('subscription')}/>} 
     {section==='imports'&&<div className="stack">
      <div className="page-intro"><div><h2>Meus Holerites</h2><p>Importe, visualize e gerencie seus documentos salariais em um único lugar.</p></div></div>
      <div className="payslip-tabs" role="tablist" aria-label="Áreas de Meus Holerites">
@@ -702,7 +706,36 @@ export default function App(){
     {section==='help'&&user&&<SupportPage user={user}/>}
     {section==='pep-personal'&&user&&<PersonalPepPage
      onBack={()=>setSection('overview')} onSubscribe={()=>setSection('subscription')}/>}
-     {section==='definitions'&&<div className="stack"><Panel title="Base"><BasePicker current={base} busy={busy} onSave={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},'Base atualizada. O calendário será recalculado para a nova cidade.')}/></Panel></div>}
+     {section==='definitions'&&<div className="stack payrep-definitions">
+     <details className="payrep-definition-accordion">
+      <summary><span>Configure sua Base</span><ChevronRight size={18} aria-hidden="true"/></summary>
+      <div className="payrep-definition-body">
+       <BasePicker current={base} busy={busy} onSave={next=>task(async()=>{
+        if(!db)throw Error('Banco não configurado')
+        await saveBase(next);await refresh()
+       },'Base atualizada. O calendário será recalculado para a nova cidade.')}/>
+      </div>
+     </details>
+     <details className="payrep-definition-accordion">
+      <summary><span>Regime de Jornada</span><ChevronRight size={18} aria-hidden="true"/></summary>
+      <div className="payrep-definition-body">
+       <fieldset className="payrep-work-regime-options" disabled={busy}>
+        <legend className="sr-only">Regime de Jornada</legend>
+        <label><input type="radio" name="work-regime" value="regular" checked={workRegime==='regular'}
+          onChange={()=>void task(async()=>{await saveWorkRegime('regular');setWorkRegime('regular')},
+           'Jornada regular ativada. Cálculos de horas extras e banco de horas habilitados.')}/>
+         Jornada regular (com controle de horas)</label>
+        <label><input type="radio" name="work-regime" value="trust" checked={workRegime==='trust'}
+          onChange={()=>void task(async()=>{await saveWorkRegime('trust');setWorkRegime('trust')},
+           'Cargo de confiança ativado. Cálculos de horas extras e novos movimentos no banco desabilitados.')}/>
+         Cargo de confiança (sem controle de jornada)</label>
+       </fieldset>
+       <p className="subtle payrep-work-regime-explanation">{workRegime==='trust'?
+        'Horas extras e novos movimentos do banco ficam desabilitados. Os horários continuam disponíveis para registro voluntário; o Saldo de Horas é informativo, calculado pelas horas registradas menos a jornada de referência. O histórico do banco permanece armazenado.':
+        'Controle de horas, horas extras e banco de horas habilitados. O saldo segue as regras do banco de horas.'}</p>
+      </div>
+     </details>
+    </div>}
    </div>
  )
  return <div className={'app'+(sidebarCollapsed?' app--sidebar-collapsed':'')}>

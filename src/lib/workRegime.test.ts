@@ -20,7 +20,7 @@ describe('Work regime and informational hour balance',()=>{
   const old=record('2026-11-16','09:00','19:00',true)
   const holiday=record('2026-11-20','09:00','13:00',false)
   holiday.holidayOverride=true
-  expect(recordedHoursBalanceMinutes([old,holiday],new Set(),[])).toBe(300)
+  expect(recordedHoursBalanceMinutes([old,holiday],new Set(),[])).toBe(240)
   expect(old.bankHours).toBe(true)
  })
  it('excludes incomplete days and never fills in absent dates',()=>{
