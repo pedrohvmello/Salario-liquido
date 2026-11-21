@@ -12,7 +12,7 @@ describe('Work regime and informational hour balance',()=>{
  })
  it('shows a signed balance from registered worked hours without banking them',()=>{
   const days=[record('2026-11-16'),record('2026-11-17','09:00','17:00'),
-   record('2026-11-21','09:00','12:00'),record('2026-11-22','','')]
+   record('2026-11-21','09:00','13:00'),record('2026-11-22','','')]
   expect(recordedHoursBalanceMinutes(days,new Set(),[])).toBe(120)
   expect(days.every(r=>r.bankHours===false)).toBe(true)
  })
