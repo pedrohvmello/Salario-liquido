@@ -31,7 +31,7 @@ describe('Payrep public Pep presentation',()=>{
   expect(media.length).toBeGreaterThan(100_000)
   expect(media.length).toBeLessThan(1_500_000)
   expect(media.subarray(0,4).toString('hex')).toBe('1a45dfa3')
-  expect(media.includes(Buffer.from('alpha_mode'))).toBe(true)
+  expect(media.includes(Buffer.from('53c08101','hex'))).toBe(true)
   expect(component).toContain('src="/media/pep-banner-transparente.webm"')
   expect(component).toContain('autoPlay loop muted playsInline')
   expect(component).toContain('onError={()=>{setFailed(true);setPlaying(false)}}')
