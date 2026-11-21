@@ -1,7 +1,8 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,Check,CreditCard,Info,ShieldCheck} from 'lucide-react'
+import {PlanBenefitsDialog} from './PlanBenefitsDialog'
 import {paymentStatusText} from '../lib/adminEntitlements'
-import {cancelMyAsaasSandboxRenewal,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan} from '../lib/account'
+import {cancelMyAsaasSandboxRenewal,loadMyPlanBenefitLimits,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan,type PlanBenefitLimits} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
 import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
@@ -40,6 +41,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
  const [data,setData]=useState<{subscription:BillingSubscription;payments:BillingPayment[];plans:BillingPlan[]}>({subscription:fallback,payments:[],plans:[]})
  const [loading,setLoading]=useState(true)
  const [access,setAccess]=useState<EffectivePayrepPlan|null>(null)
+ const [benefitLimits,setBenefitLimits]=useState<PlanBenefitLimits|null>(null)
+ const [benefitsError,setBenefitsError]=useState('')
+ const [benefitsOpen,setBenefitsOpen]=useState<PlanCode|null>(null)
  const [error,setError]=useState('')
  const [checkoutHistory,setCheckoutHistory]=useState<BillingCheckoutIntent[]>([])
  const [checkoutBusy,setCheckoutBusy]=useState<'basic'|'full'|null>(null)
@@ -73,6 +77,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   }catch(e){setReconciliationMessage(e instanceof Error?e.message:'Falha ao verificar pagamento.')}
   finally{setReconciling(false)}
  }
+ useEffect(()=>{let active=true
+  void loadMyPlanBenefitLimits().then(value=>{if(active)setBenefitLimits(value)})
+   .catch(e=>{if(active)setBenefitsError(e instanceof Error?e.message:'Limites de benefícios indisponíveis.')})
+  return ()=>{active=false}
+ },[])
  useEffect(()=>{let active=true
   void Promise.all([loadMyBilling(),loadMyCheckoutIntents(),loadMyEffectivePayrepPlan()])
    .then(async([billing,intents,effective])=>{
@@ -190,15 +199,22 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
   const plan=data.plans.find(item=>item.code===selectedPlan)
   const priceLabel=plan?.monthly_price_cents!=null
    ?currency(plan.monthly_price_cents,plan.currency)+' / mês':'Preço a definir'
-  return <PlanSubscriptionFlow plan={selectedPlan} priceLabel={priceLabel}
+  return <><PlanSubscriptionFlow plan={selectedPlan} priceLabel={priceLabel}
+   onShowBenefits={()=>{if(benefitLimits)setBenefitsOpen(selectedPlan)}}
    promoCode={promoCode} busy={promoBusy||checkoutBusy!==null}
    error={promoError||checkoutError}
    onCodeChange={value=>{setPromoCode(value);setPromoError('');setCheckoutError('')}}
    onConfirm={submitSubscription} onCancel={closeSubscription}/>
+   {benefitsOpen&&benefitLimits&&<PlanBenefitsDialog plan={benefitsOpen}
+    features={planFeatures[benefitsOpen]} limits={benefitLimits}
+    paidPlan={data.subscription.plan_code} activeSubscription={data.subscription.status==='active'}
+    onClose={()=>setBenefitsOpen(null)}/>}
+  </>
  }
  return <div className="stack account-page">
   <div className="page-intro"><div><h2>Assinatura</h2><p>Informações do plano e histórico de pagamentos.</p></div><button className="secondary" type="button" onClick={onBack}><ArrowLeft size={16}/> Voltar</button></div>
   {error&&<div className="notice danger">{error}</div>}
+  {benefitsError&&<div className="notice warning" role="status">{benefitsError} Não é possível confirmar os limites de uso agora.</div>}
   {loading?<div className="panel">Consultando sua assinatura...</div>:<>
    <section className="panel">
     <div className="panel-heading"><h2><CreditCard size={17}/> Seu plano</h2>
@@ -284,7 +300,9 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
         {planFeatures[code].map(feature=><li key={feature}><Check size={15} aria-hidden="true"/><span>{feature}</span></li>)}
        </ul>
       </div>
-      {code!=='free'&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
+      <button type="button" className="secondary subscription-benefits-action"
+       disabled={!benefitLimits} onClick={()=>setBenefitsOpen(code)}>Ver benefícios e limites</button>
+      {code!=='free'&&benefitLimits&&plan?.available_for_checkout&&Number(plan.monthly_price_cents)>0&&current.plan_code==='free'&&!paidCheckoutPending&&
        <button type="button" className="secondary" disabled={checkoutBusy!==null||promoBusy}
          onClick={()=>openSubscription(code)}>Assinar</button>}
      </div>
@@ -297,6 +315,10 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':paymentStatusText(c.status)}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
     </table></div>
    </section>}
+   {benefitsOpen&&benefitLimits&&<PlanBenefitsDialog plan={benefitsOpen}
+    features={planFeatures[benefitsOpen]} limits={benefitLimits}
+    paidPlan={current.plan_code} activeSubscription={current.status==='active'}
+    onClose={()=>setBenefitsOpen(null)}/>}
    <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Pagamentos</h2></div>
     {data.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{paymentStatusText(p.status)}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
    </section>
