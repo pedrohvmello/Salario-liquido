@@ -24,13 +24,10 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
  const [draft,setDraft]=useState('')
  const [busy,setBusy]=useState(false)
  const [usage,setUsage]=useState<MyPepUsage|null>(null)
- const [usageLoading,setUsageLoading]=useState(true)
  useEffect(()=>{
   let active=true
-  setUsageLoading(true)
   void fetchMyPepUsage().then(result=>{if(active)setUsage(result)})
    .catch(()=>{if(active)setUsage(null)})
-   .finally(()=>{if(active)setUsageLoading(false)})
   return ()=>{active=false}
  },[mode])
  const [error,setError]=useState('')
@@ -161,12 +158,6 @@ export function SupportAiChat({onBack,pepPreviewUrl,pepVideoLoading=false,mode}:
    </aside>}
    <div className="pep-chat-main">
    {saveNotice&&<p className="pep-chat-save-notice" role="status">{saveNotice}</p>}
-   {mode==='personal'&&!usage?.unlimited&&<div className="pep-usage-counter" role="status" aria-live="polite">
-    {usageLoading?'Consultando sua franquia...':
-     usage?(usage.effectivePlan==='free'?'Disponível nos planos Basic e Full':
-       'Pep '+(usage.effectivePlan==='full'?'Full':'Basic')+': '+usage.personalUsed+' de '+usage.personalLimit+' consultas utilizadas hoje')
-      :'Não foi possível consultar a franquia neste momento.'}
-   </div>}
    <div className="payrep-ai-messages" role="log" aria-live="polite" aria-relevant="additions text">
     {messages.length===0&&<div className="payrep-ai-welcome"><Sparkles size={25}/><h3>Como posso ajudar?</h3>
       <p>{mode==='help'?'Posso explicar como usar o Payrep. Não consulto seus dados pessoais nesta área.':
