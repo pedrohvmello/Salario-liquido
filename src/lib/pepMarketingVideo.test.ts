@@ -10,7 +10,7 @@ describe('Payrep public Pep presentation',()=>{
   expect(videoTag).toContain('src="/media/pep-apresentacao.mp4"')
   expect(videoTag).toContain('poster="/media/pep-apresentacao-poster.webp"')
   expect(videoTag).toMatch(/autoplay loop muted playsinline preload="auto"/)
-  expect(videoTag).not.toMatch(/\\scontrols(?:\\s|=|>)/)
+  expect(videoTag).not.toMatch(/\scontrols(?:\s|=|>)/)
   expect(videoTag).toContain('disablepictureinpicture')
   expect(home).toContain('id="home-pep-audio"')
   expect(home).toContain('aria-pressed="false"')
