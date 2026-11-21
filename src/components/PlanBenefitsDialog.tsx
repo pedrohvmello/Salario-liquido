@@ -13,10 +13,6 @@ export function PlanBenefitsDialog({plan,features,limits,paidPlan,activeSubscrip
   description="Confira as funcionalidades e restrições antes de contratar."
   onClose={onClose} className="subscription-benefits-dialog">
   <div className="subscription-benefits-body">
-   <div className="subscription-benefits-overview">
-    <div><span>Consultas pessoais com o Pep</span><strong>{plan==='free'?'Não incluído':personal+' por dia'}</strong></div>
-    <div><span>Pep Ajuda</span><strong>{limits.helpDailyLimit} por dia</strong></div>
-   </div>
    <section className="subscription-benefits-section">
     <h4><Check size={17}/> Benefícios incluídos</h4>
     <ul>{features.map(item=><li key={item}><Check size={15}/>{item}</li>)}</ul>
