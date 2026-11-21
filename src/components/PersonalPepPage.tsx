@@ -1,5 +1,5 @@
-import {useEffect,useState} from 'react'
-import {ArrowLeft,Bot,CheckCircle2,FileText,LockKeyhole,Sparkles} from 'lucide-react'
+import {useEffect,useRef,useState} from 'react'
+import {ArrowLeft,Bot,CheckCircle2,FileText,LockKeyhole,Sparkles,Volume2,VolumeX} from 'lucide-react'
 import {SupportAiChat} from './SupportAiChat'
 import {PepMascot} from './PepMascot'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
@@ -11,6 +11,8 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
  const [error,setError]=useState('')
  const [pepVideoUrl,setPepVideoUrl]=useState<string|null>(null)
  const [pepVideoLoading,setPepVideoLoading]=useState(true)
+ const marketingVideoRef=useRef<HTMLVideoElement|null>(null)
+ const [marketingMuted,setMarketingMuted]=useState(true)
  useEffect(()=>{
   // Match Pep Ajuda: both assistants use the published, shared MP4.
   let active=true
@@ -47,7 +49,7 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
     <h2 id="pep-upgrade-title">Seu salário tem perguntas. O Pep pode ajudar nas respostas.</h2>
     <p>Vá além da projeção: consulte os dados cadastrados na sua conta, explore cenários e entenda melhor os componentes da sua remuneração, conforme o plano contratado.</p>
    </div>
-   <div className="pep-upgrade-mascot-animated"><PepMascot variant="header" videoUrl={pepVideoUrl} videoLoading={pepVideoLoading}/></div>
+   <div className="pep-upgrade-mascot-animated"><PepMascot variant="header"/></div>
   </div>
   <div className="pep-upgrade-plans">
    <article className="pep-upgrade-plan">
@@ -72,11 +74,24 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
     <h3 id="pep-upgrade-video-title">Um minuto de atenção ao seu salário começa com 10 segundos de Pep.</h3>
     <p>Veja uma breve apresentação do assistente. As consultas aos seus dados pessoais dependem do plano e das informações disponíveis na sua conta.</p>
    </div>
-   <div className="pep-upgrade-video-frame">
-    <video src="/media/pep-apresentacao.mp4" poster="/media/pep-apresentacao-poster.webp"
-     controls playsInline preload="metadata" aria-label="Vídeo de apresentação do Pep com narração" width={960} height={540}>
+   <div className="pep-upgrade-video-frame" aria-label="Vídeo de apresentação do Pep">
+    <video ref={marketingVideoRef} src="/media/pep-apresentacao.mp4" poster="/media/pep-apresentacao-poster.webp"
+     autoPlay loop muted playsInline preload="auto" disablePictureInPicture disableRemotePlayback
+     controlsList="nodownload noplaybackrate noremoteplayback"
+     onContextMenu={event=>event.preventDefault()}
+     aria-label="Apresentação do Pep em reprodução automática" width={960} height={540}
+     tabIndex={-1}>
      Seu navegador não suporta reprodução de vídeo.
     </video>
+    <button type="button" className="pep-upgrade-audio-button" aria-label={marketingMuted?'Ativar áudio da apresentação':'Desativar áudio da apresentação'}
+     aria-pressed={!marketingMuted} title={marketingMuted?'Ativar áudio':'Desativar áudio'} onClick={()=>{
+      const player=marketingVideoRef.current
+      if(!player)return
+      player.muted=!player.muted
+      setMarketingMuted(player.muted)
+     }}>
+     {marketingMuted?<VolumeX size={19}/>:<Volume2 size={19}/>}
+    </button>
    </div>
   </section>
   <div className="pep-upgrade-footer">

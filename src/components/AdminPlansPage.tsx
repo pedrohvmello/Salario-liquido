@@ -1,31 +1,15 @@
-import {useEffect,useState} from 'react'
-import {ArrowLeft,CreditCard,Gift,RefreshCw,UsersRound,Ticket} from 'lucide-react'
+import {useState} from 'react'
+import {ArrowLeft,CreditCard,Gift,UsersRound,Ticket} from 'lucide-react'
 import {AdminBillingPlans} from './AdminBillingPlans'
 import {AdminFullTrials} from './AdminFullTrials'
 import {AdminUserPlans} from './AdminUserPlans'
 import {AdminPromoCodes} from './AdminPromoCodes'
-import {fetchAdminDashboard,type AdminDashboardData} from '../lib/admin'
 import {asaasMode} from '../lib/environment'
 
-type PlansSection='prices'|'trials'|'promos'|'subscribers'|'users'|null
+type PlansSection='prices'|'trials'|'promos'|'users'|null
 
 export function AdminPlansPage(){
  const [active,setActive]=useState<PlansSection>(null)
- const [dashboard,setDashboard]=useState<AdminDashboardData|null>(null)
- const [loading,setLoading]=useState(false)
- const [error,setError]=useState('')
- const reload=async()=>{
-  setLoading(true);setError('')
-  try{setDashboard(await fetchAdminDashboard())}
-  catch(e){setError(e instanceof Error?e.message:'Não foi possível carregar assinantes.')}
-  finally{setLoading(false)}
- }
- useEffect(()=>{
-  if(active==='subscribers')void reload()
- },[active])
- const users=dashboard?.users||[]
- const paid=users.filter(user=>user.plan!=='free')
-
  return <div className="stack">
   {active===null?<div className="page-intro"><div>
    <h2>Planos e Assinaturas</h2>
@@ -63,41 +47,10 @@ export function AdminPlansPage(){
     <p>Consulte o plano contratado, o acesso efetivo e defina manualmente o nível Free, Basic ou Full de usuários aprovados, sem alterar cobranças no Asaas.</p>
     <button type="button" className="primary" onClick={()=>setActive('users')}><UsersRound size={17}/> Gerenciar planos dos usuários</button>
    </section>
-   <section className="panel">
-    <div className="panel-heading"><h2><UsersRound size={18}/> Assinantes cadastrados</h2></div>
-    <p>Consulte usuários com planos pagos e acompanhe a situação das contas cadastradas.</p>
-    <button type="button" className="primary" onClick={()=>setActive('subscribers')}>
-     <UsersRound size={17}/> Consultar assinantes
-    </button>
-   </section>
   </>}
   {active==='prices'&&<AdminBillingPlans/>}
   {active==='users'&&<AdminUserPlans/>}
   {active==='trials'&&<AdminFullTrials/>}
   {active==='promos'&&<AdminPromoCodes/>}
-  {active==='subscribers'&&<section className="panel">
-   <div className="panel-heading"><h2><UsersRound size={18}/> Assinantes cadastrados</h2>
-    <button type="button" className="secondary" disabled={loading} onClick={()=>void reload()}>
-     <RefreshCw size={15}/> Atualizar
-    </button>
-   </div>
-   <p className="subtle">Planos pagos cadastrados no Payrep. O estado financeiro detalhado permanece na tela Assinatura do usuário e nos registros conciliados.</p>
-   {loading?<p>Carregando assinantes...</p>:<div className="admin-finance-kpis">
-    <div className="stat"><span>Cadastros</span><strong>{users.length}</strong></div>
-    <div className="stat"><span>Basic</span><strong>{paid.filter(u=>u.plan==='basic').length}</strong></div>
-    <div className="stat"><span>Full pago</span><strong>{paid.filter(u=>u.plan==='full').length}</strong></div>
-   </div>}
-   {error&&<p className="error" role="alert">{error}</p>}
-   <div className="table-scroll"><table>
-    <thead><tr><th>Usuário</th><th>Plano pago</th><th>Situação da conta</th></tr></thead>
-    <tbody>{paid.length===0?<tr><td colSpan={3}>Nenhum plano pago registrado.</td></tr>:
-     paid.map(user=><tr key={user.id}>
-      <td>{user.displayName||user.email||'Usuário'}</td>
-      <td><CreditCard size={13}/> {user.plan==='basic'?'Basic':'Full'}</td>
-      <td>{user.status==='approved'?'Aprovado':user.status}</td>
-     </tr>)}</tbody>
-   </table></div>
-   <p className="subtle">Promoções e substituições administrativas do plano efetivo não representam receita nem alteram o plano cobrado pelo Asaas. Consulte Planos por usuário para o acesso real.</p>
-  </section>}
  </div>
 }

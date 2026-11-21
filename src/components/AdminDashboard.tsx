@@ -115,7 +115,7 @@ export function AdminDashboard(){
       <td><span className="pill">{u.role==='admin'?'Administrador':planLabels[u.plan||'free']}</span></td>
       <td>{u.city?(u.city+(u.state?' / '+u.state:'')):'Não informado'}</td>
       <td><span className={'admin-state admin-state-'+u.status}>{statuses[u.status]}</span></td>
-      <td><div className="admin-actions" onClick={e=>e.stopPropagation()} onKeyDown={e=>e.stopPropagation()}><button type="button" className="secondary" onClick={()=>void openDetails(u.id)}>Detalhes</button>{u.role==='admin'?
+      <td><div className="admin-actions" onClick={e=>e.stopPropagation()} onKeyDown={e=>e.stopPropagation()}>{u.role==='admin'?
        <span className="subtle">Conta protegida</span>:<>
        {u.status!=='approved'&&<button type="button" className="secondary" disabled={busy} onClick={()=>void changeStatus(u,'approved')}>Aprovar</button>}
        {u.status==='approved'&&<button type="button" className="secondary" disabled={busy} onClick={()=>void changeStatus(u,'suspended')}>Suspender</button>}

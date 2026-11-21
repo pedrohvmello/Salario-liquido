@@ -3130,3 +3130,30 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .admin-promo-redemptions td,.admin-trial-controls td{vertical-align:middle}
 @media(max-width:1000px){.admin-promo-grant-controls,.admin-user-plan-controls{grid-template-columns:1fr 1fr}}
 @media(max-width:630px){.admin-promo-grant-controls,.admin-user-plan-controls{grid-template-columns:1fr}.admin-promo-actions{gap:12px}}
+
+/* Pep marketing video: autoplay without native controls; hover offers sound only. */
+.pep-upgrade-video-showcase{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:19px}
+.pep-upgrade-video-frame{position:relative;width:min(100%,590px);justify-self:center}
+.pep-upgrade-video-frame video{pointer-events:none;user-select:none}
+.pep-upgrade-audio-button{position:absolute;right:12px;bottom:12px;z-index:2;display:grid;place-items:center;
+ width:41px;height:41px;min-width:41px;border-radius:50%;border:1px solid rgba(255,255,255,.5);
+ background:rgba(22,10,37,.72);color:white;cursor:pointer;opacity:0;transition:opacity .16s ease;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.pep-upgrade-video-frame:hover .pep-upgrade-audio-button,.pep-upgrade-audio-button:focus-visible{opacity:1}
+@media(hover:none){.pep-upgrade-audio-button{opacity:1}}
+@media(max-width:760px){.pep-upgrade-video-showcase{grid-template-columns:1fr}}
+/* Subscription administration: explicitly distinct edit and filter regions. */
+.admin-user-edit-section{background:#fbf8ff;border:1px solid #e6d6f3;border-radius:15px;padding:20px 20px 6px;margin:18px 0 28px}
+.admin-user-list-section{border-top:2px solid #e4d4ee;padding-top:25px}
+.admin-user-edit-section h3,.admin-user-list-section h3{font-size:17px;font-weight:750;color:#361451;margin:0 0 8px}
+.admin-user-plan-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:19px 0}
+.admin-user-plan-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:8px;
+ background:#fff;border:1px solid #e3d3f0;border-radius:13px;padding:16px 19px;cursor:pointer;color:#421a69}
+.admin-user-plan-card span{font-size:12px;font-weight:650}
+.admin-user-plan-card strong{font-size:26px;color:#3d1365}
+.admin-user-plan-card.is-active{background:#f0e5ff;border-color:#8b29d0;box-shadow:inset 0 0 0 1px #8b29d0}
+.admin-user-plan-card:hover{border-color:#9730d0}
+.admin-user-list-toolbar{display:flex;justify-content:space-between;align-items:end;gap:14px;margin:16px 0}
+.admin-user-list-toolbar label{display:flex;flex-direction:column;gap:7px;min-width:min(100%,320px);font-size:12px;font-weight:700;color:#6a457d}
+.admin-user-list-toolbar input{width:100%}
+@media(max-width:690px){.admin-user-plan-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.admin-user-edit-section{padding:16px 14px 2px}.admin-user-list-toolbar{align-items:stretch;flex-direction:column}}
