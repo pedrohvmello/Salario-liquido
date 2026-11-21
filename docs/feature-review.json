@@ -1,17 +1,17 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-21",
-  "feature": "Marketing do Informe IR para Free, Base recolhida e Regime de Jornada com saldo informativo",
+  "feature": "Definições no padrão administrativo e modelos de e-mail de redefinição de senha",
   "review": {
-    "sobre": "Atualizada com vantagens do Informe IR e modo cargo de confiança, histórico preservado.",
-    "privacidade": "V1.0 revisão 10: armazenamento da preferência de regime e das horas históricas.",
-    "termos": "V1.0 revisão 09: preferência de cargo de confiança no app não determina enquadramento jurídico e não gera créditos de horas.",
-    "faq": "Quatro novas respostas sobre regime, saldo informativo e Informe IR dos usuários Free.",
-    "pepAjuda": "Base compartilhada atualizada com limites do Free e efeito do regime sobre horas extras, banco e saldo."
+    "sobre": "Revisada sem ajuste das funcionalidades. A navegação por cards altera somente a apresentação das Definições.",
+    "privacidade": "Revisada sem novo tratamento: redefinição continua pelo Supabase Auth, com HTML institucional preparado e SMTP do Auth a configurar.",
+    "termos": "Revisados sem alterações contratuais ou de permissão; regime e segurança mantêm regras existentes.",
+    "faq": "Atualizada navegação por cards e orientação de redefinição de senha na seção Segurança.",
+    "pepAjuda": "FAQ único atualizado; conhecimento será sincronizado via Edge Function support-ai."
   },
   "sourceTrees": {
-    "src": "6c7ed720ebde49435d9d6105923c295f882418dd",
-    "supabase/functions": "d1344612daf75685a056e40379faeb1422ed4c87",
+    "src": "ca006648ba36f477bba60b5aa8772392ad252b90",
+    "supabase/functions": "d66f5206d8d8797caf723ac9b405077dba1a811e",
     "supabase/migrations": "a2b241972708ce4f3d289bb5e42c2beb476cdc22"
   }
 }
