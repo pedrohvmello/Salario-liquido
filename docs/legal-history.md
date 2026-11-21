@@ -25,3 +25,8 @@
 
 - Privacidade V1.0 revisão 08 e Termos V1.0 revisão 07 refletem as concessões de Basic/Full, a revogação individual, os registros de auditoria e a separação entre permissão efetiva e cobrança Asaas.
 - Revisões antigas preservadas. Não há alteração da etiqueta pública V1.0.
+
+## Franquias pessoais do Pep e contratação (21/11/2026)
+
+- Privacidade V1.0 revisão 09 e Termos V1.0 revisão 08 arquivam a informação de que o checkout cria um registro da franquia pessoal mínima do Pep por plano, preservada durante a assinatura ativa apesar de futuras reduções gerais.
+- Cotas de Ajuda, limite global compartilhado e serviços do provedor de IA continuam separados da franquia pessoal contratada.

@@ -6,7 +6,7 @@
   "documents": {
     "privacidade": {
       "title": "Política de Privacidade",
-      "currentRevisionId": "privacidade-v1.0-r08",
+      "currentRevisionId": "privacidade-v1.0-r09",
       "revisions": [
         {
           "id": "privacidade-v1.0-r01",
@@ -87,12 +87,22 @@
           "path": "/legal-history/privacidade-v1.0-r08.html",
           "sourceCommit": "7b608ae9de13442cb2782fc06a2f85a999f795cc",
           "blobSha": "71dca857fc536eff1dc9c5b6ba851c171884fa07"
+        },
+        {
+          "id": "privacidade-v1.0-r09",
+          "version": "V1.0",
+          "revision": 9,
+          "changedAt": "2026-11-21T03:39:31Z",
+          "summary": "Registro da franquia diária pessoal do Pep em checkouts e preservação durante assinatura ativa",
+          "path": "/legal-history/privacidade-v1.0-r09.html",
+          "sourceCommit": "40db6c8f7067d54fcb63c98711bec89e41a9b138",
+          "blobSha": "36eb6e2a292839e8a57dda9d4a0efba008824cda"
         }
       ]
     },
     "termos": {
       "title": "Termos de Uso",
-      "currentRevisionId": "termos-v1.0-r07",
+      "currentRevisionId": "termos-v1.0-r08",
       "revisions": [
         {
           "id": "termos-v1.0-r01",
@@ -163,6 +173,16 @@
           "path": "/legal-history/termos-v1.0-r07.html",
           "sourceCommit": "7b608ae9de13442cb2782fc06a2f85a999f795cc",
           "blobSha": "dba6a264c8838058e927b72c99a7416f663fe427"
+        },
+        {
+          "id": "termos-v1.0-r08",
+          "version": "V1.0",
+          "revision": 8,
+          "changedAt": "2026-11-21T03:39:31Z",
+          "summary": "Franquia pessoal mínima de consultas por plano e limite global compartilhado",
+          "path": "/legal-history/termos-v1.0-r08.html",
+          "sourceCommit": "40db6c8f7067d54fcb63c98711bec89e41a9b138",
+          "blobSha": "8267d10a0ed8b9eb845557cf04bf7a001ee0f7d8"
         }
       ]
     }

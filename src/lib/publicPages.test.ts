@@ -32,6 +32,8 @@ describe('Payrep public OAuth pages',()=>{
   expect(terms).toContain('Pedro Henrique Vieira de Mello')
   expect(privacy).toContain('Cópias de segurança')
   expect(privacy).toContain('prazos de expurgo automático individualizados')
+  expect(privacy).toContain('franquia de consultas pessoais ao Pep')
+  expect(terms).toContain('mínimo da assinatura enquanto ela permanecer ativa')
   expect(privacy).toContain('Concessões, revogações e alterações administrativas')
   expect(terms).toContain('não cancela cobranças, assinaturas nem renovações no Asaas')
  })

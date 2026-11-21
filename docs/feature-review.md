@@ -44,3 +44,13 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Pep Ajuda:** atualizada a base compartilhada; o limite de consultas e isolamento de dados pessoais permanecem intactos.
 - **Interface e autenticação:** área administrativa com busca de usuários, planos Free/Basic/Full, concessões temporárias, históricos, dias restantes e confirmação antes de revogar. Entrada no painel reforçada por recuperação da rota de Visão geral e fallback de erro. `paid` é traduzido para **Pago**, sem mudar dados de provedor.
 - **Pagamentos:** nenhuma concessão altera ou cancela assinaturas Asaas; alterações administrativas de acesso têm auditoria.
+
+## Franquias contratadas e apresentação dos planos (21/11/2026)
+
+- **Sobre:** atualizado com a franquia pessoal do Pep registrada no checkout.
+- **Privacidade:** revisão 09 da V1.0 arquivada, incluindo o dado sobre franquia do Pep em registros financeiros.
+- **Termos:** revisão 08 da V1.0 arquivada, explicando mínimo contratado, cotas diárias, cota global e dependência de terceiros.
+- **FAQ:** incluídas respostas sobre benefício e limitações, cotas imutáveis e filtro por plano na gestão de usuários.
+- **Pep Ajuda:** conhecimento alinhado aos novos benefícios e condições, sem alterar a lógica do modelo.
+- **Front-end:** mascote estático no banner roxo, vídeo menor e automático sem controles de transporte (som somente pelo botão de hover), cards de filtro e edição visualmente separada, assinantes consolidados.
+- **Back-end:** limites pessoais de consultas do Pep são capturados no checkout no banco de dados, preservados pelo vínculo verificado do Asaas e consultados como maior entre limite geral e mínimo contratado. Os limites globais e externos não são garantidos pelo contrato pessoal.
