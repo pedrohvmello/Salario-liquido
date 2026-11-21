@@ -19,6 +19,7 @@ describe('Payrep public OAuth pages',()=>{
   expect(about).toContain('Recursos conforme o plano')
   expect(about).toContain('FAQ pesquisável por palavras-chave')
   expect(about).toContain('concessão administrativa')
+  expect(about).toContain('O Regime de Jornada permite')
   const privacy=page('privacidade')
   expect(privacy).toContain('Cloudflare Workers AI')
   expect(privacy).toContain('Asaas')
@@ -35,6 +36,8 @@ describe('Payrep public OAuth pages',()=>{
   expect(privacy).toContain('franquia de consultas pessoais ao Pep')
   expect(terms).toContain('mínimo da assinatura enquanto ela permanecer ativa')
   expect(privacy).toContain('Concessões, revogações e alterações administrativas')
+  expect(privacy).toContain('preferência de regime de jornada')
+  expect(terms).toContain('não comprova ou determina o enquadramento jurídico')
   expect(terms).toContain('não cancela cobranças, assinaturas nem renovações no Asaas')
  })
 

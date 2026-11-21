@@ -30,3 +30,9 @@
 
 - Privacidade V1.0 revisão 09 e Termos V1.0 revisão 08 arquivam a informação de que o checkout cria um registro da franquia pessoal mínima do Pep por plano, preservada durante a assinatura ativa apesar de futuras reduções gerais.
 - Cotas de Ajuda, limite global compartilhado e serviços do provedor de IA continuam separados da franquia pessoal contratada.
+
+## Regime de Jornada e Informe IR (21/11/2026)
+
+- Política de Privacidade V1.0 revisão 10: preferência de regime de jornada como dado de configuração, histórico de registros preservado.
+- Termos de Uso V1.0 revisão 09: opção cargo de confiança é uma preferência operacional; não comprova enquadramento legal, nem transforma saldo informativo em direito remuneratório.
+- Documentos anteriores e seus respectivos hashes permanecem versionados.

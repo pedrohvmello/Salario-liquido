@@ -12,6 +12,8 @@ describe('Shared FAQ and Pep Ajuda knowledge',()=>{
   expect(PAYREP_SUPPORT_FAQ.length).toBeGreaterThanOrEqual(85)
   expect(PAYREP_SUPPORT_FAQ.some(item=>item.question==='Como alterar manualmente o plano de um usuário?')).toBe(true)
   expect(PAYREP_SUPPORT_FAQ.some(item=>item.question==='O limite de consultas ao Pep muda depois que eu assino?')).toBe(true)
+  expect(PAYREP_SUPPORT_FAQ.some(item=>item.question==='Como funciona o Informe IR para quem está no plano Free?')).toBe(true)
+  expect(PAYREP_SUPPORT_FAQ.some(item=>item.question==='O que muda no Controle de horas ao selecionar Cargo de confiança?')).toBe(true)
   for(const phrase of ['Asaas','PEP AJUDA','CPF','Controlador'.toLowerCase()]){
    const full=(PAYREP_SUPPORT_KNOWLEDGE+' '+PAYREP_SUPPORT_FAQ.map(x=>x.answer).join(' ')).toLowerCase()
    expect(full).toContain(phrase.toLowerCase())

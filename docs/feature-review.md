@@ -71,3 +71,14 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - Novo arquivo: public/media/pep-banner-v2-transparente.webm, gerado do MP4 fornecido pelo responsável. Fundo verde removido, transparência VP9 alpha confirmada, 10 s, 400 × 560, sem áudio. Caminho versionado evita reutilização de vídeo antigo em cache.
 - Interface: somente o banner roxo de upgrade do Pep pessoal foi alterado. Mantidos loop silencioso, imagem fallback, movimento reduzido e vídeo institucional original.
 - Segurança e dados: nenhuma alteração em Edge Functions, autenticação, planos, pagamentos, banco ou políticas de acesso.
+
+## Informe IR Free, Definições e Regime de Jornada (21/11/2026)
+
+- **Sobre:** descrição atualizada de informe de rendimentos e regime de jornada, com saldo informativo sem banco para cargo de confiança.
+- **Política de Privacidade:** V1.0 revisão 10, informando que a preferência regular/cargo de confiança é armazenada em user_settings, sem apagar históricos existentes.
+- **Termos de Uso:** V1.0 revisão 09, esclarecendo que a seleção no aplicativo não determina o enquadramento legal e que saldo informativo não representa crédito de banco ou pagamento de horas extras.
+- **FAQ:** quatro respostas novas sobre Base e Regime de Jornada, efeitos do cargo de confiança, cálculo do saldo informativo e proposta de planos no Informe IR.
+- **Pep Ajuda:** mesma base do FAQ, com explicação das alterações, limitações do Free e registros históricos.
+- **Produto:** Base e Regime de Jornada são painéis HTML details inicialmente recolhidos; Jornada regular é o padrão persistido. Cargo de confiança suprime cálculos de extras e banco, não altera dias registrados, mas permite registro voluntário e saldo informativo por jornada completa versus política (ou 8h em dias úteis).
+- **Informe IR:** para Free sem documentos, tela de benefícios e CTA para Assinatura; com documentos anteriores, permite continuar consultando. Basic/Full continuam com importação e revisão do PDF.
+- **Banco:** coluna work_regime com check e default regular. Nenhuma migração, remoção ou recálculo dos registros time_entries.
