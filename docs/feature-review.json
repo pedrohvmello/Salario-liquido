@@ -1,17 +1,17 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-21",
-  "feature": "Acessos promocionais Basic/Full, revogações de códigos, alterações manuais de plano e recuperação após login",
+  "feature": "Planos detalhados, franquia diária pessoal do Pep preservada, revisão da apresentação e consolidação da administração",
   "review": {
-    "sobre": "Atualizada: plano efetivo e concessões promocionais administradas separadamente da assinatura financeira.",
-    "privacidade": "V1.0 revisão 08: registros de auditoria de planos, concessões, códigos e revogações.",
-    "termos": "V1.0 revisão 07: benefício administrativo não altera a cobrança e pode ser revogado.",
-    "faq": "Adicionadas 5 perguntas de promoções, planos efetivos, revogação e gestão administrativa.",
-    "pepAjuda": "Conhecimento compartilhado sincronizado com o FAQ atualizado e controles existentes preservados."
+    "sobre": "Franquia contratada imutável do Pep e apresentação de recursos por plano.",
+    "privacidade": "V1.0 revisão 09: registro do limite pessoal capturado no checkout; limites de sistema separados.",
+    "termos": "V1.0 revisão 08: franquia mínima pessoal preservada na assinatura, porém sujeita à cota global e ao provedor externo.",
+    "faq": "Novas respostas sobre benefícios detalhados, limite contratado e filtros na administração.",
+    "pepAjuda": "Base de conhecimento atualizada com franquia contratada, controles de plano e gerenciamento administrativo."
   },
   "sourceTrees": {
-    "src": "0798f849cd063395caddbe627a1267daac786eea",
-    "supabase/functions": "114b42c3a39b9a39cf5596423d328730330671bb",
-    "supabase/migrations": "89b50d355f7142681fe6bcd4c2e4bc26d3b8dd86"
+    "src": "f65fb4e207288a0dd87066f13fefe6d3f9865fdf",
+    "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
+    "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
   }
 }
