@@ -10,7 +10,7 @@ describe('Payrep recovery email templates',()=>{
    expect(html).toContain('Redefina sua senha | Payrep')
    expect(html).toContain('Redefinir minha senha')
    expect(html).toContain('{{ .ConfirmationURL }}')
-   expect((html.match(/{{ \.ConfirmationURL }}/g)||[]).length).toBe(1)
+   expect(html.split('{{ .ConfirmationURL }}').length-1).toBe(1)
    expect(html).toContain('Não solicitou a alteração?')
    expect(html).toContain('background:#29064C')
    expect(html).toContain('background:#7900D6')
