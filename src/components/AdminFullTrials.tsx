@@ -1,102 +1,90 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
-import {Gift,RefreshCw,ShieldCheck} from 'lucide-react'
+import {Gift,RefreshCw,ShieldCheck,Trash2} from 'lucide-react'
 import {PayrepSelect} from './PayrepSelect'
-import {fetchAdminDashboard,type AdminUser} from '../lib/admin'
-import {db} from '../lib/data'
-type Trial={userId:string;displayName:string;startsAt:string;endsAt:string;revokedAt:string|null;state:'active'|'expired'|'revoked'}
-const fmt=(value:string)=>new Intl.DateTimeFormat('pt-BR',{
- dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'
-}).format(new Date(value))
+import {daysRemaining,grantManualAccess,grantStateText,loadAdminAccessUsers,loadAdminManualGrants,planName,revokePromotionalAccess,type AccessGrant,type AdminAccessUser} from '../lib/adminEntitlements'
+
+const fmt=(value:string)=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(value))
 export function AdminFullTrials(){
- const [users,setUsers]=useState<AdminUser[]>([])
- const [trials,setTrials]=useState<Trial[]>([])
+ const [users,setUsers]=useState<AdminAccessUser[]>([])
+ const [records,setRecords]=useState<AccessGrant[]>([])
  const [target,setTarget]=useState('')
+ const [plan,setPlan]=useState<'basic'|'full'>('full')
  const [days,setDays]=useState('14')
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState(false)
- const [pendingRevocation,setPendingRevocation]=useState<string|null>(null)
+ const [pendingRevoke,setPendingRevoke]=useState<string|null>(null)
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
  const reload=useCallback(async()=>{
-  if(!db)throw Error('Banco não configurado.')
-  const [dashboard,records]=await Promise.all([
-   fetchAdminDashboard(),db.rpc('list_hml_full_trials')
-  ])
-  if(records.error)throw records.error
-  setUsers(dashboard.users)
-  setTrials(Array.isArray(records.data)?records.data as Trial[]:[])
+  const [people,history]=await Promise.all([loadAdminAccessUsers(),loadAdminManualGrants()])
+  setUsers(people);setRecords(history)
  },[])
- useEffect(()=>{let active=true
-  void (async()=>{
-   try{await reload()}catch(e){if(active)setError(e instanceof Error?e.message:'Erro ao carregar testes Full.')}
-   finally{if(active)setLoading(false)}
-  })()
-  return ()=>{active=false}
+ useEffect(()=>{let mounted=true
+  void reload().catch(e=>{if(mounted)setError(String(e))}).finally(()=>{if(mounted)setLoading(false)})
+  return ()=>{mounted=false}
  },[reload])
- const eligible=useMemo(()=>users.filter(user=>
-  user.active&&user.status==='approved'&&user.plan==='free'&&
-  !trials.some(trial=>trial.userId===user.id)),[users,trials])
+ const eligible=useMemo(()=>users.filter(u=>u.active&&u.status==='approved'&&u.role!=='admin'),[users])
  const grant=async()=>{
-  if(!db||!target||busy)return
+  if(!target||busy)return
   setBusy(true);setError('');setMessage('')
   try{
-   const {error}=await db.rpc('grant_hml_full_trial',{p_target:target,p_days:Number(days)})
-   if(error)throw error
+   await grantManualAccess(target,plan,Number(days))
    await reload();setTarget('')
-   setMessage('Teste Full concedido sem cobrança, cartão ou assinatura no Asaas.')
-  }catch(e){setError(e instanceof Error?e.message:'Falha ao conceder teste.')}
+   setMessage('Acesso promocional '+planName(plan)+' concedido sem pagamento ou renovação automática.')
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao conceder acesso.')}
   finally{setBusy(false)}
  }
- const revoke=async(id:string)=>{
-  if(!db||busy)return
+ const revoke=async(row:AccessGrant)=>{
+  if(busy)return
   setBusy(true);setError('');setMessage('')
   try{
-   const {error}=await db.rpc('revoke_hml_full_trial',{p_target:id})
-   if(error)throw error
-   await reload();setPendingRevocation(null)
-   setMessage('Teste encerrado. Nenhum pagamento foi criado.')
-  }catch(e){setError(e instanceof Error?e.message:'Falha ao encerrar teste.')}
+   await revokePromotionalAccess(row.id,row.type)
+   await reload();setPendingRevoke(null)
+   setMessage('Acesso promocional revogado. A assinatura do Asaas não foi alterada.')
+  }catch(e){setError(e instanceof Error?e.message:'Falha ao revogar acesso.')}
   finally{setBusy(false)}
  }
  return <section className="panel">
-  <div className="panel-heading"><h2><Gift size={18}/> Testes gratuitos do Full</h2>
+  <div className="panel-heading"><h2><Gift size={18}/> Acesso promocional</h2>
    <button className="secondary" type="button" disabled={busy||loading} onClick={()=>void reload().catch(e=>setError(String(e)))}><RefreshCw size={15}/> Atualizar</button>
   </div>
-  <p className="subtle">Concessão manual para usuários Free aprovados. Sem cartão, checkout, Asaas ou renovação automática. Um teste por usuário, com expiração automática.</p>
-  <div className="admin-trial-controls">
-   <div><span className="admin-control-label">Usuário elegível</span>
-    <PayrepSelect value={target} onChange={setTarget} title="Selecionar usuário para teste" disabled={busy||loading}>
+  <p className="subtle">Conceda acesso temporário Basic ou Full a um usuário aprovado, sem cartão, checkout ou cobrança no Asaas. As concessões ficam registradas no histórico e expiram automaticamente.</p>
+  <div className="admin-promo-grant-controls">
+   <div><span className="admin-control-label">Usuário</span>
+    <PayrepSelect searchable value={target} onChange={setTarget} title="Selecionar usuário por nome ou e-mail" disabled={busy||loading}>
      <option value="">Selecione um usuário</option>
-     {eligible.map(user=><option key={user.id} value={user.id}>{user.displayName||user.email||'Usuário'} ({user.email||'sem e-mail'})</option>)}
+     {eligible.map(user=><option key={user.userId} value={user.userId}>{user.displayName} ({user.email})</option>)}
     </PayrepSelect>
    </div>
-   <div><span className="admin-control-label">Duração</span>
-    <PayrepSelect value={days} onChange={setDays} title="Duração do teste" disabled={busy||loading}>
-     <option value="7">7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option>
-    </PayrepSelect>
-   </div>
+   <div><span className="admin-control-label">Plano</span><PayrepSelect value={plan} onChange={x=>setPlan(x as 'basic'|'full')} title="Plano promocional" disabled={busy||loading}>
+    <option value="basic">Basic</option><option value="full">Full</option>
+   </PayrepSelect></div>
+   <div><span className="admin-control-label">Duração</span><PayrepSelect value={days} onChange={setDays} title="Dias de acesso" disabled={busy||loading}>
+    <option value="7">7 dias</option><option value="14">14 dias</option><option value="30">30 dias</option>
+    <option value="60">60 dias</option><option value="90">90 dias</option>
+   </PayrepSelect></div>
    <button type="button" className="primary" disabled={!target||busy||loading} onClick={()=>void grant()}>
-    <Gift size={16}/>{busy?'Processando...':'Conceder teste Full'}
+    <Gift size={16}/>{busy?'Processando...':'Conceder acesso'}
    </button>
   </div>
   {message&&<p role="status" className="auth-success">{message}</p>}
   {error&&<p role="alert" className="error">{error}</p>}
   <div className="table-scroll"><table><thead><tr>
-   <th>Usuário</th><th>Início</th><th>Fim</th><th>Status</th><th>Ação</th>
+   <th>Usuário</th><th>Plano</th><th>Início</th><th>Fim</th><th>Dias restantes</th><th>Status</th><th>Ação</th>
   </tr></thead><tbody>
-   {trials.length===0&&<tr><td colSpan={5}>Nenhum teste Full concedido.</td></tr>}
-   {trials.map(t=><tr key={t.userId}>
-    <td>{t.displayName}</td><td>{fmt(t.startsAt)}</td><td>{fmt(t.endsAt)}</td>
-    <td>{t.state==='active'?'Em teste':t.state==='revoked'?'Encerrado':'Expirado'}</td>
-    <td>{t.state!=='active'?'—':pendingRevocation===t.userId
-     ?<span className="row">
-       <button type="button" className="secondary" onClick={()=>setPendingRevocation(null)} disabled={busy}>Voltar</button>
-       <button type="button" className="secondary" onClick={()=>void revoke(t.userId)} disabled={busy}>Confirmar encerramento</button>
-      </span>
-     :<button type="button" className="secondary" onClick={()=>setPendingRevocation(t.userId)} disabled={busy}>Encerrar teste</button>}
+   {records.length===0&&<tr><td colSpan={7}>Nenhum acesso promocional concedido manualmente.</td></tr>}
+   {records.map(row=><tr key={row.type+':'+row.id}>
+    <td><strong>{row.displayName}</strong><br/><small>{row.email}</small></td>
+    <td>{planName(row.plan)}</td><td>{fmt(row.startsAt)}</td><td>{fmt(row.endsAt)}</td>
+    <td>{daysRemaining(row.endsAt,row.state)}</td><td>{grantStateText(row.state)}</td>
+    <td>{row.state!=='active'?'—':pendingRevoke===row.id
+     ?<span className="row"><button type="button" className="secondary" onClick={()=>setPendingRevoke(null)} disabled={busy}>Cancelar</button>
+       <button type="button" className="secondary" onClick={()=>void revoke(row)} disabled={busy}>Confirmar revogação</button></span>
+     :<button type="button" className="secondary" title="Revogar acesso" aria-label={'Revogar acesso de '+row.displayName}
+       onClick={()=>setPendingRevoke(row.id)} disabled={busy}><Trash2 size={16}/></button>}
     </td>
    </tr>)}
   </tbody></table></div>
-  <p className="subtle"><ShieldCheck size={14}/> O acesso efetivo é calculado pelo servidor e volta a Free ao expirar o período. Permissões por recurso devem respeitar a matriz de benefícios a ser definida.</p>
+  <p className="subtle"><ShieldCheck size={14}/> Resgates de códigos promocionais aparecem em Códigos promocionais. Alterações permanentes de plano são gerenciadas separadamente e não modificam a cobrança.</p>
  </section>
 }
