@@ -57,6 +57,7 @@ import {accessScreenFor,adminNeedsTotp,membershipAccessState,type AccessDecision
 import {CompetencePicker} from './components/CompetencePicker'
 import {OverviewCardsEditor} from './components/OverviewCardsEditor'
 import {PayrepMobileNavigationSurface} from './components/PayrepMobileNavigationSurface'
+import {AppPageBoundary} from './components/AppPageBoundary'
 import type {MobilePrimaryView} from './lib/mobile-primary-navigation'
 
 type Section='overview'|'history'|'hours'|'events'|'analytics'|'income-tax'|'pep-personal'|'imports'|'definitions'|'admin'|'admin-settings'|'admin-pep'|'admin-finance'|'admin-plans'|'admin-support'|'profile'|'subscription'|'account-settings'|'help'
@@ -116,6 +117,7 @@ function GuestEntry(){
 
 export default function App(){
  const [section,setSection]=useState<Section>('overview')
+ const bootstrappedIdentityRef=useRef<string|null>(null)
  const [billingReturn,setBillingReturn]=useState<BillingReturn|null>(()=>billingReturnFromUrl(window.location.href))
  const [menu,setMenu]=useState(false)
  const [sidebarCollapsed,setSidebarCollapsed]=useState(()=>{
@@ -169,6 +171,15 @@ export default function App(){
    window.history.replaceState(window.history.state,'',withoutBillingReturn(window.location.href))
   }
  },[authReady,user?.id,accessDecision?.userId,accessDecision?.state,mfaState,passwordSetup])
+ useEffect(()=>{
+  if(!user||!authReady||accessDecision?.userId!==user.id||accessDecision.state!=='approved'
+    ||(mfaEnabled&&mfaState!=='ready')||passwordSetup)return
+  if(bootstrappedIdentityRef.current===user.id)return
+  bootstrappedIdentityRef.current=user.id
+  // After a new sign-in start on a known page; do not override payment returns.
+  if(!billingReturnFromUrl(window.location.href)&&!billingReturn)setSection('overview')
+  window.scrollTo({top:0,left:0,behavior:'auto'})
+ },[user?.id,authReady,accessDecision?.userId,accessDecision?.state,mfaState,passwordSetup,billingReturn])
  const [accessRetry,setAccessRetry]=useState(0)
  const [reactivationDialog,setReactivationDialog]=useState(false)
  const [reactivationBusy,setReactivationBusy]=useState(false)
@@ -740,6 +751,7 @@ export default function App(){
   {menu&&<button type="button" className="sidebar-backdrop" aria-label="Fechar menu lateral" onClick={()=>setMenu(false)}/>}
   <main className="main">
    <header className="topbar"><button type="button" className="mobile-menu" aria-label={menu?'Fechar menu':'Abrir menu'} aria-expanded={menu} aria-controls="payrep-sidebar" onClick={()=>setMenu(open=>!open)}><Menu size={22}/></button><div className="top-actions"><ProfileMenu user={user} onNavigate={view=>{setSection(view);setMenu(false)}}/></div></header>
+   <AppPageBoundary key={section} onReturn={()=>setSection('overview')}>
    <PayrepMobileNavigationSurface
     accessibleViews={accessiblePrimaryViews}
     currentView={section as MobilePrimaryView}
@@ -750,6 +762,7 @@ export default function App(){
     onNavigate={view=>{if(view==='imports')setPayslipTab('documents');setSection(view);setMenu(false);setNotice('');setError('')}}
     renderView={view=>renderPageBody(view)}
    >{renderPageBody(section)}</PayrepMobileNavigationSurface>
+   </AppPageBoundary>
   </main>
  </div>
 }

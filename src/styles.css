@@ -3116,3 +3116,17 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 @media(max-width:700px){.pep-upgrade-mascot-animated{width:90px;height:104px;flex-basis:90px}.pep-upgrade-mascot-animated .pep-mascot-header{width:88px;height:101px;display:flex!important}}
 @media(max-width:410px){.pep-upgrade-mascot-animated{width:75px;height:90px;flex-basis:75px}.pep-upgrade-mascot-animated .pep-mascot-header{width:72px;height:88px}}
 @media(prefers-reduced-motion:reduce){.pep-upgrade-mascot-animated .pep-mascot-header img{animation:none}}
+
+/* Admin subscription tools: readable controls and separate promo actions. */
+.admin-promo-grant-controls{display:grid;grid-template-columns:minmax(225px,2.1fr) minmax(135px,1fr) minmax(120px,.8fr) auto;gap:14px;align-items:end;margin:20px 0 23px}
+.admin-promo-grant-controls>div{display:flex;flex-direction:column;gap:7px;min-width:0}
+.admin-promo-grant-controls .payrep-select-trigger{width:100%}
+.admin-promo-grant-controls>button{min-height:43px}
+.admin-user-plan-controls{grid-template-columns:minmax(260px,1.5fr) minmax(220px,1.1fr) auto}
+.admin-promo-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.admin-promo-redemptions{border-top:1px solid #e9dcef;padding-top:22px;margin-top:23px}
+.admin-promo-redemptions h3{font-size:16px;color:#3f165d;margin:0 0 10px}
+.admin-promo-redemptions>p{margin:0 0 16px}
+.admin-promo-redemptions td,.admin-trial-controls td{vertical-align:middle}
+@media(max-width:1000px){.admin-promo-grant-controls,.admin-user-plan-controls{grid-template-columns:1fr 1fr}}
+@media(max-width:630px){.admin-promo-grant-controls,.admin-user-plan-controls{grid-template-columns:1fr}.admin-promo-actions{gap:12px}}
