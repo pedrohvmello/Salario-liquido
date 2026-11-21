@@ -37,7 +37,7 @@ describe('Payrep smartphone-only experience',()=>{
   for(const file of [
    'src/components/ThirteenthOverview.tsx',
    'src/components/VacationOverview.tsx',
-   'src/components/SubscriptionPage.tsx',
+   'src/components/BillingPaymentHistory.tsx',
    'src/components/AdminDashboard.tsx',
    'src/components/TaxPreview.tsx',
    'src/components/FinancialInsights.tsx',
