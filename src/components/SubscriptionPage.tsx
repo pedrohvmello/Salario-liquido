@@ -311,7 +311,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
    {checkoutHistory.length>0&&<section className="panel">
     <div className="panel-heading"><h2>Checkouts de assinatura</h2></div>
     <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
-    <div className="table-scroll"><table><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
+    <div className="table-scroll"><table className="mobile-stack-table mobile-subscription-checkouts"><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
      <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':paymentStatusText(c.status)}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
     </table></div>
    </section>}
@@ -320,7 +320,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
     paidPlan={current.plan_code} activeSubscription={current.status==='active'}
     onClose={()=>setBenefitsOpen(null)}/>}
    <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Pagamentos</h2></div>
-    {data.payments.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{paymentStatusText(p.status)}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
+    {data.payments.length?<div className="table-scroll"><table className="mobile-stack-table mobile-subscription-payments"><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{paymentStatusText(p.status)}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
    </section>
   </>}
  </div>
