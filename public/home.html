@@ -35,10 +35,17 @@
   <div class="public-cta"><a class="public-button" href="/login">Conhecer os planos</a><a class="public-button public-button-secondary" href="/sobre">Saiba mais sobre o Payrep</a></div>
  </div>
  <div class="home-pep-video-frame">
-  <video src="/media/pep-apresentacao.mp4" poster="/media/pep-apresentacao-poster.webp"
-   controls playsinline preload="metadata" width="960" height="540" aria-label="Vídeo de apresentação do Pep com narração">
+  <video id="home-pep-video" src="/media/pep-apresentacao.mp4" poster="/media/pep-apresentacao-poster.webp"
+   autoplay loop muted playsinline preload="auto" disablepictureinpicture disableremoteplayback
+   controlslist="nodownload noplaybackrate noremoteplayback"
+   tabindex="-1" width="960" height="540" aria-label="Apresentação do Pep em reprodução automática, inicialmente sem som">
    Seu navegador não suporta reprodução de vídeo.
   </video>
+  <button id="home-pep-audio" type="button" class="home-pep-audio-toggle" aria-label="Ativar áudio da apresentação" aria-pressed="false" title="Ativar áudio">
+   <svg data-icon="muted" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 6 6"/><path d="m22 9-6 6"/></svg>
+   <svg data-icon="unmuted" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+   <span data-audio-label>Ativar áudio</span>
+  </button>
  </div>
 </section>
 <section class="public-section" aria-labelledby="recursos"><h2 id="recursos">O que você encontra no Payrep</h2>
@@ -53,4 +60,38 @@
 </div></section>
 
 </main><footer class="public-footer"><div class="public-footer-inner"><small>© 2026 Payrep</small><nav class="public-footer-links" aria-label="Links legais"><a href="/home">Home</a><a href="/sobre">Sobre</a><a href="/privacidade">Política de Privacidade</a><a href="/termos">Termos de Uso</a><a href="mailto:suporte@payrep.com.br">Contato</a></nav></div></footer>
-</div></body></html>
+</div>
+<script>
+(function(){
+ const video=document.getElementById('home-pep-video');
+ const button=document.getElementById('home-pep-audio');
+ if(!video||!button)return;
+ // Start muted so browsers can permit autoplay without user interaction.
+ video.muted=true;
+ const mutedIcon=button.querySelector('[data-icon="muted"]');
+ const unmutedIcon=button.querySelector('[data-icon="unmuted"]');
+ const label=button.querySelector('[data-audio-label]');
+ const updateAudioControl=()=>{
+  const enabled=!video.muted;
+  const text=enabled?'Desativar áudio':'Ativar áudio';
+  button.setAttribute('aria-label',text+' da apresentação');
+  button.setAttribute('aria-pressed',String(enabled));
+  button.title=text;
+  if(label)label.textContent=text;
+  if(mutedIcon)mutedIcon.hidden=enabled;
+  if(unmutedIcon)unmutedIcon.hidden=!enabled;
+ };
+ button.addEventListener('click',()=>{
+  video.muted=!video.muted;
+  updateAudioControl();
+  if(video.paused)void video.play().catch(()=>{});
+ });
+ video.addEventListener('volumechange',updateAudioControl);
+ const resume=()=>{if(!document.hidden&&video.paused)void video.play().catch(()=>{});};
+ document.addEventListener('visibilitychange',resume);
+ window.addEventListener('pageshow',resume);
+ updateAudioControl();
+ resume();
+})();
+</script>
+</body></html>
