@@ -10,7 +10,7 @@
     "pepAjuda": "Revisado sem alteração no backend: mesma base de 80 perguntas; vídeo somente institucional, não muda assistente."
   },
   "sourceTrees": {
-    "src": "677628485100c5757566bf6fd9f1b99717b07019",
+    "src": "44122677d6ed25d5bee7ca230935828a597e3e93",
     "supabase/functions": "ded4bf35496594155762996abd5d432d4d91f344",
     "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
   }
