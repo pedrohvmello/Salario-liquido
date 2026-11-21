@@ -17,9 +17,11 @@ describe('Payrep public Pep presentation',()=>{
   expect(media.size).toBeLessThan(1500000)
   expect(statSync('public/media/pep-apresentacao-poster.webp').size).toBeGreaterThan(1000)
  })
- it('preserves users intent to hear narration on interaction',()=>{
+ it('autoplays the marketing video without transport controls and offers sound only',()=>{
   const paywall=readFileSync('src/components/PersonalPepPage.tsx','utf8')
-  expect(paywall).toContain('controls playsInline preload="metadata"')
-  expect(paywall).not.toContain('autoPlay loop muted playsInline preload="metadata"')
+  expect(paywall).toContain('autoPlay loop muted playsInline preload="auto"')
+  expect(paywall).not.toContain('controls playsInline')
+  expect(paywall).toContain('Ativar áudio da apresentação')
+  expect(paywall).toContain('<PepMascot variant="header"/>')
  })
 })

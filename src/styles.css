@@ -3157,3 +3157,19 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .admin-user-list-toolbar input{width:100%}
 @media(max-width:690px){.admin-user-plan-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
 .admin-user-edit-section{padding:16px 14px 2px}.admin-user-list-toolbar{align-items:stretch;flex-direction:column}}
+
+.subscription-benefits-dialog{width:min(640px,calc(100vw - 34px));max-height:min(85dvh,850px);overflow-y:auto}
+.subscription-benefits-body{display:flex;flex-direction:column;gap:17px;padding:6px 0 5px}
+.subscription-benefits-overview{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.subscription-benefits-overview>div{display:flex;flex-direction:column;gap:7px;background:#f8f1ff;border:1px solid #e5d6f4;border-radius:12px;padding:14px}
+.subscription-benefits-overview span{color:#6f5280;font-size:12px}
+.subscription-benefits-overview strong{font-size:18px;color:#401766}
+.subscription-benefits-section h4{display:flex;gap:8px;align-items:center;font-size:15px;color:#371353;margin:0 0 9px}
+.subscription-benefits-section ul{margin:0;padding-left:19px;display:flex;flex-direction:column;gap:8px;color:#58416a;font-size:13px;line-height:1.6}
+.subscription-benefits-section li svg{vertical-align:middle;margin-right:6px;color:#8839ba}
+.subscription-benefits-contract{display:flex;align-items:flex-start;gap:10px;border-radius:12px;padding:13px 15px;background:#fbf6ff;border:1px solid #e9d7f4}
+.subscription-benefits-contract>svg{flex-shrink:0;color:#7722b0}
+.subscription-benefits-contract p{margin:0;font-size:12px;color:#503568;line-height:1.55}
+.subscription-benefits-close{align-self:flex-end}
+.subscription-plan-with-features>.subscription-benefits-action{background:#fff;border:1px solid #d5bce8;color:#5b2184}
+@media(max-width:480px){.subscription-benefits-overview{grid-template-columns:1fr}}

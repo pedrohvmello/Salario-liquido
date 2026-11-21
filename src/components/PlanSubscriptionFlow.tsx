@@ -5,6 +5,7 @@ type Plan='basic'|'full'
 type Props={
  plan:Plan
  priceLabel:string
+ onShowBenefits:()=>void
  promoCode:string
  busy:boolean
  error:string
@@ -16,7 +17,7 @@ const planName:Record<Plan,string>={basic:'Basic',full:'Full'}
 
 /** Separate subscription step, shared by paid Asaas and free-code paths. */
 export function PlanSubscriptionFlow({
- plan,priceLabel,promoCode,busy,error,onCodeChange,onConfirm,onCancel
+ plan,priceLabel,onShowBenefits,promoCode,busy,error,onCodeChange,onConfirm,onCancel
 }:Props){
  return <div className="stack account-page">
   <div className="page-intro">
@@ -34,9 +35,10 @@ export function PlanSubscriptionFlow({
     <strong>Plano {planName[plan]}</strong>
     <span>{priceLabel}</span>
    </div>
+   <button type="button" className="secondary" onClick={onShowBenefits} disabled={busy}>Ver todos os benefícios e limites</button>
    <p>Você está iniciando o processo de assinatura do plano {planName[plan]}.
     O plano estará disponível após a confirmação do pagamento pelo Asaas.
-    Até essa confirmação, seu plano atual continuará ativo.</p>
+    Até essa confirmação, seu plano atual continuará ativo. A franquia diária pessoal do Pep será registrada quando o checkout for criado.</p>
    <p className="subtle">{asaasMode==='sandbox'
     ?'Ao continuar sem código promocional, você será direcionado ao Asaas Sandbox para simular uma assinatura mensal, sem cobrança real.'
     :'Ao continuar sem código promocional, você será direcionado ao Asaas para contratar uma assinatura com cobrança real e renovação mensal.'}</p>

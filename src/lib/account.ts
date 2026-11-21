@@ -12,6 +12,19 @@ export type PayrepProfile={
  complement:string;neighborhood:string;city:string;state:string;country:string
 }
 export type PlanCode='free'|'basic'|'full'
+export type PlanBenefitLimits={
+ helpDailyLimit:number;basicDailyLimit:number;fullDailyLimit:number;globalDailyLimit:number;
+ contractedPersonalDailyMinimum:number|null;effectivePersonalDailyLimit:number;resetTimezone:string
+}
+export async function loadMyPlanBenefitLimits():Promise<PlanBenefitLimits>{
+ if(!db)throw Error('Banco não configurado.')
+ const {data,error}=await db.rpc('get_my_plan_benefit_limits')
+ if(error)throw Error(error.message)
+ const fields=['helpDailyLimit','basicDailyLimit','fullDailyLimit','globalDailyLimit'] as const
+ if(!data||fields.some(key=>!Number.isSafeInteger(data[key])||data[key]<1))
+  throw Error('Não foi possível validar os limites atuais do plano.')
+ return data as PlanBenefitLimits
+}
 export type BillingSubscription={
  plan_code:PlanCode;status:string;provider:string|null;provider_customer_id:string|null;
  provider_subscription_id:string|null;current_period_start:string|null;
