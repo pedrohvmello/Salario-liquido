@@ -1,17 +1,17 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-21",
-  "feature": "Substituição da animação do Pep no banner pela versão 2 transparente gerada do novo vídeo",
+  "feature": "Marketing do Informe IR para Free, Base recolhida e Regime de Jornada com saldo informativo",
   "review": {
-    "sobre": "Revisada sem mudanças: a animação não altera funcionalidades.",
-    "privacidade": "Revisada sem mudanças: mídia hospedada no Payrep sem terceiros nem novos tratamentos.",
-    "termos": "Revisados sem mudanças: apenas troca de vídeo decorativo, nenhuma condição comercial alterada.",
-    "faq": "Revisado sem mudanças: operação e respostas inalteradas.",
-    "pepAjuda": "Revisado sem mudanças: assistente e conteúdo técnico permanecem inalterados."
+    "sobre": "Atualizada com vantagens do Informe IR e modo cargo de confiança, histórico preservado.",
+    "privacidade": "V1.0 revisão 10: armazenamento da preferência de regime e das horas históricas.",
+    "termos": "V1.0 revisão 09: preferência de cargo de confiança no app não determina enquadramento jurídico e não gera créditos de horas.",
+    "faq": "Quatro novas respostas sobre regime, saldo informativo e Informe IR dos usuários Free.",
+    "pepAjuda": "Base compartilhada atualizada com limites do Free e efeito do regime sobre horas extras, banco e saldo."
   },
   "sourceTrees": {
-    "src": "70f01a7c72771f015a29624b55ce3450ff1f7576",
-    "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
-    "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
+    "src": "5c52c271205a2ca6a5e9d5339fadd051b37639eb",
+    "supabase/functions": "d1344612daf75685a056e40379faeb1422ed4c87",
+    "supabase/migrations": "a2b241972708ce4f3d289bb5e42c2beb476cdc22"
   }
 }
