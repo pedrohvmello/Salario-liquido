@@ -3173,3 +3173,23 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .subscription-benefits-close{align-self:flex-end}
 .subscription-plan-with-features>.subscription-benefits-action{background:#fff;border:1px solid #d5bce8;color:#5b2184}
 @media(max-width:480px){.subscription-benefits-overview{grid-template-columns:1fr}}
+
+
+/* Transparent Pep in the purple upgrade banner. Native VP9 alpha avoids
+   the old frame-by-frame studio-background removal and green/white halos. */
+.pep-banner-animation{display:block;position:relative;width:100%;height:100%;min-width:0;overflow:visible}
+.pep-banner-animation-still,.pep-banner-animation-video{
+ display:block;position:absolute;inset:0;width:100%;height:100%;
+ object-fit:contain;object-position:center;background:transparent;
+ pointer-events:none;user-select:none
+}
+.pep-banner-animation-still{opacity:1;transition:opacity 180ms ease-out}
+.pep-banner-animation-still.is-video-playing{opacity:0}
+.pep-banner-animation-video{opacity:0;transition:opacity 180ms ease-out}
+.pep-banner-animation-video.is-playing{opacity:1}
+@media(prefers-reduced-motion:reduce){
+ .pep-banner-animation-video{display:none!important}
+ .pep-banner-animation-still,.pep-banner-animation-still.is-video-playing{
+  opacity:1!important;transition:none
+ }
+}

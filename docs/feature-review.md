@@ -54,3 +54,13 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Pep Ajuda:** conhecimento alinhado aos novos benefícios e condições, sem alterar a lógica do modelo.
 - **Front-end:** mascote estático no banner roxo, vídeo menor e automático sem controles de transporte (som somente pelo botão de hover), cards de filtro e edição visualmente separada, assinantes consolidados.
 - **Back-end:** limites pessoais de consultas do Pep são capturados no checkout no banco de dados, preservados pelo vínculo verificado do Asaas e consultados como maior entre limite geral e mínimo contratado. Os limites globais e externos não são garantidos pelo contrato pessoal.
+
+## Banner Pep com animação transparente nativa (21/11/2026)
+
+- **Sobre:** revisada. Mudança exclusivamente visual; descrição das funcionalidades permanece adequada.
+- **Política de Privacidade:** revisada. Arquivo WebM local, sem terceiros ou novas transferências de dados; nenhuma alteração documental necessária.
+- **Termos de Uso:** revisados. O vídeo ilustrativo não altera condições comerciais ou limitações; sem revisão documental adicional.
+- **FAQ:** revisado. Nenhuma mudança de operação ou instrução de uso; sem novas perguntas necessárias.
+- **Pep Ajuda:** revisado. Conhecimento, limites e Edge Function inalterados; este vídeo se aplica apenas ao cabeçalho da oferta de upgrade do Pep pessoal.
+- **Implementação:** mídia VP9 WebM com canal alpha real, armazenada em `public/media/pep-banner-transparente.webm`, reproduzida sem áudio, em loop, sem controles, diretamente no navegador. A imagem do Pep é fallback até o início da reprodução, em falhas e quando a preferência do sistema reduz animações.
+- **Escopo e segurança:** não modifica o vídeo institucional já existente, pagamentos, assinatura, banco de dados nem autenticação.

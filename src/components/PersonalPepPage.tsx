@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {ArrowLeft,Bot,CheckCircle2,FileText,LockKeyhole,Sparkles,Volume2,VolumeX} from 'lucide-react'
 import {SupportAiChat} from './SupportAiChat'
-import {PepMascot} from './PepMascot'
+import {PepBannerAnimation} from './PepBannerAnimation'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {db} from '../lib/data'
 import {pepAssistantEnabled} from '../lib/environment'
@@ -49,7 +49,7 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
     <h2 id="pep-upgrade-title">Seu salário tem perguntas. O Pep pode ajudar nas respostas.</h2>
     <p>Vá além da projeção: consulte os dados cadastrados na sua conta, explore cenários e entenda melhor os componentes da sua remuneração, conforme o plano contratado.</p>
    </div>
-   <div className="pep-upgrade-mascot-animated"><PepMascot variant="header"/></div>
+   <div className="pep-upgrade-mascot-animated"><PepBannerAnimation/></div>
   </div>
   <div className="pep-upgrade-plans">
    <article className="pep-upgrade-plan">

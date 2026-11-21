@@ -14,7 +14,7 @@ describe('Payrep navigation and Pep upgrade',()=>{
   expect(block).toContain('onClick={onSubscribe}')
   expect(block).not.toContain('onClick={onBack}')
   expect(block).not.toContain('R$')
-  expect(block).toContain('<PepMascot variant="header"/>')
+  expect(block).toContain('<PepBannerAnimation/>')
   expect(block).toContain('pep-upgrade-video-showcase')
   expect(block).toContain('src="/media/pep-apresentacao.mp4"')
   expect(block).toContain('poster="/media/pep-apresentacao-poster.webp"')
