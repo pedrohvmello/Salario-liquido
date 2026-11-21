@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vitest run src/lib/payrollAdjustments.test.ts src/lib/analyticsFinancial.test.ts src/lib/analyticsPayrollCodes.test.ts src/lib/financialInsights.test.ts src/lib/checkoutUrl.test.ts src/lib/mobileExperience.test.ts && vite build",
+    "build": "tsc --noEmit && vitest run src/lib/payrollAdjustments.test.ts src/lib/analyticsFinancial.test.ts src/lib/analyticsPayrollCodes.test.ts src/lib/financialInsights.test.ts src/lib/checkoutUrl.test.ts src/lib/mobileExperience.test.ts src/lib/billingPaymentHistory.test.ts && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "predev": "node scripts/audit-ui-controls.cjs && node scripts/generate-icons.cjs",
