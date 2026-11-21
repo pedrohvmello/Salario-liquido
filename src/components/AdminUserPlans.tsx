@@ -19,13 +19,13 @@ export function AdminUserPlans(){
  const eligible=useMemo(()=>users.filter(u=>u.active&&u.status==='approved'&&u.role!=='admin'),[users])
  const selectedUser=eligible.find(u=>u.userId===selected)
  const counts=useMemo(()=>({
-  all:eligible.length,free:eligible.filter(u=>u.effectivePlan==='free').length,
+  all:users.length,free:eligible.filter(u=>u.effectivePlan==='free').length,
   basic:eligible.filter(u=>u.effectivePlan==='basic').length,
   full:eligible.filter(u=>u.effectivePlan==='full').length
  }),[eligible])
  const listed=useMemo(()=>{
   const query=search.trim().toLocaleLowerCase('pt-BR')
-  return users.filter(u=>(filter==='all'||(u.role!=='admin'&&u.effectivePlan===filter))
+  return users.filter(u=>(filter==='all'||(u.active&&u.status==='approved'&&u.role!=='admin'&&u.effectivePlan===filter))
    &&(!query||[u.displayName,u.email,u.userId].some(s=>s?.toLocaleLowerCase('pt-BR').includes(query))))
  },[users,filter,search])
  const selectUser=(id:string)=>{

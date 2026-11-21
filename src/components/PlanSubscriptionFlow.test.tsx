@@ -5,7 +5,7 @@ import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
 describe('Plan subscription confirmation',()=>{
  const view=(promoCode:string)=>renderToStaticMarkup(createElement(PlanSubscriptionFlow,{
   plan:'full',priceLabel:'R$ 10,00 / mês',promoCode,busy:false,error:'',
-  onCodeChange:()=>{},onConfirm:()=>{},onCancel:()=>{}
+  onCodeChange:()=>{},onConfirm:()=>{},onCancel:()=>{},onShowBenefits:()=>{}
  }))
  it('shows confirmation and pay-after-confirmation notice',()=>{
   const html=view('')

@@ -21,6 +21,10 @@ describe('Admin access and initial application visibility',()=>{
   expect(src).toContain('changeAdminPlan')
   expect(src).toContain('Plano contratado')
   expect(src).toContain('Acesso efetivo')
+  expect(src).toContain('admin-user-plan-cards')
+  expect(src).toContain('is-active')
+  expect(src).toContain('Alterar acesso de um usuário')
+  expect(src).toContain('Usuários e assinaturas cadastradas')
   expect(src).toContain('não foram modificados')
  })
  it('recovers new login at overview and shows explicit page error instead of a blank panel',()=>{
