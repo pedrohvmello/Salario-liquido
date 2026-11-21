@@ -3243,3 +3243,227 @@ body .payrep-regime-choices .payrep-regime-choice input[type="radio"]{appearance
 .payrep-definitions .panel>.payrep-regime-current{display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:12px}
 .payrep-regime-choice:focus-within{outline:2px solid #9d51d8;outline-offset:3px}
 @media(max-width:560px){.payrep-regime-choice{padding:15px 13px!important;gap:11px!important}.payrep-definitions .panel>.panel-heading h2{font-size:15px}}
+
+
+/* Mobile experience HML 2026-11-21. All new presentation rules require a narrow
+   coarse-pointer viewport. Desktop layout and long-press card drag are untouched. */
+.payrep-mobile-only,.fortnight-mobile-days{display:none}
+@media (max-width:760px) and (pointer:coarse){
+ .payrep-mobile-only{display:flex!important}
+ .payrep-desktop-only{display:none!important}
+ .page-body{padding-inline:14px;max-width:100%;min-width:0}
+ .page-body>.stack,.stack,.panel{min-width:0}
+ .page-body .panel{padding:17px 14px}
+ .page-body .panel-heading{flex-wrap:wrap;gap:11px}
+ .page-body h2{overflow-wrap:anywhere}
+ .page-body .hero{padding:19px 17px}
+ .page-body .hero-amount strong{font-size:clamp(24px,7vw,30px);overflow-wrap:anywhere;white-space:normal}
+ .overview-editor .overview-stats>.stat.overview-card{padding:14px 11px;min-width:0}
+ .overview-editor .overview-stats>.stat.overview-card strong{font-size:clamp(15px,4.25vw,20px);overflow-wrap:anywhere;white-space:normal}
+ .overview-editor .overview-stats>.stat.overview-card small{overflow-wrap:anywhere}
+ .overview-editor .overview-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .overview-editor .overview-stats>.overview-wide-card{grid-column:span 2}
+ .stats-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .stats-grid.three>.stat:last-child:nth-child(odd){grid-column:span 2}
+ .page-intro>.primary,.page-intro>.secondary{min-height:44px;max-width:100%;white-space:normal;text-align:center}
+ .primary,.secondary{min-height:42px}
+ .filterbar{flex-wrap:wrap;align-items:stretch}
+ .filterbar>.pill{margin-left:0}
+ .filterbar>.payrep-select-trigger{min-width:0}
+ .page-body input:not([type=checkbox]):not([type=radio]):not([type=file]), 
+ .page-body textarea,
+ .auth-shell input:not([type=checkbox]):not([type=radio]):not([type=file]),
+ .payrep-picker-dialog input:not([type=checkbox]):not([type=radio]),
+ .payrep-ai-form textarea{font-size:16px}
+ .page-body .notice{overflow-wrap:anywhere}
+ .page-body .detail-hint{overflow-wrap:anywhere}
+ .page-body .mobile-record{overflow-wrap:anywhere}
+ .fortnight-mobile-days{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+ .payrep-fortnight .fortnight-scroll{display:none}
+ .fortnight-mobile-day{border:1px solid #e6d3f2;background:#fff;border-radius:13px;overflow:hidden;color:#3a1856}
+ .fortnight-mobile-day.is-today{border-color:#cda52d;background:#fffdf3}
+ .fortnight-mobile-day.is-holiday{border-color:#98cbaa}
+ .fortnight-mobile-day.is-dirty{box-shadow:inset 3px 0 #9700d1}
+ .fortnight-mobile-day.is-invalid{border-color:#d56776}
+ .fortnight-mobile-day summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;padding:13px 12px;min-height:62px;cursor:pointer}
+ .fortnight-mobile-day summary::-webkit-details-marker{display:none}
+ .fortnight-mobile-day-title{display:flex;flex-direction:column;gap:3px;min-width:0}
+ .fortnight-mobile-day-title strong{font-size:14px;text-transform:capitalize}
+ .fortnight-mobile-day-title small{font-size:11px;color:#7b6190}
+ .fortnight-mobile-day-value{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px}
+ .fortnight-mobile-day-value span{display:inline-block;transform:rotate(0deg);transition:transform .18s ease}
+ .fortnight-mobile-day[open] .fortnight-mobile-day-value span{transform:rotate(180deg)}
+ .fortnight-mobile-detail{display:flex;flex-direction:column;gap:15px;border-top:1px solid #eadcf3;padding:15px 12px 17px}
+ .fortnight-mobile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .fortnight-mobile-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+ .fortnight-mobile-field span{font-size:12px;font-weight:700;color:#604275}
+ .fortnight-mobile-field input{width:100%;min-width:0;min-height:46px;border-radius:9px!important;font-size:16px!important}
+ .fortnight-mobile-flags{display:flex;align-items:center;flex-wrap:wrap;gap:11px}
+ .fortnight-mobile-flags label{display:flex;align-items:center;gap:7px;min-height:43px;font-size:12px}
+ .fortnight-mobile-flags input{width:19px;height:19px;accent-color:#8100c8}
+ .fortnight-mobile-flags button{min-height:39px;white-space:normal}
+ .fortnight-mobile-results{background:#f9f4fd;border:1px solid #eadcf3;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+ .fortnight-mobile-results>div{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:12px}
+ .fortnight-mobile-results strong{text-align:right;overflow-wrap:anywhere}
+ .fortnight-mobile-results span{color:#745788}
+ .fortnight-color-legend{flex-wrap:wrap}
+ .payrep-fortnight .fortnight-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .payrep-fortnight .fortnight-summary .stat strong{white-space:normal;overflow-wrap:anywhere;font-size:clamp(14px,4.3vw,18px)}
+ .fortnight-action-buttons{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .fortnight-action-buttons .primary,.fortnight-action-buttons .secondary{padding-inline:10px;white-space:normal}
+ .payrep-mobile-list{flex-direction:column;gap:11px;width:100%;min-width:0}
+ .mobile-record{display:flex;flex-direction:column;gap:11px;width:100%;min-width:0;padding:15px 13px;border-radius:13px;border:1px solid #e5d4f0;background:#fff;color:#3b2055;text-align:left}
+ .mobile-record-button{appearance:none;cursor:pointer;font:inherit}
+ .mobile-record-button:focus-visible{outline:3px solid #ad5be1;outline-offset:2px}
+ .mobile-record-head,.mobile-record-foot{display:flex;align-items:start;justify-content:space-between;gap:12px}
+ .mobile-record-head strong{font-size:15px;color:#33134e;overflow-wrap:anywhere}
+ .mobile-record-head>span:last-child,.mobile-record-foot>span:last-child{font-size:12px;color:#8334b6;white-space:normal;text-align:right}
+ .mobile-record-kpi{display:flex;flex-direction:column;gap:3px;background:#f8f2fd;padding:11px 12px;border-radius:10px}
+ .mobile-record-kpi small,.mobile-record-metrics small{display:block;font-size:11px;color:#78618b}
+ .mobile-record-kpi strong{font-size:19px;color:#4f117f;overflow-wrap:anywhere}
+ .mobile-record-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .mobile-record-metrics>span{min-width:0}
+ .mobile-record-metrics strong{display:block;margin-top:4px;font-size:13px;color:#3e2057;overflow-wrap:anywhere}
+ .mobile-record-hint,.mobile-record-foot{font-size:11px;color:#735e83;line-height:1.55;margin:0}
+ .mobile-record-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .mobile-record-actions button{min-height:43px}
+ .mobile-record-more{font-size:12px;color:#65457d}
+ .mobile-record-more summary{padding:8px 0;min-height:36px;font-weight:700;cursor:pointer}
+ .mobile-record-more p,.mobile-record-more ul{line-height:1.6;margin:6px 0;overflow-wrap:anywhere}
+ .mobile-import-record{gap:10px}
+ .mobile-import-select{display:flex;gap:12px;align-items:center;min-height:48px;cursor:pointer}
+ .mobile-import-select input{width:20px;height:20px;flex:none;accent-color:#8400d6}
+ .mobile-import-select>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+ .mobile-import-select strong{font-size:15px}
+ .mobile-import-select small{font-size:12px;color:#765b8a}
+ .mobile-import-ok{align-self:flex-start}
+ .payslip-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .payslip-tabs button{min-width:0;padding-inline:9px;font-size:12px;white-space:normal}
+ .payslip-tabs .payslip-tab-count{flex-shrink:0}
+ .dropzone{min-height:165px;padding:20px 13px}
+ .dropzone .file-button{min-height:46px}
+ .payslip-batch-toolbar,.payslip-batch-actions,.payslip-doc-actions{max-width:100%}
+ .payslip-filters{gap:12px}
+ .payslip-doc-details{overflow-wrap:anywhere;min-width:0}
+ .payslip-doc-row{min-width:0}
+ .subscription-plans{grid-template-columns:minmax(0,1fr)}
+ .checkout-review-form .account-form-grid{grid-template-columns:minmax(0,1fr)}
+ .checkout-review-form .subscription-cpf-actions{display:grid;grid-template-columns:1fr;gap:12px}
+ .checkout-review-form .subscription-cpf-actions button{width:100%;white-space:normal}
+ .account-form-grid,.form-grid{grid-template-columns:minmax(0,1fr)}
+ .account-save-action,.profile-delete-buttons{flex-wrap:wrap}
+ .account-save-action button,.profile-delete-buttons button{max-width:100%;min-height:44px;white-space:normal}
+ .pep-personal-workspace .payrep-ai-shell{height:calc(100dvh - 175px);min-height:370px;max-height:none}
+ .pep-personal-workspace .payrep-ai-messages{min-height:110px;max-height:none;overscroll-behavior-y:contain}
+ .pep-personal-workspace .payrep-ai-form{padding:11px}
+ .pep-personal-workspace .payrep-ai-form textarea{min-height:52px}
+ .payrep-ai-header-actions button{min-height:42px}
+ .analytics-main-grid{grid-template-columns:minmax(0,1fr)}
+ .analytics-composition-layout{grid-template-columns:minmax(0,1fr)}
+ .analytics-multiring-chart{max-width:100%;height:min(68vw,280px)}
+ .analytics-evolution-chart,.financial-insights-chart{height:245px}
+ .analytics-indicator-header{gap:11px}
+ .analytics-indicator-header .analytics-filter{grid-template-columns:minmax(0,1fr)}
+ .analytics-indicator-header .analytics-indicator-summary{min-width:0}
+ .analytics-indicator-summary strong{overflow-wrap:anywhere}
+ .financial-insights-tabs{gap:6px}
+ .financial-insights-tabs button{min-height:43px;white-space:normal}
+ .admin-revenue-chart{min-width:0!important;width:100%;height:255px}
+ .admin-kpi-editor .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-settings-actions{flex-wrap:wrap}
+ .help-ai-entry,.ir-upgrade-footer{min-width:0}
+ .help-conversation-heading-actions,.help-admin-filters{gap:9px}
+ .help-ticket-form button,.help-admin-filters button{white-space:normal}
+ .payrep-picker-dialog,.payslip-confirm-dialog,.ir-dialog,.subscription-benefits-dialog{max-width:calc(100vw - 18px);max-height:calc(100dvh - 25px)}
+ .subscription-benefits-body{padding:11px 15px 19px}
+ .payrep-picker-backdrop,.payslip-modal-backdrop{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+ .page-body{padding-bottom:max(72px,env(safe-area-inset-bottom))}
+ .mobile-stack-table{display:block!important;min-width:0!important;width:100%!important;table-layout:auto!important;border-collapse:separate!important}
+ .mobile-stack-table colgroup{display:none!important}
+ .mobile-stack-table thead{position:absolute!important;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+ .mobile-stack-table tbody{display:flex!important;flex-direction:column;gap:11px;width:100%;min-width:0}
+ .mobile-stack-table tbody tr{display:flex!important;flex-direction:column;gap:0;min-width:0;background:#fff;border:1px solid #e4d6ef;border-radius:12px;overflow:hidden;padding:8px 12px}
+ .mobile-stack-table tbody td,.mobile-stack-table tbody th{display:flex!important;align-items:baseline;justify-content:space-between;gap:12px;min-width:0;min-height:37px;padding:9px 0!important;border:0;border-bottom:1px solid #f2eaf7!important;text-align:right!important;white-space:normal!important;overflow-wrap:anywhere;font-size:12px}
+ .mobile-stack-table tbody td:last-child,.mobile-stack-table tbody th:last-child{border-bottom:0!important}
+ .mobile-stack-table tbody td::before,.mobile-stack-table tbody th::before{content:"Detalhe";display:block;flex:0 0 43%;max-width:43%;text-align:left;color:#7b608c;font-size:11px;font-weight:700;line-height:1.5;white-space:normal}
+ .mobile-stack-table tbody td>*{max-width:100%;min-width:0}
+ .mobile-stack-table tbody td button{min-width:39px;min-height:39px;white-space:normal}
+ .mobile-stack-table tbody td:first-child{font-weight:700;color:#371652}
+ .mobile-stack-table tbody tr:hover{background:#fcf9ff}
+ .mobile-stack-table tbody td .pill,.mobile-stack-table tbody td .flag{white-space:normal}
+ .financial-insights-table-wrap{overflow:visible!important}
+ .mobile-stack-table.mobile-thirteenth,.mobile-stack-table.mobile-vacation{min-width:0!important}
+}
+
+
+/* Column labels are sourced from the unchanged desktop table headings. */
+@media (max-width:760px) and (pointer:coarse){
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(1)::before{content:"Ano"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(2)::before{content:"13º bruto"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(3)::before{content:"Adiantamento descontado"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(4)::before{content:"Registrado antes"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(5)::before{content:"Fechamento 13º"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(6)::before{content:"Recebimento adicional"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(7)::before{content:"IRRF"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(8)::before{content:"INSS"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(9)::before{content:"Pensão"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(10)::before{content:"Conciliação"}
+.mobile-stack-table.mobile-thirteenth tbody td:nth-child(11)::before{content:"Comentário"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(1)::before{content:"Competência"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(2)::before{content:"Período de férias"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(3)::before{content:"Estimativa pela folha"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(4)::before{content:"Líquido do recibo"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(5)::before{content:"Valor contabilizado"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(6)::before{content:"Conciliação"}
+.mobile-stack-table.mobile-vacation tbody td:nth-child(7)::before{content:"Comentário"}
+.mobile-stack-table.mobile-subscription-checkouts tbody td:nth-child(1)::before{content:"Plano"}
+.mobile-stack-table.mobile-subscription-checkouts tbody td:nth-child(2)::before{content:"Valor"}
+.mobile-stack-table.mobile-subscription-checkouts tbody td:nth-child(3)::before{content:"Situação"}
+.mobile-stack-table.mobile-subscription-checkouts tbody td:nth-child(4)::before{content:"Criação"}
+.mobile-stack-table.mobile-subscription-payments tbody td:nth-child(1)::before{content:"Data"}
+.mobile-stack-table.mobile-subscription-payments tbody td:nth-child(2)::before{content:"Descrição"}
+.mobile-stack-table.mobile-subscription-payments tbody td:nth-child(3)::before{content:"Valor"}
+.mobile-stack-table.mobile-subscription-payments tbody td:nth-child(4)::before{content:"Situação"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(1)::before{content:"Usuário"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(2)::before{content:"Criado em"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(3)::before{content:"Último login"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(4)::before{content:"Acesso ao app"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(5)::before{content:"Sessões (30 dias)"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(6)::before{content:"Plano"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(7)::before{content:"Localidade"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(8)::before{content:"Situação"}
+.mobile-stack-table.mobile-admin-users tbody td:nth-child(9)::before{content:"Ações"}
+.mobile-stack-table.mobile-admin-audit tbody td:nth-child(1)::before{content:"Data"}
+.mobile-stack-table.mobile-admin-audit tbody td:nth-child(2)::before{content:"Ação"}
+.mobile-stack-table.mobile-admin-audit tbody td:nth-child(3)::before{content:"Usuário"}
+.mobile-stack-table.mobile-admin-audit tbody td:nth-child(4)::before{content:"Anterior"}
+.mobile-stack-table.mobile-admin-audit tbody td:nth-child(5)::before{content:"Novo"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(1)::before{content:"Ano"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(2)::before{content:"Meses"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(3)::before{content:"Bruto identificado"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(4)::before{content:"Líquido recebido"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(5)::before{content:"Variação bruto"}
+.mobile-stack-table.mobile-financial-years tbody td:nth-child(6)::before{content:"Variação líquido"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(1)::before{content:"Ano"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(2)::before{content:"Holerites mensais"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(3)::before{content:"Totalizadoras"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(4)::before{content:"Retificadoras"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(5)::before{content:"Diferenças"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(6)::before{content:"Conciliação IR"}
+.mobile-stack-table.mobile-financial-documents tbody td:nth-child(7)::before{content:"Diferença"}
+.mobile-stack-table.mobile-ir-flow tbody td:nth-child(1)::before{content:"Etapa"}
+.mobile-stack-table.mobile-ir-flow tbody td:nth-child(2)::before{content:"Valor"}
+.mobile-stack-table.mobile-ir-comparison tbody td:nth-child(1)::before{content:"Rubrica"}
+.mobile-stack-table.mobile-ir-comparison tbody td:nth-child(2)::before{content:"Informe da empresa"}
+.mobile-stack-table.mobile-ir-comparison tbody td:nth-child(3)::before{content:"Apuração holerites"}
+.mobile-stack-table.mobile-ir-comparison tbody td:nth-child(4)::before{content:"Diferença"}
+.mobile-stack-table.mobile-admin-sources tbody td:nth-child(1)::before{content:"Empresa / UF"}
+.mobile-stack-table.mobile-admin-sources tbody td:nth-child(2)::before{content:"Situação"}
+.mobile-stack-table.mobile-admin-sources tbody td:nth-child(3)::before{content:"URL"}
+.mobile-stack-table.mobile-admin-sources tbody td:nth-child(4)::before{content:"Última consulta"}
+.mobile-stack-table.mobile-admin-sources tbody td:nth-child(5)::before{content:"Ações"}
+.mobile-stack-table.mobile-admin-documents tbody td:nth-child(1)::before{content:"Documento"}
+.mobile-stack-table.mobile-admin-documents tbody td:nth-child(2)::before{content:"Tipo"}
+.mobile-stack-table.mobile-admin-documents tbody td:nth-child(3)::before{content:"Revisão"}
+.mobile-stack-table.mobile-admin-documents tbody td:nth-child(4)::before{content:"Ações"}
+}

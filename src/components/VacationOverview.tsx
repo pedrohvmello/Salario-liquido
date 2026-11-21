@@ -7,7 +7,7 @@ export function VacationOverview({ledger,year}:{ledger:VacationLedger;year:strin
  return <section className="panel">
    <div className="panel-heading"><h2>Férias e conciliação</h2><span className="pill">{rows.length} ocorrência(s)</span></div>
    <p className="subtle">As folhas mensais são a fonte principal. O recibo de férias é opcional e substitui o valor inferido das rubricas quando disponível. Nenhum pagamento é somado duas vezes.</p>
-   {rows.length?<div className="table-scroll"><table className="vacation-table"><colgroup>
+   {rows.length?<div className="table-scroll"><table className="vacation-table mobile-stack-table mobile-vacation"><colgroup>
      <col className="vacation-month"/><col className="vacation-period"/><col className="vacation-estimated"/>
      <col className="vacation-receipt"/><col className="vacation-booked"/><col className="vacation-status"/>
      <col className="vacation-comment"/>

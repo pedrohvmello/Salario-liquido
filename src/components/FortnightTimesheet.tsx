@@ -225,6 +225,67 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
     Cargo de confiança: sem cálculo de horas extras ou novos movimentos no banco.
     O saldo informativo compara os horários registrados com a jornada de referência.
     O histórico do banco permanece armazenado.</div>}
+   <div className="fortnight-mobile-days" aria-label={'Dias da quinzena '+period.label}>
+    {rows.map(row=>{
+     const movement=trust?0:previewBank.movements.get(row.date)?.deltaMinutes??0
+     const changed=dirtyCurrent.includes(row.date)
+     const edit=(key:Field,label:string,placeholder='00:00')=><label className="fortnight-mobile-field" key={key}>
+      <span>{label}</span>
+      <input type="text" inputMode={key==='comments'?'text':'numeric'}
+       maxLength={key==='comments'?500:5} placeholder={placeholder}
+       aria-label={label+' em '+formatDate(row.date)}
+       value={row.entry[key]||''}
+       onChange={event=>change(row.date,{[key]:event.target.value})}
+       onBlur={key==='comments'?undefined:event=>{
+        const normalized=normalize(event.target.value)
+        if(normalized!==(row.entry[key]||''))change(row.date,{[key]:normalized})
+       }}/>
+     </label>
+     return <details key={row.date} className={[
+      'fortnight-mobile-day',changed?'is-dirty':'',row.invalid?'is-invalid':'',
+      row.holiday?'is-holiday':'',row.date===today?'is-today':''
+     ].filter(Boolean).join(' ')}>
+      <summary>
+       <div className="fortnight-mobile-day-title"><strong>{weekday(row.date)} · {formatDate(row.date)}</strong>
+        <small>{row.holiday?'Feriado · ':''}{changed?'Não salvo · ':''}{row.complete?'Jornada registrada':'Toque para preencher'}</small>
+       </div>
+       <div className="fortnight-mobile-day-value">
+        <strong>{row.calculated?hours(row.calculated.total):'—'}</strong>
+        <span aria-hidden="true">⌄</span>
+       </div>
+      </summary>
+      <div className="fortnight-mobile-detail">
+       <div className="fortnight-mobile-fields">
+        {edit('start','Entrada')}
+        {edit('lunchStart','Início do almoço')}
+        {edit('lunchEnd','Fim do almoço')}
+        {edit('end','Saída')}
+        {edit('additionalHours','Horas adicionais')}
+       </div>
+       <div className="fortnight-mobile-flags">
+        <label><input type="checkbox" checked={Boolean(row.entry.bankHours)} disabled={trust}
+         onChange={event=>{if(!trust)change(row.date,{bankHours:event.target.checked})}}/> Banco de horas</label>
+        <label><input type="checkbox" checked={row.holiday}
+         onChange={event=>change(row.date,{holidayOverride:event.target.checked})}/> Feriado</label>
+        {row.entry.holidayOverride!==null&&<button type="button" className="secondary"
+         onClick={()=>change(row.date,{holidayOverride:null})} aria-label={'Restaurar feriado automático em '+formatDate(row.date)}>
+         <RotateCcw size={15}/> Automático
+        </button>}
+       </div>
+       <div className="fortnight-mobile-results">
+        <div><span>Horas trabalhadas</span><strong>{row.calculated?hours(row.calculated.total):'—'}</strong></div>
+        {!trust&&<>
+         <div><span>Hora extra</span><strong>{row.calculated?hours(row.calculated.h60+row.calculated.h80+row.calculated.h100):'—'}</strong></div>
+         <div><span>60% / 80% / 100%</span><strong>{row.calculated?hours(row.calculated.h60)+' / '+hours(row.calculated.h80)+' / '+hours(row.calculated.h100):'—'}</strong></div>
+         <div><span>Movimento no banco</span><strong>{movement!==0?(movement>0?'+':'')+formatBankMinutes(movement)+' h':'—'}</strong></div>
+        </>}
+       </div>
+       {edit('comments','Comentários','Observações do dia')}
+       {row.invalid&&<p className="error" role="alert">Verifique os horários preenchidos.</p>}
+      </div>
+     </details>
+    })}
+   </div>
    <div className="table-scroll fortnight-scroll" role="region" tabIndex={0}
     aria-label={'Registro de horas da '+period.label}>
     <table className="fortnight-table">
