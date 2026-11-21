@@ -34,3 +34,13 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Interface:** substituir imagem estática do Pep no paywall por animação existente `pep-chat-loop.mp4`, com fallback estático e preferência por movimento reduzido; incluir o vídeo promocional enviado pelo titular tanto no paywall quanto na Home, com controles e áudio apenas mediante reprodução iniciada pelo visitante.
 - **Mídia:** original 1920x1080, 10 segundos, com áudio. Versão publicada em H.264/AAC 960x540 (~530 KB), com poster WebP. Arquivos de apresentação são estáticos e compartilhados entre os frontends HML e PRD; não alteram os buckets de cada Supabase.
 - **Versionamento:** permanece V1.0 e as revisões legais arquivadas não foram alteradas.
+
+## Gestão de planos efetivos e promoções (21/11/2026)
+
+- **Sobre:** atualizada para descrever alteração administrativa de plano e promoções Basic/Full.
+- **Política de Privacidade:** revista com os novos dados de auditoria: usuário, concessor, plano, código, datas e revogação. Revisão 08 da V1.0 arquivada.
+- **Termos de Uso:** explicada a separação do plano efetivo e da assinatura financeira, com revogação promocional. Revisão 07 da V1.0 arquivada.
+- **FAQ:** adicionadas cinco respostas sobre acesso efetivo, concessão e revogação, usuários por código e alteração administrativa de plano.
+- **Pep Ajuda:** atualizada a base compartilhada; o limite de consultas e isolamento de dados pessoais permanecem intactos.
+- **Interface e autenticação:** área administrativa com busca de usuários, planos Free/Basic/Full, concessões temporárias, históricos, dias restantes e confirmação antes de revogar. Entrada no painel reforçada por recuperação da rota de Visão geral e fallback de erro. `paid` é traduzido para **Pago**, sem mudar dados de provedor.
+- **Pagamentos:** nenhuma concessão altera ou cancela assinaturas Asaas; alterações administrativas de acesso têm auditoria.

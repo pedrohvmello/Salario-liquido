@@ -18,6 +18,7 @@ describe('Payrep public OAuth pages',()=>{
   expect(about).toContain('Informe de IR')
   expect(about).toContain('Recursos conforme o plano')
   expect(about).toContain('FAQ pesquisável por palavras-chave')
+  expect(about).toContain('concessão administrativa')
   const privacy=page('privacidade')
   expect(privacy).toContain('Cloudflare Workers AI')
   expect(privacy).toContain('Asaas')
@@ -31,6 +32,8 @@ describe('Payrep public OAuth pages',()=>{
   expect(terms).toContain('Pedro Henrique Vieira de Mello')
   expect(privacy).toContain('Cópias de segurança')
   expect(privacy).toContain('prazos de expurgo automático individualizados')
+  expect(privacy).toContain('Concessões, revogações e alterações administrativas')
+  expect(terms).toContain('não cancela cobranças, assinaturas nem renovações no Asaas')
  })
 
  it('reuses the existing horizontal Payrep logo across all public headers',()=>{

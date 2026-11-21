@@ -6,7 +6,7 @@
   "documents": {
     "privacidade": {
       "title": "Política de Privacidade",
-      "currentRevisionId": "privacidade-v1.0-r07",
+      "currentRevisionId": "privacidade-v1.0-r08",
       "revisions": [
         {
           "id": "privacidade-v1.0-r01",
@@ -77,12 +77,22 @@
           "path": "/legal-history/privacidade-v1.0-r07.html",
           "sourceCommit": "4230992b3c236751ac01f12029a44b23c6799026",
           "blobSha": "ec9d5f0ddb3fab0199f34aa61abfeb675062c6d2"
+        },
+        {
+          "id": "privacidade-v1.0-r08",
+          "version": "V1.0",
+          "revision": 8,
+          "changedAt": "2026-11-21T03:05:32Z",
+          "summary": "Auditoria e conservação de concessões, revogações e planos efetivos",
+          "path": "/legal-history/privacidade-v1.0-r08.html",
+          "sourceCommit": "7b608ae9de13442cb2782fc06a2f85a999f795cc",
+          "blobSha": "71dca857fc536eff1dc9c5b6ba851c171884fa07"
         }
       ]
     },
     "termos": {
       "title": "Termos de Uso",
-      "currentRevisionId": "termos-v1.0-r06",
+      "currentRevisionId": "termos-v1.0-r07",
       "revisions": [
         {
           "id": "termos-v1.0-r01",
@@ -143,6 +153,16 @@
           "path": "/legal-history/termos-v1.0-r06.html",
           "sourceCommit": "4230992b3c236751ac01f12029a44b23c6799026",
           "blobSha": "02968ba83936f01cf4746cf1abba819b94ca7193"
+        },
+        {
+          "id": "termos-v1.0-r07",
+          "version": "V1.0",
+          "revision": 7,
+          "changedAt": "2026-11-21T03:05:32Z",
+          "summary": "Concessões promocionais e alterações administrativas sem mudança de cobrança",
+          "path": "/legal-history/termos-v1.0-r07.html",
+          "sourceCommit": "7b608ae9de13442cb2782fc06a2f85a999f795cc",
+          "blobSha": "dba6a264c8838058e927b72c99a7416f663fe427"
         }
       ]
     }

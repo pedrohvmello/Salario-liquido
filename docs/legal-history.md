@@ -20,3 +20,8 @@
 - Controlador informado pelo operador: **Pedro Henrique Vieira de Mello**, pessoa física, contato `suporte@payrep.com.br`. CPF e endereço não foram fornecidos e não devem ser inventados.
 - Política de Privacidade, revisão 07, e Termos de Uso, revisão 06. A política diferencia critérios de conservação por categoria, sem declarar expurgo periódico automático inexistente. A versão pública permanece V1.0.
 - A revisão do FAQ e do Pep Ajuda utiliza fonte de conhecimento comum em `supabase/functions/support-ai/knowledge.ts`. Qualquer alteração funcional deve revisar Sobre, Privacidade, Termos, FAQ e conhecimento do Pep antes da publicação.
+
+## Plano efetivo, acesso promocional e auditoria (21/11/2026)
+
+- Privacidade V1.0 revisão 08 e Termos V1.0 revisão 07 refletem as concessões de Basic/Full, a revogação individual, os registros de auditoria e a separação entre permissão efetiva e cobrança Asaas.
+- Revisões antigas preservadas. Não há alteração da etiqueta pública V1.0.
