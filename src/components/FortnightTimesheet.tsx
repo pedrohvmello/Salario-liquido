@@ -1,8 +1,8 @@
 import {useMemo,useState} from 'react'
 import {Info,RotateCcw,Save} from 'lucide-react'
-import {classifyHours,type DayEntry,type Overtime} from '../lib/calendar'
+import {classifyHours,paidMonth,type DayEntry,type Overtime} from '../lib/calendar'
 import {recordedHoursBalanceMinutes,type WorkRegime} from '../lib/workRegime'
-import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,type TimeBankPolicy} from '../lib/timeBank'
+import {calculateBankLedger,formatBankMinutes,paidOvertime,shouldAutoBankShortDay,workedMinutes,type TimeBankPolicy} from '../lib/timeBank'
 import {fortnightDays,getFortnight,todayInSaoPaulo} from '../lib/fortnight'
 import {saveTimeEntries} from '../lib/data'
 import {clearedFortnightHours} from '../lib/fortnightReset'
@@ -80,8 +80,12 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
   if(complete){
    try{
     // No calculated value is shown until the actual Base holiday catalog is available.
-    const checked=paidOvertime(entry,holidayDates??new Set<string>())
-    if(holidayDates||trust)calculated=checked
+    if(trust){
+     calculated={total:Math.round(workedMinutes(entry)/60*100)/100,h60:0,h80:0,h100:0,payMonth:paidMonth(entry.date)}
+    }else{
+     const checked=paidOvertime(entry,holidayDates??new Set<string>())
+     if(holidayDates)calculated=checked
+    }
    }catch{invalid=true}
   }
   return {
@@ -91,7 +95,8 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
  })
  const dirtyCurrent=dates.filter(date=>Object.prototype.hasOwnProperty.call(drafts,date))
  const dirtyOutside=Object.keys(drafts).filter(date=>!dates.includes(date)).length
- const savedBank=calculateBankLedger(records,holidayDates,policies)
+ const emptyBank=()=>({balanceMinutes:0,firstMissingPolicyDate:null,firstNegativeDate:null,movements:new Map()})
+ const savedBank=trust?emptyBank():calculateBankLedger(records,holidayDates,policies)
  const previewEntries=[
   ...records.filter(row=>!dirtyCurrent.includes(row.date)),
   ...dirtyCurrent.map(date=>({
@@ -99,7 +104,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
    effectiveHoliday:read(date).holidayOverride??(holidayDates?.has(date)??read(date).effectiveHoliday??false)
   }))
  ]
- const previewBank=calculateBankLedger(previewEntries,holidayDates,policies)
+ const previewBank=trust?emptyBank():calculateBankLedger(previewEntries,holidayDates,policies)
  const savedBalance=trust?recordedHoursBalanceMinutes(records,holidayDates,policies):savedBank.balanceMinutes
  const previewBalance=trust?recordedHoursBalanceMinutes(previewEntries,holidayDates,policies):previewBank.balanceMinutes
  const calculated=rows.map(row=>row.calculated).filter((value):value is Overtime=>value!==null)
@@ -169,11 +174,11 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
    setError('Aguarde o calendário de feriados para registrar movimentos no banco de horas.')
    setSaving(false);return
   }
-  const hypothetical=calculateBankLedger([
+  const hypothetical=trust?null:calculateBankLedger([
    ...records.filter(row=>!dirtyCurrent.includes(row.date)),
    ...changed
   ],holidayDates,policies)
-  if(!trust&&hypothetical.firstMissingPolicyDate){
+  if(hypothetical?.firstMissingPolicyDate){
    setError('Não existe política de Banco de Horas vigente em '+formatDate(hypothetical.firstMissingPolicyDate)+'. Solicite ao administrador uma nova vigência.')
    setSaving(false);return
   }

@@ -609,7 +609,7 @@ export default function App(){
  </div>}
         {section==='hours'&&<div className="stack">
      <div className="page-intro fortnight-page-intro">
-      <div><h2>Jornada e horas extras</h2>
+      <div><h2>{workRegime==='trust'?'Jornada e saldo de horas':'Jornada e horas extras'}</h2>
        <p><strong>Base · {base?baseLabel(base):'Não configurada'}.</strong></p>
       </div>
       <div className="fortnight-page-navigation" aria-label="Selecionar quinzena">
@@ -629,7 +629,7 @@ export default function App(){
      </div>
      {periodPickerOpen&&<FortnightPeriodPicker anchor={hoursAnchor}
  onClose={()=>setPeriodPickerOpen(false)} onConfirm={next=>{setHoursAnchor(next);setPeriodPickerOpen(false)}}/>}
- {holidayStatus==='unconfigured'&&<div className="notice warning"><Info size={18}/>
+ {holidayStatus==='unconfigured'&&workRegime==='regular'&&<div className="notice warning"><Info size={18}/>
       Configure sua Base em Definições para calcular os feriados e as horas extras.</div>}
      {holidayCalendar?.coverage==='partial'&&<div className="notice warning">
       <Info size={18}/>{holidayCalendar.message}</div>}
