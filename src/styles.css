@@ -3467,3 +3467,40 @@ body .payrep-regime-choices .payrep-regime-choice input[type="radio"]{appearance
 .mobile-stack-table.mobile-admin-documents tbody td:nth-child(3)::before{content:"Revisão"}
 .mobile-stack-table.mobile-admin-documents tbody td:nth-child(4)::before{content:"Ações"}
 }
+
+
+/* Subscription payment history: customer documents, no separate checkout ledger. */
+.billing-payment-table{width:100%}
+.billing-payment-table td{vertical-align:middle}
+.billing-payment-table td:last-child{min-width:146px}
+.billing-documents-toggle{display:inline-flex;align-items:center;gap:7px;min-height:38px;white-space:nowrap}
+.billing-documents-toggle svg:last-child{transition:transform .18s ease}
+.billing-documents-toggle svg:last-child.is-open{transform:rotate(180deg)}
+.billing-payment-expanded td{border-bottom-color:transparent}
+.billing-payment-details-row>td{padding:0!important;background:#fcf9ff;border-top:0}
+.billing-payment-document-panel{display:block;padding:18px 19px;border:1px solid #e6d9f1;border-top:0;border-radius:0 0 12px 12px;text-align:left;overflow-wrap:anywhere}
+.billing-payment-document-panel p{margin:0;color:#745987;font-size:13px}
+.billing-document-content{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:17px}
+.billing-document-meta{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#765a88}
+.billing-document-meta strong{font-size:13px;color:#43176c}
+.billing-document-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.billing-document-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 13px;text-decoration:none;border:1px solid #e2cafa;border-radius:10px;background:#fff;color:#662295;font-size:12px;font-weight:700;min-height:42px}
+.billing-document-actions a:hover{background:#f6eafa}
+.billing-document-actions a:focus-visible{outline:3px solid #b17fe2;outline-offset:2px}
+.billing-document-error{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:#9e3351}
+.billing-payments-note{font-size:12px;line-height:1.6;margin:15px 0 0}
+@media (max-width:760px) and (pointer:coarse){
+ .billing-payment-table-scroll{overflow:visible}
+ .mobile-stack-table.mobile-subscription-payments tbody td:nth-child(5)::before{content:"Vencimento"}
+ .mobile-stack-table.mobile-subscription-payments tbody td:nth-child(6)::before{content:"Documentos"}
+ .mobile-stack-table.mobile-subscription-payments tbody tr.billing-payment-details-row{margin-top:-11px;padding:0;border-radius:0 0 12px 12px;overflow:hidden}
+ .mobile-stack-table.mobile-subscription-payments tbody tr.billing-payment-details-row>td{display:block!important;width:100%;padding:0!important;min-height:0}
+ .mobile-stack-table.mobile-subscription-payments tbody tr.billing-payment-details-row>td::before{display:none!important}
+ .mobile-stack-table.mobile-subscription-payments tbody tr.billing-payment-expanded{border-radius:12px 12px 0 0}
+ .billing-payment-document-panel{padding:13px 11px}
+ .billing-document-content{align-items:stretch;flex-direction:column}
+ .billing-document-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+ .billing-document-actions a{min-height:44px;white-space:normal}
+ .billing-documents-toggle{min-height:43px;padding-inline:9px;white-space:normal}
+ .billing-payment-table td:last-child{min-width:0}
+}

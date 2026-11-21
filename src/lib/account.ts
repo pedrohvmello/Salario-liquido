@@ -34,6 +34,34 @@ export type BillingPayment={
  id:string;provider:string;description:string;amount_cents:number;currency:string;status:string;
  due_at:string|null;paid_at:string|null;created_at:string
 }
+/** Official Asaas payment page and payment receipt, not an electronic tax invoice (NFS-e). */
+export type BillingPaymentDocuments={
+ invoiceUrl:string|null;receiptUrl:string|null;invoiceNumber:string|null;billingType:string|null
+}
+export async function loadMyPaymentDocuments(paymentId:string):Promise<BillingPaymentDocuments>{
+ if(!db)throw Error('Banco não configurado.')
+ if(!/^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$/.test(paymentId))
+  throw Error('Pagamento inválido.')
+ const {data,error}=await db.functions.invoke('billing-payment-documents',{body:{paymentId}})
+ if(error)throw Error('Não foi possível consultar os documentos no Asaas. Tente novamente.')
+ if(!data||typeof data!=='object'||'error' in data)
+  throw Error(typeof data?.error==='string'?data.error:'Documentos indisponíveis.')
+ const link=(value:unknown):string|null=>{
+  if(typeof value!=='string')return null
+  try{
+   const url=new URL(value)
+   return url.protocol==='https:'&&!url.username&&!url.password&&
+    ['www.asaas.com','asaas.com','sandbox.asaas.com'].includes(url.hostname)?url.href:null
+  }catch{return null}
+ }
+ return {
+  invoiceUrl:link(data.invoiceUrl),
+  receiptUrl:link(data.receiptUrl),
+  invoiceNumber:typeof data.invoiceNumber==='string'?data.invoiceNumber:null,
+  billingType:typeof data.billingType==='string'?data.billingType:null
+ }
+}
+
 export type BillingPlan={
  code:PlanCode;label:string;monthly_price_cents:number|null;
  currency:string;available_for_checkout:boolean

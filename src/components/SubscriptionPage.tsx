@@ -1,11 +1,11 @@
 import {useEffect,useState} from 'react'
-import {ArrowLeft,Check,CreditCard,Info,ShieldCheck} from 'lucide-react'
+import {ArrowLeft,Check,CreditCard,Info} from 'lucide-react'
 import {PlanBenefitsDialog} from './PlanBenefitsDialog'
-import {paymentStatusText} from '../lib/adminEntitlements'
 import {cancelMyAsaasSandboxRenewal,loadMyPlanBenefitLimits,loadMyEffectivePayrepPlan,loadMyBilling,loadMyCheckoutIntents,reconcileMyAsaasSandboxBilling,redeemPayrepPromoCode,startAsaasSandboxCheckout,type BillingCheckoutIntent,type BillingPayment,type BillingPlan,type BillingSubscription,type BillingReconciliationResult,type EffectivePayrepPlan,type PlanBenefitLimits} from '../lib/account'
 import type {BillingReturn} from '../lib/billingReturn'
 import {CheckoutPayerReview} from './CheckoutPayerReview'
 import {PlanSubscriptionFlow} from './PlanSubscriptionFlow'
+import {BillingPaymentHistory} from './BillingPaymentHistory'
 import {loadMyProfile,saveMyProfile,type PayrepProfile} from '../lib/account'
 const names={free:'Free',basic:'Basic',full:'Full'}
 type PlanCode=keyof typeof names
@@ -308,20 +308,11 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
      </div>
     })}</div>
    </section>}
-   {checkoutHistory.length>0&&<section className="panel">
-    <div className="panel-heading"><h2>Checkouts de assinatura</h2></div>
-    <p className="subtle">O retorno do Asaas não confirma pagamento nem altera automaticamente o plano. O processamento depende da conciliação segura dos webhooks.</p>
-    <div className="table-scroll"><table className="mobile-stack-table mobile-subscription-checkouts"><thead><tr><th>Plano</th><th>Valor</th><th>Status</th><th>Criação</th></tr></thead>
-     <tbody>{checkoutHistory.map(c=><tr key={c.id}><td>{names[c.plan_code]}</td><td>{currency(c.amount_cents,c.currency)}</td><td>{c.status==='paid'&&current.plan_code==='free'?'Aguardando confirmação do pagamento':paymentStatusText(c.status)}</td><td>{date(c.created_at)}</td></tr>)}</tbody>
-    </table></div>
-   </section>}
    {benefitsOpen&&benefitLimits&&<PlanBenefitsDialog plan={benefitsOpen}
     features={planFeatures[benefitsOpen]} limits={benefitLimits}
     paidPlan={current.plan_code} activeSubscription={current.status==='active'}
     onClose={()=>setBenefitsOpen(null)}/>}
-   <section className="panel"><div className="panel-heading"><h2><ShieldCheck size={17}/> Pagamentos</h2></div>
-    {data.payments.length?<div className="table-scroll"><table className="mobile-stack-table mobile-subscription-payments"><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>{data.payments.map(p=><tr key={p.id}><td>{date(p.paid_at||p.created_at)}</td><td>{p.description||p.provider}</td><td>{currency(p.amount_cents,p.currency)}</td><td>{paymentStatusText(p.status)}</td></tr>)}</tbody></table></div>:<p className="subtle">Nenhum pagamento registrado.</p>}
-   </section>
+   <BillingPaymentHistory payments={data.payments}/>
   </>}
  </div>
 }
