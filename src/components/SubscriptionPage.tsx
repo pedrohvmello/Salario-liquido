@@ -222,7 +222,7 @@ export function SubscriptionPage({onBack,billingReturn=null}:{onBack:()=>void;bi
       access?.manualAccessActive?(names[access.manualAccessPlan||'free']+' promocional'):
       access?.promoApplied?(names[access.promoPlan||'free']+' promoção'):
       access?.trialActive?'Full teste':names[current.plan_code]||'Free'}</span></div>
-    <div className="subscription-current"><strong>{adminAccess?'Acesso administrativo integral':access?.adminOverridePlan?'Plano '+names[access.adminOverridePlan]+' · definido pelo administrador':
+    <div className="subscription-current"><strong>{adminAccess?'Acesso administrativo integral':access?.adminOverridePlan?'Plano '+names[access.adminOverridePlan]:
       access?.manualAccessActive?'Plano '+names[access.manualAccessPlan||'free']+' · acesso promocional':
       access?.promoApplied?'Plano '+names[access.promoPlan||'free']+' · promocional':
       access?.trialActive?'Full · teste gratuito':'Plano '+(names[current.plan_code]||'Free')}</strong><span>
