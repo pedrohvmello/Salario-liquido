@@ -3,12 +3,22 @@ import {readFileSync,statSync} from 'node:fs'
 describe('Payrep public Pep presentation',()=>{
  const home=readFileSync('public/home.html','utf8')
  const styles=readFileSync('public/public-pages.css','utf8')
- it('publishes video on Home with controls, poster and native responsive layout',()=>{
+ it('publishes a muted looping autoplay video on Home without native controls',()=>{
   expect(home).toContain('id="home-pep-title"')
-  expect(home).toContain('src="/media/pep-apresentacao.mp4"')
-  expect(home).toContain('poster="/media/pep-apresentacao-poster.webp"')
-  expect(home).toContain('controls playsinline preload="metadata"')
-  expect(styles).toContain('.home-pep-feature')
+  const videoTag=home.match(/<video id="home-pep-video"[^>]*>/)?.[0]
+  expect(videoTag).toBeDefined()
+  expect(videoTag).toContain('src="/media/pep-apresentacao.mp4"')
+  expect(videoTag).toContain('poster="/media/pep-apresentacao-poster.webp"')
+  expect(videoTag).toMatch(/autoplay loop muted playsinline preload="auto"/)
+  expect(videoTag).not.toMatch(/\scontrols(?:\s|=|>)/)
+  expect(videoTag).toContain('disablepictureinpicture')
+  expect(home).toContain('id="home-pep-audio"')
+  expect(home).toContain('aria-pressed="false"')
+  expect(home).toContain("button.addEventListener('click'")
+  expect(home).toContain('video.muted=!video.muted')
+  expect(home).toContain('void video.play().catch')
+  expect(styles).toContain('.home-pep-audio-toggle')
+  expect(styles).toContain('.home-pep-audio-toggle svg[hidden]{display:none}')
   expect(styles).toContain('aspect-ratio:16/9')
  })
  it('uses a real optimized MP4 and poster rather than an external expiring URL',()=>{
