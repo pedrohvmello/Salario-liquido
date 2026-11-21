@@ -1,0 +1,25 @@
+import {describe,expect,it} from 'vitest'
+import {readFileSync,statSync} from 'node:fs'
+describe('Payrep public Pep presentation',()=>{
+ const home=readFileSync('public/home.html','utf8')
+ const styles=readFileSync('public/public-pages.css','utf8')
+ it('publishes video on Home with controls, poster and native responsive layout',()=>{
+  expect(home).toContain('id="home-pep-title"')
+  expect(home).toContain('src="/media/pep-apresentacao.mp4"')
+  expect(home).toContain('poster="/media/pep-apresentacao-poster.webp"')
+  expect(home).toContain('controls playsinline preload="metadata"')
+  expect(styles).toContain('.home-pep-feature')
+  expect(styles).toContain('aspect-ratio:16/9')
+ })
+ it('uses a real optimized MP4 and poster rather than an external expiring URL',()=>{
+  const media=statSync('public/media/pep-apresentacao.mp4')
+  expect(media.size).toBeGreaterThan(20000)
+  expect(media.size).toBeLessThan(1500000)
+  expect(statSync('public/media/pep-apresentacao-poster.webp').size).toBeGreaterThan(1000)
+ })
+ it('preserves users intent to hear narration on interaction',()=>{
+  const paywall=readFileSync('src/components/PersonalPepPage.tsx','utf8')
+  expect(paywall).toContain('controls playsInline preload="metadata"')
+  expect(paywall).not.toContain('autoPlay loop muted playsInline preload="metadata"')
+ })
+})

@@ -71,3 +71,15 @@
 /* Login entry icon, aligned with Payrep's line icon system. */
 .public-nav .nav-login{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .public-nav .nav-login svg{flex:0 0 16px;display:block}
+
+/* Home: native responsive video with user-initiated sound */
+.home-pep-feature{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:38px;background:#fff;border:1px solid #e9d9f1;border-radius:24px;padding:32px;box-shadow:0 18px 48px rgba(68,14,111,.055)}
+.home-pep-feature h2{font-size:clamp(25px,3vw,34px);margin:13px 0 16px;color:#2b1148;letter-spacing:-.03em}
+.home-pep-feature .home-pep-feature-copy>p{font-size:14px;line-height:1.75;color:#6b567d}
+.home-pep-feature .home-pep-feature-note{font-size:12px;color:#826d90;margin-top:12px}
+.home-pep-feature .public-cta{margin-top:25px;gap:9px}
+.home-pep-feature .public-button{font-size:12px;min-height:44px;padding:10px 16px}
+.home-pep-video-frame{border-radius:17px;overflow:hidden;background:#280a41;box-shadow:0 12px 32px rgba(42,13,68,.13);aspect-ratio:16/9}
+.home-pep-video-frame video{display:block;width:100%;height:100%;object-fit:contain;background:#280a41}
+@media(max-width:820px){.home-pep-feature{grid-template-columns:1fr;gap:23px;padding:24px}}
+@media(max-width:580px){.home-pep-feature{padding:18px}.home-pep-feature .public-button{width:100%}.home-pep-feature .home-pep-feature-copy>p{font-size:13px}}

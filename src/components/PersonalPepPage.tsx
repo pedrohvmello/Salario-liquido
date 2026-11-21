@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import {ArrowLeft,Bot,CheckCircle2,FileText,LockKeyhole,Sparkles} from 'lucide-react'
 import {SupportAiChat} from './SupportAiChat'
+import {PepMascot} from './PepMascot'
 import {fetchMyPepUsage,type MyPepUsage} from '../lib/supportAiLimits'
 import {db} from '../lib/data'
 import {pepAssistantEnabled} from '../lib/environment'
@@ -46,7 +47,7 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
     <h2 id="pep-upgrade-title">Seu salário tem perguntas. O Pep pode ajudar nas respostas.</h2>
     <p>Vá além da projeção: consulte os dados cadastrados na sua conta, explore cenários e entenda melhor os componentes da sua remuneração, conforme o plano contratado.</p>
    </div>
-   <img className="pep-upgrade-mascot" src="/brand/pep-reply-avatar.webp" alt="Pep, assistente financeiro do Payrep" width={156} height={156} decoding="async"/>
+   <div className="pep-upgrade-mascot-animated"><PepMascot variant="header" videoUrl={pepVideoUrl} videoLoading={pepVideoLoading}/></div>
   </div>
   <div className="pep-upgrade-plans">
    <article className="pep-upgrade-plan">
@@ -66,6 +67,18 @@ export function PersonalPepPage({onBack,onSubscribe}:{onBack:()=>void;onSubscrib
     </ul>
    </article>
   </div>
+  <section className="pep-upgrade-video-showcase" aria-labelledby="pep-upgrade-video-title">
+   <div className="pep-upgrade-video-text"><span className="pep-upgrade-video-kicker">CONHEÇA O ASSISTENTE</span>
+    <h3 id="pep-upgrade-video-title">Um minuto de atenção ao seu salário começa com 10 segundos de Pep.</h3>
+    <p>Veja uma breve apresentação do assistente. As consultas aos seus dados pessoais dependem do plano e das informações disponíveis na sua conta.</p>
+   </div>
+   <div className="pep-upgrade-video-frame">
+    <video src="/media/pep-apresentacao.mp4" poster="/media/pep-apresentacao-poster.webp"
+     controls playsInline preload="metadata" aria-label="Vídeo de apresentação do Pep com narração" width={960} height={540}>
+     Seu navegador não suporta reprodução de vídeo.
+    </video>
+   </div>
+  </section>
   <div className="pep-upgrade-footer">
    <div><strong>Escolha o nível de análise ideal para você.</strong><p>Confira preços, condições e disponibilidade atual dos planos antes de contratar.</p></div>
    <button className="primary pep-upgrade-cta" type="button" onClick={onSubscribe}><Bot size={18}/> Ver planos e preços</button>

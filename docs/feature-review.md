@@ -23,3 +23,14 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Pep Ajuda:** atualizado no conhecimento compartilhado para explicar o novo recurso de busca; mantém isolamento de dados e controles de quota.
 - **Interface:** o bloqueio do Pep pessoal Free apresenta benefícios de Basic e Full e direciona à tela Assinatura, que determina preços e disponibilidade atuais. Botão Voltar removido dessa oferta. Menu reorganizado para Visão geral > Meus Holerites > Eventos e vigências.
 - **Versionamento legal:** Política V1.0 revisão 07 e Termos V1.0 revisão 06 inalterados, pois não ocorreram mudanças na finalidade de tratamento nem nas condições comerciais.
+
+## Vídeo de apresentação do Pep (20/11/2026)
+
+- **Sobre:** revista sem alteração: descrição do Pep pessoal e Pep Ajuda continua correta.
+- **Privacidade:** revista sem alteração: vídeo promocional público não lê dados de usuário nem utiliza IA por si só; não introduz novo tratamento de dados pessoais.
+- **Termos:** revistos sem alteração: vídeo apresenta funcionalidades sem alterar planos, direitos, preços ou cancelamento.
+- **FAQ:** revisto sem alteração: como acessar o Pep e conhecer planos já consta nas orientações.
+- **Pep Ajuda:** revisto sem alteração: responde às mesmas perguntas e conserva a mesma base de conhecimento.
+- **Interface:** substituir imagem estática do Pep no paywall por animação existente `pep-chat-loop.mp4`, com fallback estático e preferência por movimento reduzido; incluir o vídeo promocional enviado pelo titular tanto no paywall quanto na Home, com controles e áudio apenas mediante reprodução iniciada pelo visitante.
+- **Mídia:** original 1920x1080, 10 segundos, com áudio. Versão publicada em H.264/AAC 960x540 (~530 KB), com poster WebP. Arquivos de apresentação são estáticos e compartilhados entre os frontends HML e PRD; não alteram os buckets de cada Supabase.
+- **Versionamento:** permanece V1.0 e as revisões legais arquivadas não foram alteradas.
