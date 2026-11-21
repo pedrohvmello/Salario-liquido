@@ -82,3 +82,13 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Produto:** Base e Regime de Jornada são painéis HTML details inicialmente recolhidos; Jornada regular é o padrão persistido. Cargo de confiança suprime cálculos de extras e banco, não altera dias registrados, mas permite registro voluntário e saldo informativo por jornada completa versus política (ou 8h em dias úteis).
 - **Informe IR:** para Free sem documentos, tela de benefícios e CTA para Assinatura; com documentos anteriores, permite continuar consultando. Basic/Full continuam com importação e revisão do PDF.
 - **Banco:** coluna work_regime com check e default regular. Nenhuma migração, remoção ou recálculo dos registros time_entries.
+
+## Definições em cards e e-mail de recuperação de senha (21/11/2026)
+
+- **Sobre:** revisada sem modificação do catálogo de funcionalidades; as Definições existentes passam a seguir a navegação por cards do administrador.
+- **Privacidade:** revisada, o mecanismo de recuperação continua usando Supabase Auth, sem novos campos de dados ou prestadores; HTML de recuperação apenas ajusta a identidade visual.
+- **Termos:** revisados sem alterações contratuais: conta, senha e regime existentes continuam sujeitos às mesmas regras.
+- **FAQ:** atualizadas as instruções de Definições e acrescentada a pergunta sobre redefinição de senha via Segurança.
+- **Pep Ajuda:** utiliza o FAQ compartilhado, sincronizado na Edge Function support-ai.
+- **Interface:** tela Definições lista cards de Base e Regime de Jornada com ícones, descrição e botão. A subpágina de Regime usa radios isolados do CSS global de inputs.
+- **Autenticação:** preparado o HTML de Reset Password para o Supabase Auth hospedado (HML e PRD), preservando {{ .ConfirmationURL }}. O remetente noreply@payrep.com.br depende da configuração SMTP autenticada no Supabase Auth para cada projeto. O arquivo no GitHub não altera automaticamente a configuração hospedada.

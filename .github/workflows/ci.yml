@@ -2,7 +2,7 @@ name: Tests and build
 on:
   pull_request:
   push:
-    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120, codex/payrep-help-legal-sync-20261120, codex/payrep-faq-search-pep-offer-20261120, codex/payrep-pep-video-home-20261120, codex/payrep-admin-access-20261121, codex/payrep-benefits-20261121, codex/payrep-transparent-pep-20261121, codex/payrep-pep-banner-v2-20261121, codex/payrep-hours-regime-ir-20261121]
+    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120, codex/payrep-help-legal-sync-20261120, codex/payrep-faq-search-pep-offer-20261120, codex/payrep-pep-video-home-20261120, codex/payrep-admin-access-20261121, codex/payrep-benefits-20261121, codex/payrep-transparent-pep-20261121, codex/payrep-pep-banner-v2-20261121, codex/payrep-hours-regime-ir-20261121, codex/payrep-definitions-recovery-email-20261121]
 permissions:
   contents: read
 jobs:
@@ -18,6 +18,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: node scripts/check-feature-review.cjs
       - run: npm run build
+      - run: npx vitest run src/lib/authRecoveryTemplate.test.ts
       - run: npx vitest run src/lib/workRegime.test.ts src/lib/workRegimeUi.test.ts
       - run: npx vitest run src/lib/adminEntitlements.test.ts src/lib/adminAccessUi.test.ts src/lib/pepContractSnapshot.test.ts src/components/PlanSubscriptionFlow.test.tsx src/lib/pepMarketingVideo.test.ts
       - run: npx vitest run src/lib/helpKnowledge.test.ts src/lib/helpFaqSearch.test.ts src/lib/navigationUpgrade.test.ts
