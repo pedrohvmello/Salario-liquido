@@ -244,7 +244,7 @@ export function FortnightTimesheet({anchor,records,holidayDates,policies,baseNam
      return <details key={row.date} className={[
       'fortnight-mobile-day',changed?'is-dirty':'',row.invalid?'is-invalid':'',
       row.holiday?'is-holiday':'',row.date===today?'is-today':''
-     ].filter(Boolean).join(' ')} defaultOpen={row.date===today}>
+     ].filter(Boolean).join(' ')}>
       <summary>
        <div className="fortnight-mobile-day-title"><strong>{weekday(row.date)} · {formatDate(row.date)}</strong>
         <small>{row.holiday?'Feriado · ':''}{changed?'Não salvo · ':''}{row.complete?'Jornada registrada':'Toque para preencher'}</small>
