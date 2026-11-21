@@ -136,7 +136,7 @@ export function FinancialInsights({year,statements,lines,vacationLedger,metrics,
      <Bar dataKey="net" name="Líquido recebido" fill={green} maxBarSize={45} radius={[5,5,0,0]}/>
     </BarChart>
    </ResponsiveContainer></ChartRoot>
-    <div className="financial-insights-table-wrap"><table className="financial-insights-table">
+    <div className="financial-insights-table-wrap"><table className="financial-insights-table mobile-stack-table mobile-financial-years">
      <thead><tr><th>Ano</th><th>Meses</th><th>Bruto identificado</th><th>Líquido recebido</th><th>Variação do bruto</th><th>Variação do líquido</th></tr></thead>
      <tbody>{comparisons.map(row=><tr key={row.year}>
       <th scope="row">{row.year}</th>
@@ -156,7 +156,7 @@ export function FinancialInsights({year,statements,lines,vacationLedger,metrics,
     <p>{auditCount} competência(s) mensal(is) identificada(s). Totalizadoras pagas contam uma vez; diferenças e retificadoras são evidências.</p>
    </div>
    {audits.length?<div className="financial-insights-table-wrap">
-    <table className="financial-insights-table">
+    <table className="financial-insights-table mobile-stack-table mobile-financial-documents">
      <thead><tr><th>Ano</th><th>Holerites mensais</th><th>Totalizadoras</th><th>Retificadoras</th><th>Diferenças</th><th>Conciliação IR</th><th>Diferença</th></tr></thead>
      <tbody>{audits.map(row=><tr key={row.year}>
       <th scope="row">{row.year}</th><td>{row.months}/12</td>
