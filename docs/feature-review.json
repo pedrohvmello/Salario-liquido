@@ -10,7 +10,7 @@
     "pepAjuda": "Base de conhecimento atualizada com franquia contratada, controles de plano e gerenciamento administrativo."
   },
   "sourceTrees": {
-    "src": "f65fb4e207288a0dd87066f13fefe6d3f9865fdf",
+    "src": "d7c121b8262701b9d7e8fcd637dd2df113ed50a2",
     "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
     "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
   }
