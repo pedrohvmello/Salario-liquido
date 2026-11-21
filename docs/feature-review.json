@@ -10,7 +10,7 @@
     "pepAjuda": "Base compartilhada atualizada com limites do Free e efeito do regime sobre horas extras, banco e saldo."
   },
   "sourceTrees": {
-    "src": "5c52c271205a2ca6a5e9d5339fadd051b37639eb",
+    "src": "6c7ed720ebde49435d9d6105923c295f882418dd",
     "supabase/functions": "d1344612daf75685a056e40379faeb1422ed4c87",
     "supabase/migrations": "a2b241972708ce4f3d289bb5e42c2beb476cdc22"
   }
