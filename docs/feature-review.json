@@ -1,16 +1,16 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-21",
-  "feature": "Pep transparente no banner de upgrade com vídeo WebM alpha e fallback acessível",
+  "feature": "Substituição da animação do Pep no banner pela versão 2 transparente gerada do novo vídeo",
   "review": {
-    "sobre": "Revisada: conteúdo não alterado porque a animação não acrescenta funcionalidades.",
-    "privacidade": "Revisada: vídeo servido localmente, sem novos dados pessoais ou integrações externas.",
-    "termos": "Revisados: mídia decorativa sem alterações das condições de contratação ou benefícios.",
-    "faq": "Revisado: não há novas ações do usuário ou funcionalidades que justifiquem atualizar perguntas.",
-    "pepAjuda": "Revisado: limites e conhecimento preservados; animação restrita à tela de upgrade do Pep pessoal."
+    "sobre": "Revisada sem mudanças: a animação não altera funcionalidades.",
+    "privacidade": "Revisada sem mudanças: mídia hospedada no Payrep sem terceiros nem novos tratamentos.",
+    "termos": "Revisados sem mudanças: apenas troca de vídeo decorativo, nenhuma condição comercial alterada.",
+    "faq": "Revisado sem mudanças: operação e respostas inalteradas.",
+    "pepAjuda": "Revisado sem mudanças: assistente e conteúdo técnico permanecem inalterados."
   },
   "sourceTrees": {
-    "src": "a104fe82d5c6dcbe8c8b5e341e1c1f0995ec849c",
+    "src": "70f01a7c72771f015a29624b55ce3450ff1f7576",
     "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
     "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
   }
