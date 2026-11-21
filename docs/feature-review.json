@@ -1,16 +1,16 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-20",
-  "feature": "Busca instantânea do FAQ, categorias recolhidas, oferta do Pep Free e ordem do menu",
+  "feature": "Vídeo de apresentação do Pep na Home e oferta dos planos; animação existente no cabeçalho do paywall",
   "review": {
-    "sobre": "Atualizado: FAQ agora permite pesquisa local automática por palavras-chave, com categorias recolhidas.",
-    "privacidade": "Revisada sem alteração textual: consulta local às perguntas públicas sem novo tratamento pessoal.",
-    "termos": "Revisados sem alteração textual: benefícios de Basic e Full permanecem conforme regras já descritas.",
-    "faq": "80 perguntas e 10 categorias, fechamento inicial por tópico, pesquisa automática e respostas exibidas na busca.",
-    "pepAjuda": "Base compartilhada atualizada para explicar busca FAQ, limites de consumo e separação dos modos mantidos."
+    "sobre": "Revisada sem mudança textual: Pep Ajuda e Pep pessoal continuam descritos corretamente.",
+    "privacidade": "Revisada sem alteração: vídeo público de apresentação não envolve novo tratamento de dados pessoais.",
+    "termos": "Revisados sem alteração: vídeo não muda planos, cobranças, cancelamento ou direitos dos usuários.",
+    "faq": "Revisado sem alteração textual: respostas atuais cobrem acesso ao Pep e contratação dos planos.",
+    "pepAjuda": "Revisado sem alteração no backend: mesma base de 80 perguntas; vídeo somente institucional, não muda assistente."
   },
   "sourceTrees": {
-    "src": "737df0ae80e262a194b3b71232ff7cb0b6bda2f3",
+    "src": "677628485100c5757566bf6fd9f1b99717b07019",
     "supabase/functions": "ded4bf35496594155762996abd5d432d4d91f344",
     "supabase/migrations": "912aa6496e881acd150d0266fedd1edeac69e5a9"
   }
