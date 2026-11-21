@@ -343,7 +343,7 @@ export function TaxPreview({userId,statements,lines,onSubscribe}:{userId:string|
        officialSalary!==null&&Math.abs(bridge.taxableReconciled-officialSalary)<=.01?'Conciliado':'Em conferência'}</span>
      </div>
      <p className="subtle">Apuração baseada nas rubricas conhecidas dos holerites e nas folhas totalizadoras efetivamente pagas. As retificadoras e folhas de diferença são evidências e não aumentam os recebimentos. O Informe IR conferido prevalece como documento oficial.</p>
-     <div className="table-scroll"><table>
+     <div className="table-scroll"><table className="mobile-stack-table mobile-ir-flow">
       <thead><tr><th>Etapa</th><th>Valor</th></tr></thead>
       <tbody>
        <tr><td>Proventos dos holerites mensais</td><td>{bridge.monthlyGross===null?'Não identificado':brl(bridge.monthlyGross)}</td></tr>
@@ -373,7 +373,7 @@ export function TaxPreview({userId,statements,lines,onSubscribe}:{userId:string|
     <details className="panel ir-compare-details">
      <summary>Comparação com holerites cadastrados <span>Opcional</span></summary>
      <p className="subtle">Os totais por competência são indicativos, e não substituem o documento anual. A comparação só é possível quando há dados compatíveis.</p>
-     <div className="table-scroll"><table>
+     <div className="table-scroll"><table className="mobile-stack-table mobile-ir-comparison">
       <thead><tr><th>Rubrica</th><th>Informe da empresa (R$)</th><th>Apuração dos holerites</th><th>Diferença</th></tr></thead>
       <tbody>{OFFICIAL_FIELDS.map(field=>{
        const imported=sourceConfirmed?report.reviewed_values[field.key]??null:null
