@@ -1,16 +1,16 @@
 {
   "version": 1,
   "reviewedAt": "2026-11-21",
-  "feature": "Planos detalhados, franquia diária pessoal do Pep preservada, revisão da apresentação e consolidação da administração",
+  "feature": "Pep transparente no banner de upgrade com vídeo WebM alpha e fallback acessível",
   "review": {
-    "sobre": "Franquia contratada imutável do Pep e apresentação de recursos por plano.",
-    "privacidade": "V1.0 revisão 09: registro do limite pessoal capturado no checkout; limites de sistema separados.",
-    "termos": "V1.0 revisão 08: franquia mínima pessoal preservada na assinatura, porém sujeita à cota global e ao provedor externo.",
-    "faq": "Novas respostas sobre benefícios detalhados, limite contratado e filtros na administração.",
-    "pepAjuda": "Base de conhecimento atualizada com franquia contratada, controles de plano e gerenciamento administrativo."
+    "sobre": "Revisada: conteúdo não alterado porque a animação não acrescenta funcionalidades.",
+    "privacidade": "Revisada: vídeo servido localmente, sem novos dados pessoais ou integrações externas.",
+    "termos": "Revisados: mídia decorativa sem alterações das condições de contratação ou benefícios.",
+    "faq": "Revisado: não há novas ações do usuário ou funcionalidades que justifiquem atualizar perguntas.",
+    "pepAjuda": "Revisado: limites e conhecimento preservados; animação restrita à tela de upgrade do Pep pessoal."
   },
   "sourceTrees": {
-    "src": "d7c121b8262701b9d7e8fcd637dd2df113ed50a2",
+    "src": "fcd7a01b6db86323a259f66a321585eceff9301a",
     "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
     "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
   }
