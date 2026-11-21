@@ -8,7 +8,7 @@ import {type WorkRegime} from './lib/workRegime'
 import {overtimeComponents,overtimeDsr} from './lib/overtimeDsr'
 import {type BaseLocation,baseKey,baseLabel} from './lib/base'
 import {loadHolidayCatalog,type HolidayCatalog} from './lib/holidayBase'
-import {BasePicker} from './components/BasePicker'
+import {DefinitionsPage} from './components/DefinitionsPage'
 import {PayrepSelect} from './components/PayrepSelect'
 import {PayrepDatePicker} from './components/PayrepDatePicker'
 import {FortnightTimesheet} from './components/FortnightTimesheet'
@@ -706,36 +706,14 @@ export default function App(){
     {section==='help'&&user&&<SupportPage user={user}/>}
     {section==='pep-personal'&&user&&<PersonalPepPage
      onBack={()=>setSection('overview')} onSubscribe={()=>setSection('subscription')}/>}
-     {section==='definitions'&&<div className="stack payrep-definitions">
-     <details className="payrep-definition-accordion">
-      <summary><span>Configure sua Base</span><ChevronRight size={18} aria-hidden="true"/></summary>
-      <div className="payrep-definition-body">
-       <BasePicker current={base} busy={busy} onSave={next=>task(async()=>{
-        if(!db)throw Error('Banco não configurado')
-        await saveBase(next);await refresh()
-       },'Base atualizada. O calendário será recalculado para a nova cidade.')}/>
-      </div>
-     </details>
-     <details className="payrep-definition-accordion">
-      <summary><span>Regime de Jornada</span><ChevronRight size={18} aria-hidden="true"/></summary>
-      <div className="payrep-definition-body">
-       <fieldset className="payrep-work-regime-options" disabled={busy}>
-        <legend className="sr-only">Regime de Jornada</legend>
-        <label><input type="radio" name="work-regime" value="regular" checked={workRegime==='regular'}
-          onChange={()=>void task(async()=>{await saveWorkRegime('regular');setWorkRegime('regular')},
-           'Jornada regular ativada. Cálculos de horas extras e banco de horas habilitados.')}/>
-         Jornada regular (com controle de horas)</label>
-        <label><input type="radio" name="work-regime" value="trust" checked={workRegime==='trust'}
-          onChange={()=>void task(async()=>{await saveWorkRegime('trust');setWorkRegime('trust')},
-           'Cargo de confiança ativado. Cálculos de horas extras e novos movimentos no banco desabilitados.')}/>
-         Cargo de confiança (sem controle de jornada)</label>
-       </fieldset>
-       <p className="subtle payrep-work-regime-explanation">{workRegime==='trust'?
-        'Horas extras e novos movimentos do banco ficam desabilitados. Os horários continuam disponíveis para registro voluntário; o Saldo de Horas é informativo, calculado pelas horas registradas menos a jornada de referência. O histórico do banco permanece armazenado.':
-        'Controle de horas, horas extras e banco de horas habilitados. O saldo segue as regras do banco de horas.'}</p>
-      </div>
-     </details>
-    </div>}
+     {section==='definitions'&&<DefinitionsPage
+      base={base} busy={busy} workRegime={workRegime}
+      onSaveBase={next=>task(async()=>{if(!db)throw Error('Banco não configurado');await saveBase(next);await refresh()},
+       'Base atualizada. O calendário será recalculado para a nova cidade.')}
+      onSaveRegime={next=>task(async()=>{await saveWorkRegime(next);setWorkRegime(next)},
+       next==='trust'?'Cargo de confiança ativado. Horas extras e novos movimentos do banco desabilitados.':
+        'Jornada regular ativada. Horas extras e banco de horas habilitados.')}/>}
+
    </div>
  )
  return <div className={'app'+(sidebarCollapsed?' app--sidebar-collapsed':'')}>

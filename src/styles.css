@@ -3194,23 +3194,7 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
  }
 }
 
-/* Collapsed, native-accessible sections in Definições. */
-.payrep-definitions{width:100%;max-width:1300px;margin:0 auto}
-.payrep-definition-accordion{background:#fff;border:1px solid #e8dcf4;border-radius:17px;box-shadow:0 5px 20px rgba(64,22,104,.045);overflow:hidden}
-.payrep-definition-accordion>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;list-style:none;padding:21px 24px;font-weight:750;font-size:17px;color:#36164d}
-.payrep-definition-accordion>summary::-webkit-details-marker{display:none}
-.payrep-definition-accordion>summary svg{color:#8430bb;transition:transform .16s}
-.payrep-definition-accordion[open]>summary svg{transform:rotate(90deg)}
-.payrep-definition-accordion[open]>summary{border-bottom:1px solid #eddef7}
-.payrep-definition-body{padding:23px 24px}
-.payrep-definition-accordion>summary:focus-visible{outline:2px solid #9034c1;outline-offset:-3px}
-.payrep-work-regime-options{border:1px solid #e9ddf2;border-radius:12px;padding:15px 18px;margin:0;display:flex;flex-direction:column;gap:18px}
-.payrep-work-regime-options label{display:flex;align-items:center;gap:12px;cursor:pointer;color:#37194e;font-size:14px}
-.payrep-work-regime-options input{accent-color:#8300d2;width:19px;height:19px;flex-shrink:0}
-.payrep-work-regime-explanation{margin-top:16px;padding:13px 0 0;border-top:1px solid #f0e7f6;line-height:1.65}
 .fortnight-stat-inactive{opacity:.6}
-@media(max-width:650px){.payrep-definition-accordion>summary{padding:18px}.payrep-definition-body{padding:17px}}
-
 /* Informe IR upsell for Free users without historical documents. */
 .ir-upgrade{display:flex;flex-direction:column;gap:22px;width:min(100%,1350px);margin:0 auto}
 .ir-upgrade-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.9fr);align-items:center;gap:28px;overflow:hidden;border-radius:18px;background:linear-gradient(114deg,#32104f,#66229d 84%,#873ab5);color:#fff;min-height:310px;padding:34px 45px}
@@ -3241,3 +3225,23 @@ input[type="checkbox"]:not(.payslip-custom-checkbox):disabled{
 .ir-upgrade-footer button{flex-shrink:0}
 @media(max-width:960px){.ir-upgrade-benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.ir-upgrade-hero{padding:28px;grid-template-columns:minmax(0,1fr) 235px}}
 @media(max-width:640px){.ir-upgrade-hero{grid-template-columns:1fr;padding:25px}.ir-upgrade-art{min-height:180px}.ir-upgrade-visual-document{width:230px}.ir-upgrade-benefits{grid-template-columns:1fr}.ir-upgrade-footer{flex-direction:column;align-items:flex-start}.ir-upgrade-footer button{width:100%;justify-content:center}}
+
+/* Definições: identical panel/button navigation to the administrative Settings page.
+   Radios are explicitly sized to override the app-wide input { width:100% } rule. */
+.payrep-definitions{width:100%;max-width:1300px;margin:0 auto}
+.payrep-definitions .panel{min-width:0}
+.payrep-definitions .panel>.panel-heading{margin-bottom:12px}
+.payrep-definitions .panel>.panel-heading h2{display:flex;align-items:center;gap:9px;font-size:16px}
+.payrep-definitions .panel>p{font-size:13px;line-height:1.7;color:#725d84;max-width:950px}
+.payrep-definitions .panel>button.primary{margin-top:4px}
+.payrep-regime-choices{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%;max-width:100%;gap:12px;margin:21px 0 18px;padding:0}
+.payrep-regime-choice{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;text-align:left!important;width:100%!important;max-width:100%!important;min-width:0!important;gap:14px!important;padding:18px 19px!important;background:#fff!important;border:1px solid #e6d6f1!important;border-radius:12px!important;cursor:pointer}
+.payrep-regime-choice.is-selected{background:#fbf6ff!important;border-color:#a763d8!important;box-shadow:0 0 0 1px #dfbaf6}
+body .payrep-regime-choices .payrep-regime-choice input[type="radio"]{appearance:auto!important;width:20px!important;min-width:20px!important;max-width:20px!important;height:20px!important;margin:0!important;padding:0!important;flex:0 0 20px!important;accent-color:#8300d2!important;border:0!important;box-shadow:none!important}
+.payrep-regime-choice-copy{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;align-items:flex-start!important;gap:5px!important;min-width:0!important;width:auto!important;overflow-wrap:anywhere!important}
+.payrep-regime-choice-copy strong{font-size:14px;line-height:1.45;color:#35134c;font-weight:750}
+.payrep-regime-choice-copy small{font-size:12px;line-height:1.55;color:#7a6489;font-weight:400}
+.payrep-definitions .panel>.payrep-regime-footnote{border-top:1px solid #efdef8;padding-top:14px;margin:8px 0 5px;color:#725d84}
+.payrep-definitions .panel>.payrep-regime-current{display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:12px}
+.payrep-regime-choice:focus-within{outline:2px solid #9d51d8;outline-offset:3px}
+@media(max-width:560px){.payrep-regime-choice{padding:15px 13px!important;gap:11px!important}.payrep-definitions .panel>.panel-heading h2{font-size:15px}}

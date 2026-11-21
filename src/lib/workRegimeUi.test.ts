@@ -2,14 +2,19 @@ import {describe,expect,it} from 'vitest'
 import {readFileSync} from 'node:fs'
 const file=(path:string)=>readFileSync(path,'utf8')
 describe('Regime de jornada and Free IR flows',()=>{
- it('keeps Base and Regime collapsed initially and saves each choice',()=>{
+ it('opens configuration cards in dedicated views and saves each choice',()=>{
   const app=file('src/App.tsx')
-  expect(app).toContain('<details className="payrep-definition-accordion">')
-  expect(app).toContain('Configure sua Base')
-  expect(app).toContain('Regime de Jornada')
-  expect(app).toContain("saveWorkRegime('trust')")
-  expect(app).toContain("saveWorkRegime('regular')")
-  expect(app).not.toContain('<details className="payrep-definition-accordion" open')
+  const definitions=file('src/components/DefinitionsPage.tsx')
+  const css=file('src/styles.css')
+  expect(app).toContain('<DefinitionsPage')
+  expect(definitions).toContain('Configurar Base')
+  expect(definitions).toContain('Configurar Regime de Jornada')
+  expect(definitions).toContain("onSaveRegime('trust')")
+  expect(definitions).toContain("onSaveRegime('regular')")
+  expect(definitions).toContain('role="radiogroup"')
+  expect(definitions).not.toContain('payrep-definition-accordion')
+  expect(css).toContain('.payrep-regime-choice input[type="radio"]')
+  expect(css).toContain('width:20px!important')
  })
  it('stops overtime payroll calculations in trust regime',()=>{
   const app=file('src/App.tsx')
