@@ -64,3 +64,10 @@ Nunca sobrescrever revisões antigas. Manter a etiqueta pública V1.0 até autor
 - **Pep Ajuda:** revisado. Conhecimento, limites e Edge Function inalterados; este vídeo se aplica apenas ao cabeçalho da oferta de upgrade do Pep pessoal.
 - **Implementação:** mídia VP9 WebM com canal alpha real, armazenada em `public/media/pep-banner-transparente.webm`, reproduzida sem áudio, em loop, sem controles, diretamente no navegador. A imagem do Pep é fallback até o início da reprodução, em falhas e quando a preferência do sistema reduz animações.
 - **Escopo e segurança:** não modifica o vídeo institucional já existente, pagamentos, assinatura, banco de dados nem autenticação.
+
+## Troca da animação do banner Pep (21/11/2026)
+
+- Sobre, Privacidade, Termos, FAQ e Pep Ajuda: revisados; substituição apenas de mídia decorativa local, sem mudanças de operação, dados pessoais, benefícios ou contrato.
+- Novo arquivo: public/media/pep-banner-v2-transparente.webm, gerado do MP4 fornecido pelo responsável. Fundo verde removido, transparência VP9 alpha confirmada, 10 s, 400 × 560, sem áudio. Caminho versionado evita reutilização de vídeo antigo em cache.
+- Interface: somente o banner roxo de upgrade do Pep pessoal foi alterado. Mantidos loop silencioso, imagem fallback, movimento reduzido e vídeo institucional original.
+- Segurança e dados: nenhuma alteração em Edge Functions, autenticação, planos, pagamentos, banco ou políticas de acesso.

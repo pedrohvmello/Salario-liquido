@@ -24,7 +24,7 @@ export function PepBannerAnimation(){
    width={166} height={174} loading="eager" decoding="async"/>
   {renderVideo&&<video
    className={'pep-banner-animation-video'+(playing?' is-playing':'')}
-   src="/media/pep-banner-transparente.webm" autoPlay loop muted playsInline
+   src="/media/pep-banner-v2-transparente.webm" autoPlay loop muted playsInline
    preload="auto" disablePictureInPicture disableRemotePlayback
    aria-hidden="true" tabIndex={-1}
    onPlaying={()=>setPlaying(true)} onPause={()=>setPlaying(false)}

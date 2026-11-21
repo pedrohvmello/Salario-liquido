@@ -2,7 +2,7 @@ name: Tests and build
 on:
   pull_request:
   push:
-    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120, codex/payrep-help-legal-sync-20261120, codex/payrep-faq-search-pep-offer-20261120, codex/payrep-pep-video-home-20261120, codex/payrep-admin-access-20261121, codex/payrep-benefits-20261121, codex/payrep-transparent-pep-20261121]
+    branches: [codex/foundation-multiuser-payroll, codex/payrep-subscription-closure-guard-hml, codex/payrep-env-parity-20261120, codex/payrep-legal-pages-20261120, codex/payrep-help-legal-sync-20261120, codex/payrep-faq-search-pep-offer-20261120, codex/payrep-pep-video-home-20261120, codex/payrep-admin-access-20261121, codex/payrep-benefits-20261121, codex/payrep-transparent-pep-20261121, codex/payrep-pep-banner-v2-20261121]
 permissions:
   contents: read
 jobs:
