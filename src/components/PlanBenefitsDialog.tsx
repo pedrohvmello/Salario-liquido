@@ -12,7 +12,7 @@ export function PlanBenefitsDialog({plan,features,limits,paidPlan,activeSubscrip
  return <PayrepPickerDialog title={'Benefícios e limites do plano '+labels[plan]}
   description="Confira as funcionalidades e restrições antes de contratar."
   onClose={onClose} className="subscription-benefits-dialog">
-  <div className="subscription-benefits-body">
+  <div className="subscription-benefits-body" role="region" aria-label="Detalhes dos benefícios e limites" tabIndex={0}>
    <section className="subscription-benefits-section">
     <h4><Check size={17}/> Benefícios incluídos</h4>
     <ul>{features.map(item=><li key={item}><Check size={15}/>{item}</li>)}</ul>
