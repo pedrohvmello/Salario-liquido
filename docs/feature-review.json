@@ -10,7 +10,7 @@
     "pepAjuda": "Revisado: limites e conhecimento preservados; animação restrita à tela de upgrade do Pep pessoal."
   },
   "sourceTrees": {
-    "src": "fcd7a01b6db86323a259f66a321585eceff9301a",
+    "src": "a104fe82d5c6dcbe8c8b5e341e1c1f0995ec849c",
     "supabase/functions": "83dc99d1a3fc087794a208ab1ce8f9926736b9fd",
     "supabase/migrations": "581a352959bb79aace88ef2a8b297e09c5c62459"
   }
