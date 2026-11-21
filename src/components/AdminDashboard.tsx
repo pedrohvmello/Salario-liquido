@@ -104,7 +104,7 @@ export function AdminDashboard(){
       {Object.entries(planLabels).map(([code,label])=><option key={code} value={code}>{label}</option>)}
      </PayrepSelect></label>
     </div>
-    <div className="table-scroll"><table><thead><tr>
+    <div className="table-scroll"><table className="mobile-stack-table mobile-admin-users"><thead><tr>
      <th>Usuário</th><th>Criado em</th><th>Último login</th><th>Último acesso ao app</th>
      <th>Sessões (30 dias)</th><th>Plano</th><th>Localidade</th><th>Status</th><th>Ações</th>
     </tr></thead><tbody>
@@ -136,7 +136,7 @@ export function AdminDashboard(){
     <p className="subtle">Localidade informada no cadastro do usuário. Contas sem endereço aparecem como “Não informado”.</p>
    </section>
    <section className="panel"><div className="panel-heading"><h2>Auditoria recente</h2></div>
-    {data.recentActions.length?<div className="table-scroll"><table><thead><tr><th>Data</th><th>Ação</th><th>Usuário</th><th>Anterior</th><th>Novo</th></tr></thead>
+    {data.recentActions.length?<div className="table-scroll"><table className="mobile-stack-table mobile-admin-audit"><thead><tr><th>Data</th><th>Ação</th><th>Usuário</th><th>Anterior</th><th>Novo</th></tr></thead>
      <tbody>{data.recentActions.map((a,i)=><tr key={i}>
       <td>{dateTime(a.performedAt)}</td><td>{a.action==='require_approval'?'Política de aprovação':'Situação da conta'}</td>
       <td>{users.find(u=>u.id===a.targetId)?.email||'Configuração geral'}</td>
